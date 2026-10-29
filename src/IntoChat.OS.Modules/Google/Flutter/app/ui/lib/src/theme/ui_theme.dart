@@ -309,10 +309,22 @@ abstract final class UiTheme {
   static ThemeData dark(String? stored) => switch (paletteName(stored)) {
     'intochat' => intochat(Brightness.dark),
     'lumen' => _withColors(workspaceDark(stored), UiColors.lumen),
-    'fluent-acrylic' => _withColors(workspaceDark(stored), UiColors.fluentAcrylicDark),
-    'spatial-glass' => _withColors(workspaceDark(stored), UiColors.spatialGlassDark),
-    'cyber-synaptic' => _withColors(workspaceDark(stored), UiColors.cyberSynapticDark),
-    'linear-carbon' => _withColors(workspaceDark(stored), UiColors.linearCarbonDark),
+    'fluent-acrylic' => _withColors(
+      workspaceDark(stored),
+      UiColors.fluentAcrylicDark,
+    ),
+    'spatial-glass' => _withColors(
+      workspaceDark(stored),
+      UiColors.spatialGlassDark,
+    ),
+    'cyber-synaptic' => _withColors(
+      workspaceDark(stored),
+      UiColors.cyberSynapticDark,
+    ),
+    'linear-carbon' => _withColors(
+      workspaceDark(stored),
+      UiColors.linearCarbonDark,
+    ),
     _ => _withColors(workspaceDark(stored), UiColors.midnight),
   };
 

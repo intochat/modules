@@ -78,7 +78,9 @@ class UiSurface extends StatelessWidget {
     final c = UiColors.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final fill = emphasized
-        ? theme.colorScheme.primaryContainer.withValues(alpha: isDark ? 0.88 : 0.96)
+        ? theme.colorScheme.primaryContainer.withValues(
+            alpha: isDark ? 0.88 : 0.96,
+          )
         : c.surface.withValues(alpha: isDark ? 0.86 : 0.96);
     final borderColor = emphasized
         ? c.accent.withValues(alpha: 0.35)
