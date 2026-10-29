@@ -1,0 +1,88 @@
+import 'dart:convert';
+
+import 'package:intochat_os_flutter/intochat_os_flutter.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
+
+import 'auth/brain_session_gate.dart';
+import 'workspace/workspace_app.dart';
+import 'workspace/workspace_store.dart';
+import 'open_url_io.dart'
+    if (dart.library.html) 'open_url_web.dart'
+    as open_url;
+
+// Kept for the application lifetime so the test opt-in remains active.
+// ignore: unused_element
+SemanticsHandle? _semantics;
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Headless drivers (Playwright e2e) cannot read Flutter's canvas. They opt in
+  // to the semantics DOM with ?semantics=true so native text locators work.
+  if (kIsWeb && Uri.base.queryParameters['semantics'] == 'true') {
+    _semantics = SemanticsBinding.instance.ensureSemantics();
+  }
+
+  // A containerized bundle learns the kernel URL from same-origin config.json;
+  // bundles with baked defines skip the fetch inside loadServedConfig.
+  await IntoChatOSHostEnv.loadServedConfig();
+
+  final chat = IntoChatOSHostEnv.resolveChat();
+  // Capture the deep link before the authentication gate builds its Navigator.
+  var initialLocation = Uri.parse(
+    WidgetsBinding.instance.platformDispatcher.defaultRouteName,
+  );
+
+  // The gate owns client construction now: it must hold the credentials the
+  // kernel accepted before any stream opens.
+  runApp(
+    BrainSessionGate(
+      builder: (client, status, switchAccount) => buildShell(
+        chat: chat,
+        onSwitchAccount: () async {
+          // Preserve a link opened after startup when the gate replaces the shell.
+          if (kIsWeb && Uri.base.fragment.startsWith('/open?')) {
+            initialLocation = Uri.parse(Uri.base.fragment);
+          }
+          await switchAccount();
+        },
+        edge: client,
+        statusMessage: status,
+        initialLocation: initialLocation,
+      ),
+    ),
+  );
+}
+
+@visibleForTesting
+Widget buildShell({
+  required String chat,
+  required IntoChatOSUiClient? edge,
+  String? statusMessage,
+  WorkspaceStore? workspaceStore,
+  Uri? initialLocation,
+  Future<void> Function()? onSwitchAccount,
+}) {
+  final scope = base64Url.encode(
+    utf8.encode(
+      edge == null
+          ? 'offline'
+          : '${edge.baseUri.origin}|${edge.workspaceIdentity}',
+    ),
+  );
+  return WorkspaceApp(
+    key: ValueKey(scope),
+    onSwitchAccount: onSwitchAccount,
+    persistenceKey: 'intochatos.preferences.v1.$scope',
+    store: workspaceStore,
+    initialLocation: initialLocation,
+    kernelBaseUri: edge?.baseUri,
+    programmingClient: edge,
+    statusMessage: statusMessage,
+    onOpenUrl: openExternalUrl,
+  );
+}
+
+Future<void> openExternalUrl(Uri url) => open_url.openExternalUrl(url);

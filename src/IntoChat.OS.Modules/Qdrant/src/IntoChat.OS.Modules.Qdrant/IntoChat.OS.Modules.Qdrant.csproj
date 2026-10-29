@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <Description>Qdrant module: the one vector store every module searches through IQdrant.</Description>
+    <RootNamespace>IntoChat.OS.Modules.Qdrant</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="IntoChat.OS.Modules.Qdrant.Tests.Unit" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Qdrant.Client" />
+  </ItemGroup>
+  <ItemGroup><ProjectReference Include="../../../../IntoChat.OS/Hosting/IntoChat.OS.Framework/IntoChat.OS.Framework.csproj" /></ItemGroup>
+  <ItemGroup><ProjectReference Include="../../../IntoChat.OS/Identity/src/IntoChat.OS.Modules.Identity/IntoChat.OS.Modules.Identity.csproj" /></ItemGroup>
+</Project>

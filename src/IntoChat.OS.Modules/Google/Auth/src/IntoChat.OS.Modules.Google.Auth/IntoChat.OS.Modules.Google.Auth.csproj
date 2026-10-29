@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <Description>Google sign-in module: the google-oauth integration, token exchange and refresh, and the metered Google HTTP client shared by Gmail and Google Drive.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RootNamespace>IntoChat.OS.Modules.Google.Auth</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Update="README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../../../IntoChat.OS/Hosting/IntoChat.OS.Framework/IntoChat.OS.Framework.csproj" />
+    <ProjectReference Include="../../../../IntoChat.OS/Identity/src/IntoChat.OS.Modules.Identity/IntoChat.OS.Modules.Identity.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/IntoChat.OS.Modules.Qdrant/IntoChat.OS.Modules.Qdrant.csproj" />
+  </ItemGroup>
+</Project>

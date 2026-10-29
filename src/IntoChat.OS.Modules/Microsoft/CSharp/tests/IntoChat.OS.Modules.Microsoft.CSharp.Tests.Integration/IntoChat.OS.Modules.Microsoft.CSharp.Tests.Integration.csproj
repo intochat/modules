@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../../../../../framework/src/DigitalBrain.Testing.Silo/DigitalBrain.Testing.Silo.csproj" />
+    <ProjectReference Include="../../src/IntoChat.OS.Modules.Microsoft.CSharp/IntoChat.OS.Modules.Microsoft.CSharp.csproj" />
+    <ProjectReference Include="../../src/IntoChat.OS.Modules.Microsoft.CSharp.Sandbox/IntoChat.OS.Modules.Microsoft.CSharp.Sandbox.csproj" />
+    <ProjectReference Include="../../../../IntoChat.OS/Apps/src/IntoChat.OS.Modules.Apps/IntoChat.OS.Modules.Apps.csproj" />
+    <ProjectReference Include="../../../../IntoChat.OS/Apps/Contracts/IntoChat.OS.Modules.Apps.Contracts/IntoChat.OS.Modules.Apps.Contracts.csproj" />
+    <ProjectReference Include="../../../../IntoChat.OS/Identity/src/IntoChat.OS.Modules.Identity/IntoChat.OS.Modules.Identity.csproj" />
+    <ProjectReference Include="../../../../Google/Flutter/src/IntoChat.OS.Modules.Flutter/IntoChat.OS.Modules.Flutter.csproj" />
+    <ProjectReference Include="../../../../../../framework/src/DigitalBrain.Apps.Packaging/DigitalBrain.Apps.Packaging.csproj" />
+    <ProjectReference Include="../../../../Time/src/IntoChat.OS.Modules.Time/IntoChat.OS.Modules.Time.csproj" />
+    <ProjectReference Include="../../../../Postgres/src/IntoChat.OS.Modules.Postgres/IntoChat.OS.Modules.Postgres.csproj" />
+  </ItemGroup>
+  <ItemGroup><PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" /></ItemGroup>
+  <ItemGroup>
+    <!-- The Gmail README examples are compiled by GmailAuthoringFacts; copied beside the tests so prebuilt CI shards find it. -->
+    <None Include="../../../../Google/Gmail/src/IntoChat.OS.Modules.Google.Gmail/README.md" Link="GmailReadme.md" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,96 @@
+import 'package:intochat_os_flutter/intochat_os_flutter.dart';
+import 'package:intochat_os_ui/intochat_os_ui.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+Map<String, dynamic> tableJson(int revision, String company) => {
+  'id': 'table',
+  'title': 'Companies',
+  'revision': revision,
+  'columns': [
+    {'id': 'company', 'label': 'company', 'type': 'text'},
+  ],
+  'rows': [
+    {
+      'id': 'r',
+      'cells': [company],
+    },
+  ],
+  'filters': [],
+  'sort': null,
+  'visibleColumns': ['company'],
+  'totalRows': 100,
+  'filteredRows': 100,
+  'offset': 0,
+  'limit': 25,
+};
+
+void main() {
+  testWidgets(
+    'paging replaces visible rows and previous restores the first page',
+    (tester) async {
+      final controller = UiTableController(
+        workspace: 'w',
+        snapshot: TableSnapshot.fromJson(tableJson(1, 'First page company')),
+        read: (_, _, {offset = 0, limit = 25}) async => TableSnapshot.fromJson({
+          ...tableJson(
+            1,
+            offset == 0 ? 'First page company' : 'Next page company',
+          ),
+          'offset': offset,
+          'limit': limit,
+        }),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: UiDataTable(controller: controller)),
+        ),
+      );
+      await tester.tap(find.byTooltip('Next page'));
+      await tester.pumpAndSettle();
+      expect(find.text('Next page company'), findsOneWidget);
+      expect(find.text('First page company'), findsNothing);
+      await tester.tap(find.byTooltip('Previous page'));
+      await tester.pumpAndSettle();
+      expect(find.text('First page company'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+      controller.dispose();
+    },
+  );
+
+  testWidgets(
+    'column gestures render ascending and descending server results',
+    (tester) async {
+      final controller = UiTableController(
+        workspace: 'w',
+        snapshot: TableSnapshot.fromJson(tableJson(1, 'Unsorted company')),
+        update: (_, _, update) async => TableSnapshot.fromJson({
+          ...tableJson(
+            update.expectedRevision + 1,
+            update.sort?.descending == true ? 'Zulu first' : 'Alpha first',
+          ),
+          'sort': update.sort?.toJson(),
+        }),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: UiDataTable(controller: controller)),
+        ),
+      );
+      await tester.tap(find.text('company').first);
+      await tester.pumpAndSettle();
+      expect(find.text('Alpha first'), findsOneWidget);
+      await tester.tap(
+        find.descendant(
+          of: find.byType(DataTable),
+          matching: find.text('company'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Zulu first'), findsOneWidget);
+      expect(find.text('Alpha first'), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+      controller.dispose();
+    },
+  );
+}

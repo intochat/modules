@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <Description>ClickHouse module: read-only query neuron, live query tables and hosting registration.</Description>
+    <RootNamespace>IntoChat.OS.Modules.ClickHouse</RootNamespace>
+    <NoWarn>$(NoWarn);ORLEANSEXP005;CA1812</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="IntoChat.OS.Modules.ClickHouse.Tests.Unit" />
+    <InternalsVisibleTo Include="IntoChat.OS.Modules.ClickHouse.Tests.Integration" />
+  </ItemGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="ClickHouse.Driver" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../Contracts/IntoChat.OS.Modules.ClickHouse.Contracts/IntoChat.OS.Modules.ClickHouse.Contracts.csproj" />
+    <ProjectReference Include="../../../../IntoChat.OS/Hosting/IntoChat.OS.Framework/IntoChat.OS.Framework.csproj" />
+  </ItemGroup>
+  <ItemGroup><ProjectReference Include="../../../IntoChat.OS/Identity/src/IntoChat.OS.Modules.Identity/IntoChat.OS.Modules.Identity.csproj" /></ItemGroup>
+</Project>

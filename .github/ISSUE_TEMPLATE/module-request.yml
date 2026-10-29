@@ -1,0 +1,49 @@
+name: "🔌 Module / Connector Request"
+description: "Propose a new capability or third-party connector module for DigitalBrain & IntoChat OS (upvote existing requests with 👍!)"
+title: "[Module]: "
+labels: ["module-request"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before opening a new request, check the **[🔥 Trending Module Requests](https://github.com/intochat/modules/issues?q=is%3Aissue+is%3Aopen+label%3Amodule-request+sort%3Areactions-%2B1-desc)** and add a 👍 reaction if it's already listed!
+  - type: input
+    id: module-id
+    attributes:
+      label: "Module ID & Service Name"
+      description: "Lowercase module identifier and service name (e.g., `x` for X/Twitter, `telegram` for Telegram, `linear` for Linear)."
+      placeholder: "x (X / Twitter API)"
+    validations:
+      required: true
+  - type: dropdown
+    id: category
+    attributes:
+      label: "Module Category"
+      options:
+        - "Connector (External API / Webhook / OAuth)"
+        - "Capability (Storage / AI / Compute / Hardware)"
+        - "Messaging & Social"
+        - "Developer Tools & Productivity"
+        - "Finance & Commerce"
+        - "Smart Home / IoT"
+    validations:
+      required: true
+  - type: textarea
+    id: neurons-and-signals
+    attributes:
+      label: "Proposed Neurons & Signals"
+      description: "What neurons (`[Neuron]`) and signals (`[Signal]`) should this module expose to apps (`App<TState>`) and `Ino`?"
+      placeholder: |
+        - Neuron: `IXFeed` (`x.feed`)
+        - Signal: `[Signal("x.post.received")] public sealed record XPostReceived(string Id, string Author, string Text) : Signal;`
+        - Needs: `Need.HttpClient("x-api")`, `Need.Webhook("/webhooks/x", "x.feed")`
+    validations:
+      required: true
+  - type: textarea
+    id: use-cases
+    attributes:
+      label: "Example App / Ino Use Cases"
+      description: "What apps should `Creator` be able to synthesize once this module is installed?"
+      placeholder: "Ask Ino: 'Start tracking posts from @elonmusk on X and summarize any AI announcements in my feed.'"
+    validations:
+      required: true

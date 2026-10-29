@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <Description>Azure contracts: resource specs and the IAzure neuron that ensures them.</Description>
+    <RootNamespace>IntoChat.OS.Modules.Microsoft.Azure.Contracts</RootNamespace>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../../../IntoChat.OS/IntoChat.OS.csproj" />
+  </ItemGroup>
+</Project>

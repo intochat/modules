@@ -1,0 +1,59 @@
+bin/
+!clients/**/bin/
+!clients/**/bin/**
+obj/
+/artifacts/
+TestResults/
+*.binlog
+*.user
+*.env
+.vs/
+logs/
+.codegraph/
+.grok/*
+!.grok/lsp.json
+.digitalbrain/
+.intochat-os/
+.agents/
+.superpowers/
+.worktrees/
+sources/
+node_modules/
+
+# Local MCP tool installs (Codex absolute launch)
+.config/codegraph-tool/
+.config/context7-tool/
+
+# Repo-local Playwright browser cache (UiEvidenceTests sets PLAYWRIGHT_BROWSERS_PATH here)
+.playwright/
+
+# Dart / Flutter clients
+**/.dart_tool/
+/src/IntoChat.OS.Modules/Google/Flutter/app/build/
+**/packages/pubspec_overrides.yaml
+
+plans/stage1/logs/
+
+
+# local runtime logs
+apphost.out.log
+apphost.err.log
+*.log
+# Locally saved application sources and compiled artifacts.
+src/IntoChat.OS/OS/IntoChat.OS.Kernel.Host/applications/
+.test-results/
+# Scratch source bundles produced by file-application tests.
+.agent-facade-tests/
+.chat-app-tests/
+.file-compiler-tests/
+.script-graph-tests/
+.graph-failure-tests/
+# Local Aspire state created by E2E hosts.
+**/*.Tests.E2E/.aspire/
+
+# Prebuilt built-in app packages (src/IntoChat.OS.BuiltinApps)
+/compiled-apps/
+# Private deployment values (owner repo intochat/os-deployment) never enter this repository.
+deployment/*.json
+.deployment-values/
+__pycache__/

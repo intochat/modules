@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <Description>Local disks as storage@1: allowed roots, volume quota and confined filesystem access, with no connection flow.</Description>
+    <RootNamespace>IntoChat.OS.Modules.LocalDisk</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="IntoChat.OS.Modules.LocalDisk.Tests.Unit" />
+    <InternalsVisibleTo Include="IntoChat.OS.Modules.LocalDisk.Tests.Integration" />
+    <ProjectReference Include="../../../../IntoChat.OS/Hosting/IntoChat.OS.Framework/IntoChat.OS.Framework.csproj" />
+    <ProjectReference Include="../../../IntoChat.OS/Identity/src/IntoChat.OS.Modules.Identity/IntoChat.OS.Modules.Identity.csproj" />
+  </ItemGroup>
+</Project>

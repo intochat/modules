@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <Description>Google Drive module: one Drive as read-only storage, signed in through the google-auth module.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RootNamespace>IntoChat.OS.Modules.Google.Drive</RootNamespace>
+    <NoWarn>$(NoWarn);ORLEANSEXP005</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="IntoChat.OS.Modules.Google.Drive.Tests.Unit" />
+    <InternalsVisibleTo Include="IntoChat.OS.Modules.Google.Drive.Tests.Integration" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../../../IntoChat.OS/Hosting/IntoChat.OS.Framework/IntoChat.OS.Framework.csproj" />
+    <ProjectReference Include="../../../../IntoChat.OS/Identity/src/IntoChat.OS.Modules.Identity/IntoChat.OS.Modules.Identity.csproj" />
+    
+    <ProjectReference Include="../../../Auth/src/IntoChat.OS.Modules.Google.Auth/IntoChat.OS.Modules.Google.Auth.csproj" />
+  </ItemGroup>
+</Project>

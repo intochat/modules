@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <Description>Salesforce neuron contracts.</Description>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <RootNamespace>IntoChat.OS.Modules.Salesforce.Contracts</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Neuron interfaces and signals use the IntoChat.OS wire vocabulary; module runtime uses Framework. -->
+    <ProjectReference Include="../../../../IntoChat.OS/IntoChat.OS.csproj" />
+  </ItemGroup>
+</Project>

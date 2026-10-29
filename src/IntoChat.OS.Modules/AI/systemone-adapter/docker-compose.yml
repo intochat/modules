@@ -1,0 +1,24 @@
+# A local System One endpoint plus a model to back it. The brain talks only to `systemone`;
+# `ollama` is an implementation detail behind it. Point the `typesafe` integration Endpoint at
+# http://localhost:8080 to route through this instead of the hosted Jev API.
+services:
+  systemone:
+    build: .
+    ports:
+      - "8080:8000"
+    environment:
+      OPENAI_BASE_URL: http://ollama:11434/v1
+      OPENAI_API_KEY: not-needed
+      SYSTEMONE_MODEL: ${SYSTEMONE_MODEL:-llama3.1}
+    depends_on:
+      - ollama
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama:/root/.ollama
+
+volumes:
+  ollama:

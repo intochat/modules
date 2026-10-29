@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <Description>ArtCraft apps (PhotoCraft, FilmCraft): their MCP servers and web builds as brain capabilities.</Description>
+    <RootNamespace>IntoChat.OS.Modules.ArtCraft</RootNamespace>
+    <IntoChatOSContractsHost>true</IntoChatOSContractsHost>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="IntoChat.OS.Modules.ArtCraft.Tests.Integration" />
+    <ProjectReference Include="../../../../ModelContextProtocol/Mcp/Contracts/IntoChat.OS.Modules.Mcp.Contracts/IntoChat.OS.Modules.Mcp.Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup><ProjectReference Include="../../../../../IntoChat.OS/Hosting/IntoChat.OS.Framework/IntoChat.OS.Framework.csproj" /></ItemGroup>
+  <ItemGroup><ProjectReference Include="../../../../IntoChat.OS/Identity/src/IntoChat.OS.Modules.Identity/IntoChat.OS.Modules.Identity.csproj" /></ItemGroup>
+</Project>

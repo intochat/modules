@@ -1,0 +1,32 @@
+{
+  "measured": "2026-10-24",
+  "method": "UiTransportBaselineFacts.CaptureUiTransportBaseline on the shared in-process FlutterHost (backend only, no network hop). One view whose root column holds a title and 10 button and 10 text UiChildRefs. 5 warm-up runs, then 50 timed runs per scenario, Stopwatch around the shell's HTTP calls. first-paint: GET view + one sequential GET /apps/node per reference. click-round-trip: POST /apps/event for a button + GET of that button (nudge latency excluded). root-view-poll-2s: one GET of the view; perMinute = 30 polls. Bytes are UTF-8 response bodies (click digits excluded). Times compare only against reruns of this fact on the same machine: Debug build, 32 logical cores, Microsoft Windows 10.0.26300, .NET 11.0.0-rc.2.26504.105.",
+  "scenarios": {
+    "first-paint": {
+      "requests": 21,
+      "bytes": 9067,
+      "p50Ms": 13.91,
+      "p95Ms": 16.2,
+      "meanMs": 14.39
+    },
+    "click-round-trip": {
+      "requests": 2,
+      "bytes": 200,
+      "p50Ms": 3.57,
+      "p95Ms": 4.4,
+      "meanMs": 3.7
+    },
+    "root-view-poll-2s": {
+      "requests": 1,
+      "bytes": 5867,
+      "p50Ms": 0.81,
+      "p95Ms": 1.28,
+      "meanMs": 0.89,
+      "perMinute": {
+        "requests": 30,
+        "bytes": 176010,
+        "p50Ms": 24.42
+      }
+    }
+  }
+}

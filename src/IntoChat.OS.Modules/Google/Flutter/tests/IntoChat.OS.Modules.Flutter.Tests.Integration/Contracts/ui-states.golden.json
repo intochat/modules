@@ -1,0 +1,682 @@
+{
+  "IntoChat.OS.Modules.Flutter.AppUiEndpoints+UiEvent": {
+    "kind": "Kind",
+    "name": "Name",
+    "action": "Action",
+    "value": "Value",
+    "revision": 8000,
+    "field": "Field",
+    "mimeType": "MimeType",
+    "context": "Context",
+    "operationId": "869360d5-a6e2-ce70-ac53-2d5694d72005",
+    "read": {
+      "version": 7000,
+      "messageIds": [
+        "MessageIds"
+      ]
+    },
+    "selectionRevision": 17000
+  },
+  "IntoChat.OS.Modules.Flutter.Button.ButtonState": {
+    "name": "Name",
+    "version": 7,
+    "label": "Label",
+    "action": "Action",
+    "enabled": true,
+    "clickCount": 10,
+    "activation": "Activation",
+    "visual": {
+      "icon": "Icon",
+      "svg": "Svg",
+      "imageUrl": "ImageUrl",
+      "compact": true,
+      "selected": true,
+      "running": true,
+      "avatar": true,
+      "tone": "Tone"
+    }
+  },
+  "IntoChat.OS.Modules.Flutter.Calendar.CalendarState": {
+    "name": "Name",
+    "version": 7,
+    "mode": "Mode",
+    "selected": [
+      "Selected"
+    ]
+  },
+  "IntoChat.OS.Modules.Flutter.Card.CardState": {
+    "name": "Name",
+    "version": 7,
+    "title": "Title",
+    "body": "Body",
+    "children": [
+      {
+        "kind": "Kind",
+        "name": "Name"
+      }
+    ]
+  },
+  "IntoChat.OS.Modules.Flutter.Chart.ChartState": {
+    "name": "Name",
+    "version": 7,
+    "title": "Title",
+    "kind": "Kind",
+    "points": [
+      {
+        "eventId": "EventId",
+        "label": "Label",
+        "value": 5.5
+      }
+    ]
+  },
+  "IntoChat.OS.Modules.Flutter.Chat.ChatState": {
+    "name": "Name",
+    "revision": 8000,
+    "projection": {
+      "source": "Source",
+      "generation": 10000,
+      "version": 7000,
+      "messages": [
+        {
+          "id": "Id",
+          "role": 1,
+          "text": "Text",
+          "status": "Status",
+          "error": "Error",
+          "activities": [],
+          "model": "Model",
+          "app": {
+            "app": "App",
+            "title": "Title",
+            "icon": "Icon",
+            "installed": true,
+            "input": "Input",
+            "publisher": "Publisher",
+            "release": "Release"
+          }
+        }
+      ],
+      "actions": [
+        {
+          "id": "Id",
+          "label": "Label",
+          "payload": "Payload",
+          "enabled": true
+        }
+      ]
+    },
+    "readReceipts": [
+      {
+        "principalId": "PrincipalId",
+        "source": "Source",
+        "messageId": "MessageId",
+        "contentHash": "ContentHash"
+      }
+    ],
+    "unreadMessageIds": [
+      "UnreadMessageIds"
+    ],
+    "selection": {
+      "agent": "Agent",
+      "revision": 8000
+    },
+    "run": {
+      "source": "Source",
+      "selectionRevision": 17000,
+      "version": 7000,
+      "runId": "RunId",
+      "status": 4
+    },
+    "activityRevision": 16000,
+    "selectionReceipts": [
+      {
+        "operationId": "869360d5-a6e2-ce70-ac53-2d5694d72005",
+        "selection": {
+          "agent": "Agent",
+          "revision": 8000
+        }
+      }
+    ]
+  },
+  "IntoChat.OS.Modules.Flutter.Chat.ComposerState": {
+    "name": "Name",
+    "revision": 8000,
+    "context": "Context",
+    "generation": 10000,
+    "label": "Label",
+    "draft": "Draft",
+    "draftVersion": 12000,
+    "submissions": [
+      {
+        "id": "e8a60a49-cc56-08f2-a054-389e47ce0d06",
+        "context": "Context",
+        "text": "Text",
+        "draftVersion": 12000,
+        "status": "Status",
+        "error": "Error",
+        "generation": 10000
+      }
+    ],
+    "error": "Error",
+    "voice": {
+      "id": "e8a60a49-cc56-08f2-a054-389e47ce0d06",
+      "context": "Context",
+      "draftVersion": 12000,
+      "status": "Status",
+      "error": "Error"
+    },
+    "followedChat": "FollowedChat"
+  },
+  "IntoChat.OS.Modules.Flutter.Clock.ClockState": {
+    "name": "Name",
+    "version": 7,
+    "label": "Label",
+    "dueAt": "2026-10-18T00:05:00+00:00"
+  },
+  "IntoChat.OS.Modules.Flutter.Collection.CollectionState": {
+    "name": "Name",
+    "revision": 8000,
+    "definition": {
+      "items": [
+        {
+          "id": "Id",
+          "label": "Label",
+          "kind": "Kind",
+          "secondaryText": "SecondaryText",
+          "sizeBytes": 9000,
+          "modifiedAt": "2026-10-18T00:10:00+00:00",
+          "canActivate": true,
+          "trailingText": "TrailingText"
+        }
+      ],
+      "selection": "Selection",
+      "cursor": "Cursor",
+      "error": "Error",
+      "fileMode": true,
+      "selectionEnabled": true,
+      "emptyLabel": "EmptyLabel",
+      "breadcrumbs": [
+        {
+          "id": "Id",
+          "label": "Label"
+        }
+      ]
+    }
+  },
+  "IntoChat.OS.Modules.Flutter.Color.ColorState": {
+    "name": "Name",
+    "version": 7,
+    "hex": "Hex"
+  },
+  "IntoChat.OS.Modules.Flutter.Compute.ComputeState": {
+    "spentMicros": 11000,
+    "since": "2026-10-18T00:05:00+00:00",
+    "rows": [
+      {
+        "key": "Key",
+        "micros": 6000,
+        "count": 5000
+      }
+    ]
+  },
+  "IntoChat.OS.Modules.Flutter.Entries.EntryControlState": {
+    "name": "Name",
+    "version": 7,
+    "spec": {
+      "mode": 1,
+      "label": "Label",
+      "entryName": "EntryName"
+    }
+  },
+  "IntoChat.OS.Modules.Flutter.Expander.ExpanderState": {
+    "name": "Name",
+    "version": 7,
+    "header": "Header",
+    "expanded": true,
+    "children": [
+      {
+        "kind": "Kind",
+        "name": "Name"
+      }
+    ]
+  },
+  "IntoChat.OS.Modules.Flutter.FileInput.FileInputState": {
+    "name": "Name",
+    "revision": 8000,
+    "label": "Label"
+  },
+  "IntoChat.OS.Modules.Flutter.Form.FormState": {
+    "formId": "FormId",
+    "title": "Title",
+    "revision": 8,
+    "fields": [
+      {
+        "name": "Name",
+        "label": "Label",
+        "kind": 11,
+        "required": true,
+        "choices": [],
+        "value": "Value",
+        "secretSet": true,
+        "supported": true,
+        "secret": {
+          "reference": "Reference",
+          "label": "Label",
+          "isSet": true
+        }
+      }
+    ],
+    "submitted": true
+  },
+  "IntoChat.OS.Modules.Flutter.Graph.GraphState": {
+    "name": "Name",
+    "version": 7,
+    "title": "Title",
+    "nodes": [
+      {
+        "id": "Id",
+        "label": "Label"
+      }
+    ],
+    "edges": [
+      {
+        "from": "From",
+        "to": "To"
+      }
+    ]
+  },
+  "IntoChat.OS.Modules.Flutter.Image.ImageState": {
+    "name": "Name",
+    "version": 7,
+    "prompt": "Prompt",
+    "mediaType": "MediaType",
+    "url": "Url"
+  },
+  "IntoChat.OS.Modules.Flutter.ImageCanvas.ImageCanvasState": {
+    "name": "Name",
+    "revision": 8000,
+    "definition": {
+      "assetId": "AssetId",
+      "width": 5,
+      "height": 6,
+      "recipe": {
+        "crop": {
+          "x": 1,
+          "y": 1,
+          "width": 5,
+          "height": 6
+        },
+        "strokes": []
+      },
+      "documentRevision": 16000
+    }
+  },
+  "IntoChat.OS.Modules.Flutter.InfoBar.InfoBarState": {
+    "name": "Name",
+    "version": 7,
+    "severity": "Severity",
+    "title": "Title",
+    "body": "Body",
+    "visible": true
+  },
+  "IntoChat.OS.Modules.Flutter.Layout.LayoutState": {
+    "name": "Name",
+    "revision": 8000,
+    "definition": {
+      "mode": "Mode",
+      "children": [
+        {
+          "kind": "Kind",
+          "name": "Name"
+        }
+      ],
+      "gap": 3.5,
+      "extents": [
+        7.5
+      ],
+      "followEnd": true,
+      "surface": "Surface",
+      "padding": 7.5
+    }
+  },
+  "IntoChat.OS.Modules.Flutter.Map.MapState": {
+    "name": "Name",
+    "version": 7,
+    "lat": 3.5,
+    "lng": 3.5,
+    "zoom": 4.5,
+    "markers": [
+      {
+        "id": "Id",
+        "lat": 3.5,
+        "lng": 3.5,
+        "label": "Label"
+      }
+    ]
+  },
+  "IntoChat.OS.Modules.Flutter.Person.PersonState": {
+    "name": "Name",
+    "version": 7,
+    "displayName": "DisplayName",
+    "avatarUrl": "AvatarUrl"
+  },
+  "IntoChat.OS.Modules.Flutter.Preferences.PreferenceControlState": {
+    "name": "Name",
+    "version": 7,
+    "spec": {
+      "store": 14,
+      "label": "Label",
+      "kind": 2,
+      "choices": [
+        {
+          "id": "Id",
+          "label": "Label",
+          "enabled": true,
+          "detail": "Detail"
+        }
+      ]
+    },
+    "value": "Value"
+  },
+  "IntoChat.OS.Modules.Flutter.Progress.ProgressState": {
+    "name": "Name",
+    "version": 7,
+    "determinate": true,
+    "value": 5.5,
+    "label": "Label"
+  },
+  "IntoChat.OS.Modules.Flutter.Rating.RatingState": {
+    "name": "Name",
+    "version": 7,
+    "max": 3,
+    "value": 5
+  },
+  "IntoChat.OS.Modules.Flutter.Select.SelectState": {
+    "name": "Name",
+    "revision": 8000,
+    "label": "Label",
+    "options": [
+      {
+        "id": "Id",
+        "label": "Label",
+        "enabled": true,
+        "visual": {
+          "icon": "Icon",
+          "svg": "Svg",
+          "imageUrl": "ImageUrl",
+          "compact": true,
+          "selected": true,
+          "running": true,
+          "avatar": true,
+          "tone": "Tone"
+        }
+      }
+    ],
+    "selected": "Selected",
+    "visual": {
+      "icon": "Icon",
+      "svg": "Svg",
+      "imageUrl": "ImageUrl",
+      "compact": true,
+      "selected": true,
+      "running": true,
+      "avatar": true,
+      "tone": "Tone"
+    }
+  },
+  "IntoChat.OS.Modules.Flutter.Sheet.SheetState": {
+    "name": "Name",
+    "version": 7,
+    "title": "Title",
+    "cells": [
+      {
+        "row": 3,
+        "column": 6,
+        "value": "Value"
+      }
+    ]
+  },
+  "IntoChat.OS.Modules.Flutter.Slider.SliderState": {
+    "name": "Name",
+    "version": 7,
+    "min": 3.5,
+    "max": 3.5,
+    "step": 4.5,
+    "value": 5.5
+  },
+  "IntoChat.OS.Modules.Flutter.Surface.SurfaceState": {
+    "name": "Name",
+    "revision": 8000,
+    "definition": {
+      "title": "Title",
+      "children": [
+        {
+          "kind": "Kind",
+          "name": "Name"
+        }
+      ]
+    }
+  },
+  "IntoChat.OS.Modules.Flutter.Table.TableState": {
+    "name": "Name",
+    "version": 7,
+    "title": "Title",
+    "columns": [
+      {
+        "id": "Id",
+        "title": "Title"
+      }
+    ],
+    "rows": [
+      [
+        "Rows"
+      ]
+    ]
+  },
+  "IntoChat.OS.Modules.Flutter.Tabs.TabsState": {
+    "name": "Name",
+    "version": 7,
+    "tabs": [
+      {
+        "id": "Id",
+        "title": "Title",
+        "child": {
+          "kind": "Kind",
+          "name": "Name"
+        }
+      }
+    ],
+    "selectedId": "SelectedId"
+  },
+  "IntoChat.OS.Modules.Flutter.Text.TextState": {
+    "name": "Name",
+    "version": 7,
+    "markdown": "Markdown"
+  },
+  "IntoChat.OS.Modules.Flutter.TextField.TextFieldState": {
+    "name": "Name",
+    "version": 7,
+    "label": "Label",
+    "kind": "Kind",
+    "value": "Value",
+    "submitButton": "SubmitButton"
+  },
+  "IntoChat.OS.Modules.Flutter.Toggle.ToggleState": {
+    "name": "Name",
+    "version": 7,
+    "label": "Label",
+    "on": true
+  },
+  "IntoChat.OS.Modules.Flutter.Tree.TreeState": {
+    "name": "Name",
+    "version": 7,
+    "nodes": [
+      {
+        "id": "Id",
+        "parentId": "ParentId",
+        "label": "Label"
+      }
+    ],
+    "selectedId": "SelectedId"
+  },
+  "IntoChat.OS.Modules.Flutter.Video.VideoState": {
+    "name": "Name",
+    "version": 7,
+    "url": "Url",
+    "playing": true,
+    "position": 8.5,
+    "duration": 8.5
+  },
+  "IntoChat.OS.Modules.Flutter.Viewport.ViewportState": {
+    "name": "Name",
+    "revision": 8000,
+    "target": {
+      "id": "Id",
+      "app": "App",
+      "variant": "Variant",
+      "context": "Context"
+    }
+  },
+  "IntoChat.OS.Modules.Flutter.Views.UiNode": {
+    "kind": 13,
+    "key": "Key",
+    "text": "Text",
+    "detail": "Detail",
+    "action": "Action",
+    "enabled": true,
+    "children": [
+      {
+        "kind": 13,
+        "key": "Key",
+        "text": "Text",
+        "detail": "Detail",
+        "action": "Action",
+        "enabled": true,
+        "children": [],
+        "extents": [],
+        "reference": {
+          "kind": "Kind",
+          "name": "Name"
+        },
+        "gap": 3.5,
+        "followEnd": true,
+        "icon": "Icon",
+        "style": 4,
+        "tone": 3
+      }
+    ],
+    "extents": [
+      7.5
+    ],
+    "reference": {
+      "kind": "Kind",
+      "name": "Name"
+    },
+    "gap": 3.5,
+    "followEnd": true,
+    "icon": "Icon",
+    "style": 4,
+    "tone": 3
+  },
+  "IntoChat.OS.Modules.Flutter.Views.UiView": {
+    "generation": 10000,
+    "version": 7000,
+    "root": {
+      "kind": 13,
+      "key": "Key",
+      "text": "Text",
+      "detail": "Detail",
+      "action": "Action",
+      "enabled": true,
+      "children": [
+        {
+          "kind": 13,
+          "key": "Key",
+          "text": "Text",
+          "detail": "Detail",
+          "action": "Action",
+          "enabled": true,
+          "children": [],
+          "extents": [],
+          "reference": {
+            "kind": "Kind",
+            "name": "Name"
+          },
+          "gap": 3.5,
+          "followEnd": true,
+          "icon": "Icon",
+          "style": 4,
+          "tone": 3
+        }
+      ],
+      "extents": [
+        7.5
+      ],
+      "reference": {
+        "kind": "Kind",
+        "name": "Name"
+      },
+      "gap": 3.5,
+      "followEnd": true,
+      "icon": "Icon",
+      "style": 4,
+      "tone": 3
+    }
+  },
+  "IntoChat.OS.Modules.Flutter.VoiceInput.VoiceInputState": {
+    "name": "Name",
+    "revision": 8000,
+    "label": "Label",
+    "captures": 8
+  },
+  "IntoChat.OS.Modules.Flutter.WebBrowser.WebBrowserView": {
+    "name": "Name",
+    "version": 7,
+    "uri": "Uri",
+    "title": "Title",
+    "connection": "Failed",
+    "error": "Error",
+    "actualUrl": "ActualUrl"
+  },
+  "IntoChat.OS.Modules.Flutter.Workspace.WorkspaceState": {
+    "revision": 8000,
+    "path": [
+      "Path"
+    ],
+    "open": [
+      "Open"
+    ],
+    "openViews": [
+      {
+        "id": "Id",
+        "app": "App",
+        "variant": "Variant",
+        "context": "Context"
+      }
+    ],
+    "focusedViewId": "FocusedViewId",
+    "pins": [
+      {
+        "id": "Id",
+        "app": "App",
+        "variant": "Variant",
+        "context": "Context"
+      }
+    ],
+    "windows": [
+      {
+        "id": "Id",
+        "tabs": [],
+        "activeTabId": "ActiveTabId"
+      }
+    ],
+    "favourites": [
+      {
+        "id": "Id",
+        "app": "App",
+        "variant": "Variant",
+        "context": "Context"
+      }
+    ]
+  }
+}

@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><IsPackable>true</IsPackable><RootNamespace>IntoChat.OS.Modules.Microsoft.Playwright.Contracts</RootNamespace><NoWarn>$(NoWarn);CS1591</NoWarn></PropertyGroup>
+  <!-- Neuron interfaces and signals use the IntoChat.OS wire vocabulary; module runtime uses Framework. -->
+  <ItemGroup><ProjectReference Include="../../../../../IntoChat.OS/IntoChat.OS.csproj" /></ItemGroup>
+  <ItemGroup><ProjectReference Include="../../../../IntoChat.OS/Tools/Contracts/IntoChat.OS.Modules.Tools.Contracts/IntoChat.OS.Modules.Tools.Contracts.csproj" /></ItemGroup>
+</Project>

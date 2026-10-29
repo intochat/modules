@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <IntoChatOSContractsHost>true</IntoChatOSContractsHost>
+    <Description>Google module: typed Gmail reads, recoverable draft creation, tools and browser sign-in.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RootNamespace>IntoChat.OS.Modules.Google.Gmail</RootNamespace>
+    <NoWarn>$(NoWarn);ORLEANSEXP005</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="IntoChat.OS.Modules.Google.Gmail.Tests.Unit" />
+    <InternalsVisibleTo Include="IntoChat.OS.Modules.Google.Gmail.Tests.Integration" />
+    <InternalsVisibleTo Include="IntoChat.OS.Modules.Google.Gmail.Tests.Support" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="README.md" Pack="true" PackagePath="/" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" />
+    <PackageReference Include="MimeKit" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../../../IntoChat.OS/Hosting/IntoChat.OS.Framework/IntoChat.OS.Framework.csproj" />
+    <ProjectReference Include="../../../../IntoChat.OS/Identity/src/IntoChat.OS.Modules.Identity/IntoChat.OS.Modules.Identity.csproj" />
+    <ProjectReference Include="../../../../IntoChat.OS/Tools/Contracts/IntoChat.OS.Modules.Tools.Contracts/IntoChat.OS.Modules.Tools.Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup><ProjectReference Include="../../../Auth/src/IntoChat.OS.Modules.Google.Auth/IntoChat.OS.Modules.Google.Auth.csproj" /></ItemGroup>
+</Project>

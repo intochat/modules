@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../../../../../framework/src/DigitalBrain.Testing.Silo/DigitalBrain.Testing.Silo.csproj" />
+    <ProjectReference Include="../../src/IntoChat.OS.Modules.Flutter/IntoChat.OS.Modules.Flutter.csproj" />
+  </ItemGroup>
+</Project>

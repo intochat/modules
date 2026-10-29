@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/IntoChat.OS.Modules.AI/IntoChat.OS.Modules.AI.csproj" />
+    <ProjectReference Include="../../../IntoChat.OS/Apps/src/IntoChat.OS.Modules.Apps/IntoChat.OS.Modules.Apps.csproj" />
+    <ProjectReference Include="../../../Google/Flutter/src/IntoChat.OS.Modules.Flutter/IntoChat.OS.Modules.Flutter.csproj" />
+    <ProjectReference Include="../../../Microsoft/CSharp/src/IntoChat.OS.Modules.Microsoft.CSharp/IntoChat.OS.Modules.Microsoft.CSharp.csproj" />
+    <ProjectReference Include="../../../Postgres/src/IntoChat.OS.Modules.Postgres/IntoChat.OS.Modules.Postgres.csproj" />
+    <ProjectReference Include="../../../Time/src/IntoChat.OS.Modules.Time/IntoChat.OS.Modules.Time.csproj" />
+    <ProjectReference Include="../../../Microsoft/Windows/src/IntoChat.OS.Modules.Microsoft.Windows/IntoChat.OS.Modules.Microsoft.Windows.csproj" />
+    <ProjectReference Include="../../../ModelContextProtocol/Mcp/src/IntoChat.OS.Modules.Mcp/IntoChat.OS.Modules.Mcp.csproj" />
+    <ProjectReference Include="../../../Microsoft/Playwright/src/IntoChat.OS.Modules.Microsoft.Playwright/IntoChat.OS.Modules.Microsoft.Playwright.csproj" />
+    <ProjectReference Include="../../../IntoChat.OS/Tools/src/IntoChat.OS.Modules.Tools/IntoChat.OS.Modules.Tools.csproj" />
+    <ProjectReference Include="../../../../../framework/src/DigitalBrain.Testing.Silo/DigitalBrain.Testing.Silo.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- The same fact bodies as the Unit tier; this tier runs them on both runtime kinds (R4-05). -->
+    <Compile Include="../IntoChat.OS.Modules.AI.Tests.Unit/AiNeuronFacts.cs" Link="Neurons/AiNeuronFacts.cs" />
+    <Compile Include="../IntoChat.OS.Modules.AI.Tests.Unit/GatedInference.cs" Link="Neurons/GatedInference.cs" />
+  </ItemGroup>
+</Project>

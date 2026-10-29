@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <Description>Salesforce module: one org connection neuron, bounded queries and confirmed record writes.</Description>
+    <RootNamespace>IntoChat.OS.Modules.Salesforce</RootNamespace>
+    <NoWarn>$(NoWarn);ORLEANSEXP005</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="IntoChat.OS.Modules.Salesforce.Tests.Unit" />
+    <InternalsVisibleTo Include="IntoChat.OS.Modules.Salesforce.Tests.Integration" />
+  </ItemGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="ModelContextProtocol.Core" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../Contracts/IntoChat.OS.Modules.Salesforce.Contracts/IntoChat.OS.Modules.Salesforce.Contracts.csproj" />
+    <ProjectReference Include="../../../../IntoChat.OS/Hosting/IntoChat.OS.Framework/IntoChat.OS.Framework.csproj" />
+  </ItemGroup>
+  <ItemGroup><ProjectReference Include="../../../IntoChat.OS/Identity/src/IntoChat.OS.Modules.Identity/IntoChat.OS.Modules.Identity.csproj" /></ItemGroup>
+</Project>

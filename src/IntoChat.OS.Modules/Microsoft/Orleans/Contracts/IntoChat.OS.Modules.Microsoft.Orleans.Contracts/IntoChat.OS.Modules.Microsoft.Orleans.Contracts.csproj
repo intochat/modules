@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <Description>Orleans cluster membership contracts: the silos a brain runs on and when they change.</Description>
+    <RootNamespace>IntoChat.OS.Modules.Microsoft.Orleans.Contracts</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../../../IntoChat.OS/IntoChat.OS.csproj" />
+  </ItemGroup>
+</Project>

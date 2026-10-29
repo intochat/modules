@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/IntoChat.OS.Modules.Supabase/IntoChat.OS.Modules.Supabase.csproj" />
+  </ItemGroup>
+</Project>

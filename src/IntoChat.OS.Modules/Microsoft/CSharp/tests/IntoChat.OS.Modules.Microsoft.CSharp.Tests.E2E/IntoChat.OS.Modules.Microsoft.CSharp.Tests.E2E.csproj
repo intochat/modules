@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Nightly tier: builds the sandbox image and starts it in Docker; IntoChatOSNightly=false leaves it out of dotnet test. -->
+  <ItemGroup>
+  </ItemGroup>
+</Project>

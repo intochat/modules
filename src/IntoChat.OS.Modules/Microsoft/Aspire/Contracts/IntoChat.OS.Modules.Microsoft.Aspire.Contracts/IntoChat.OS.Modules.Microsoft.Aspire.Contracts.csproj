@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <Description>Aspire AppHost neuron contracts: resource state, commands and state signals.</Description>
+    <RootNamespace>IntoChat.OS.Modules.Microsoft.Aspire.Contracts</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Neuron interfaces and signals use the IntoChat.OS wire vocabulary; module runtime uses Framework. -->
+    <ProjectReference Include="../../../../../IntoChat.OS/IntoChat.OS.csproj" />
+  </ItemGroup>
+</Project>

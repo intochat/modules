@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><IsPackable>true</IsPackable><RootNamespace>IntoChat.OS.Modules.Microsoft.Playwright</RootNamespace><NoWarn>$(NoWarn);CS1591;ORLEANSEXP005;CA1812</NoWarn></PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Microsoft.Playwright" />
+    <InternalsVisibleTo Include="IntoChat.OS.Modules.Microsoft.Playwright.Tests.Unit" />
+    <InternalsVisibleTo Include="IntoChat.OS.Modules.Microsoft.Playwright.Tests.Integration" />
+    <InternalsVisibleTo Include="IntoChat.OS.Modules.Microsoft.Playwright.Tests.Browser" />
+    <ProjectReference Include="../../Contracts/IntoChat.OS.Modules.Microsoft.Playwright.Contracts/IntoChat.OS.Modules.Microsoft.Playwright.Contracts.csproj" />
+    <ProjectReference Include="../../../../IntoChat.OS/Tools/Contracts/IntoChat.OS.Modules.Tools.Contracts/IntoChat.OS.Modules.Tools.Contracts.csproj" />
+    <ProjectReference Include="../../../../../IntoChat.OS/Hosting/IntoChat.OS.Framework/IntoChat.OS.Framework.csproj" />
+  </ItemGroup>
+  <ItemGroup><ProjectReference Include="../../../../IntoChat.OS/Identity/src/IntoChat.OS.Modules.Identity/IntoChat.OS.Modules.Identity.csproj" /></ItemGroup>
+</Project>

@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <Description>Flutter module integration for the neuron kernel.</Description>
+    <RootNamespace>IntoChat.OS.Modules.Flutter</RootNamespace>
+    <NoWarn>$(NoWarn);ORLEANSEXP005</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../../../../framework/src/DigitalBrain.UI/DigitalBrain.UI.csproj" />
+    <ProjectReference Include="../../../../IntoChat.OS/Identity/src/IntoChat.OS.Modules.Identity/IntoChat.OS.Modules.Identity.csproj" />
+    <ProjectReference Include="../../../../IntoChat.OS/Apps/Contracts/IntoChat.OS.Modules.Apps.Contracts/IntoChat.OS.Modules.Apps.Contracts.csproj" />
+    <ProjectReference Include="../../../../IntoChat.OS/Circles/Contracts/IntoChat.OS.Modules.Circles.Contracts/IntoChat.OS.Modules.Circles.Contracts.csproj" />
+    <ProjectReference Include="../../../../Microsoft/Playwright/Contracts/IntoChat.OS.Modules.Microsoft.Playwright.Contracts/IntoChat.OS.Modules.Microsoft.Playwright.Contracts.csproj" />
+    <ProjectReference Include="../../../../Microsoft/Aspire/Contracts/IntoChat.OS.Modules.Microsoft.Aspire.Contracts/IntoChat.OS.Modules.Microsoft.Aspire.Contracts.csproj" />
+    <ProjectReference Include="../../../../Microsoft/CSharp/Contracts/IntoChat.OS.Modules.Microsoft.CSharp.Contracts/IntoChat.OS.Modules.Microsoft.CSharp.Contracts.csproj" />
+    <ProjectReference Include="../../../../IntoChat.OS/Flame/Contracts/IntoChat.OS.Modules.Flame.Contracts/IntoChat.OS.Modules.Flame.Contracts.csproj" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Microsoft.Orleans.Serialization.SystemTextJson" />
+    <InternalsVisibleTo Include="IntoChat.OS.Modules.Flutter.Tests.Unit" />
+    <InternalsVisibleTo Include="IntoChat.OS.Modules.Flutter.Tests.Integration" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../Contracts/IntoChat.OS.Modules.Flutter.Contracts/IntoChat.OS.Modules.Flutter.Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup><ProjectReference Include="../../../../../IntoChat.OS/Hosting/IntoChat.OS.Framework/IntoChat.OS.Framework.csproj" /></ItemGroup>
+</Project>

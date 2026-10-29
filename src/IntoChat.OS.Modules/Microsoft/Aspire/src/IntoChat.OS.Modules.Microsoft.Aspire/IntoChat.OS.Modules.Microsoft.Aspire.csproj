@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <Description>Aspire AppHost neuron: resource state signals and resource commands over the AppHost bridge.</Description>
+    <RootNamespace>IntoChat.OS.Modules.Microsoft.Aspire</RootNamespace>
+    <NoWarn>$(NoWarn);ORLEANSEXP005</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="IntoChat.OS.Modules.Microsoft.Aspire.Tests.Unit" />
+    <InternalsVisibleTo Include="IntoChat.OS.Modules.Microsoft.Aspire.Tests.Integration" />
+    <PackageReference Include="Azure.Storage.Blobs" />
+    <ProjectReference Include="../../Contracts/IntoChat.OS.Modules.Microsoft.Aspire.Contracts/IntoChat.OS.Modules.Microsoft.Aspire.Contracts.csproj" />
+    <ProjectReference Include="../../../Orleans/Contracts/IntoChat.OS.Modules.Microsoft.Orleans.Contracts/IntoChat.OS.Modules.Microsoft.Orleans.Contracts.csproj" />
+    <ProjectReference Include="../../../../ModelContextProtocol/Mcp/Contracts/IntoChat.OS.Modules.Mcp.Contracts/IntoChat.OS.Modules.Mcp.Contracts.csproj" />
+    <ProjectReference Include="../../../../../IntoChat.OS/Hosting/IntoChat.OS.Framework/IntoChat.OS.Framework.csproj" />
+    <ProjectReference Include="../../../../../IntoChat.OS.Aspire/IntoChat.OS.ServiceDefaults/IntoChat.OS.ServiceDefaults.csproj" />
+  </ItemGroup>
+  <ItemGroup><ProjectReference Include="../../../../IntoChat.OS/Identity/src/IntoChat.OS.Modules.Identity/IntoChat.OS.Modules.Identity.csproj" /></ItemGroup>
+</Project>

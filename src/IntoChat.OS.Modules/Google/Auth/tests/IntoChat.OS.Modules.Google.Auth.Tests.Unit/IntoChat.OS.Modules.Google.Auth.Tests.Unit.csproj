@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/IntoChat.OS.Modules.Google.Auth/IntoChat.OS.Modules.Google.Auth.csproj" />
+    <ProjectReference Include="../../../Gmail/src/IntoChat.OS.Modules.Google.Gmail/IntoChat.OS.Modules.Google.Gmail.csproj" />
+    <ProjectReference Include="../../../Drive/src/IntoChat.OS.Modules.Google.Drive/IntoChat.OS.Modules.Google.Drive.csproj" />
+  </ItemGroup>
+</Project>

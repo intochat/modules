@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <Description>Activation-local timers and persistent periodic reminders with live typed ticks, as plain DigitalBrain neurons.</Description>
+    <RootNamespace>IntoChat.OS.Modules.Time</RootNamespace>
+    <IntoChatOSContractsHost>true</IntoChatOSContractsHost>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="IntoChat.OS.Modules.Time.Tests.Integration" />
+    <InternalsVisibleTo Include="IntoChat.OS.Modules.Time.Tests.Unit" />
+    <ProjectReference Include="../../../../IntoChat.OS/Hosting/IntoChat.OS.Framework/IntoChat.OS.Framework.csproj" />
+  </ItemGroup>
+  <ItemGroup><ProjectReference Include="../../../IntoChat.OS/Identity/src/IntoChat.OS.Modules.Identity/IntoChat.OS.Modules.Identity.csproj" /></ItemGroup>
+</Project>

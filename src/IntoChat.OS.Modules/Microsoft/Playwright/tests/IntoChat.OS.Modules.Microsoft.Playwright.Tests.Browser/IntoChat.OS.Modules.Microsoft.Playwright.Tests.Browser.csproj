@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Nightly tier: launches a real Chromium; IntoChatOSNightly=false leaves it out of dotnet test. -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Playwright" />
+    <ProjectReference Include="../../src/IntoChat.OS.Modules.Microsoft.Playwright/IntoChat.OS.Modules.Microsoft.Playwright.csproj" />
+  </ItemGroup>
+</Project>
