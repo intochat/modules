@@ -62,6 +62,7 @@ final class UiChart extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Semantics(
@@ -79,26 +80,28 @@ final class UiChart extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 10),
-            SizedBox(
-              height: height,
-              child: part.points.isEmpty
-                  ? Center(
-                      child: Text(
-                        'No series',
-                        style: TextStyle(
-                          fontFamily: UiType.bodyFamily,
-                          fontFamilyFallback: UiType.bodyFallback,
-                          fontSize: 14,
-                          height: 1.5,
-                          color: tone.muted,
+            Flexible(
+              child: SizedBox(
+                height: height,
+                child: part.points.isEmpty
+                    ? Center(
+                        child: Text(
+                          'No series',
+                          style: TextStyle(
+                            fontFamily: UiType.bodyFamily,
+                            fontFamilyFallback: UiType.bodyFallback,
+                            fontSize: 14,
+                            height: 1.5,
+                            color: tone.muted,
+                          ),
                         ),
-                      ),
-                    )
-                  : switch (kind) {
-                      'line' => _categoryViewport(_lineChart(tone, maxY)),
-                      'pie' => _pieChart(tone),
-                      _ => _categoryViewport(_barChart(tone, maxY)),
-                    },
+                      )
+                    : switch (kind) {
+                        'line' => _categoryViewport(_lineChart(tone, maxY)),
+                        'pie' => _pieChart(tone),
+                        _ => _categoryViewport(_barChart(tone, maxY)),
+                      },
+              ),
             ),
           ],
         ),
