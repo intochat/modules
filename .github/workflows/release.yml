@@ -42,8 +42,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p ../nuget
-          gh release download v0.8.0 --repo intochat/digitalbrain -p "*.nupkg" -D ../nuget --clobber
-          gh release download v0.8.0 --repo intochat/os -p "*.nupkg" -D ../nuget --clobber
+          gh release download v0.8.1 --repo intochat/digitalbrain -p "*.nupkg" -D ../nuget --clobber
+          gh release download v0.8.1 --repo intochat/os -p "*.nupkg" -D ../nuget --clobber
 
       - name: Configure GitHub Packages source
         env:
