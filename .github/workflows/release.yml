@@ -1,0 +1,58 @@
+name: release
+
+# Agents: do not run this workflow, and do not push the tag yourself.
+# Create a GitHub release whose tag is v<VERSION> (the VERSION file). Publishing that
+# release starts this workflow. It packs all IntoChat.OS.Modules packages and pushes
+# them to GitHub Packages (https://nuget.pkg.github.com/intochat/index.json).
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  DOTNET_NOLOGO: 'true'
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 'true'
+  DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+  CI: 'true'
+
+jobs:
+  release:
+    name: release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Guard tag matches VERSION
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version="$(tr -d '[:space:]' < VERSION)"
+          [ "v${version}" = "${TAG}" ] || { echo "::error::tag ${TAG} does not match VERSION ${version}"; exit 1; }
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Configure GitHub Packages source
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          dotnet nuget update source github --username "${{ github.actor }}" --password "${GITHUB_TOKEN}" --store-password-in-clear-text --configfile nuget.config
+          dotnet nuget enable source github --configfile nuget.config
+
+      - name: Pack module packages
+        run: dotnet pack IntoChat.Modules.slnx -c Release -o artifacts -p:CodeGraphRefresh=false
+
+      - name: Push packages to GitHub Packages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: dotnet nuget push "artifacts/*.nupkg" --source https://nuget.pkg.github.com/intochat/index.json --api-key "${GITHUB_TOKEN}" --skip-duplicate
+
+      - name: Upload packages to the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${GITHUB_REF_NAME}" artifacts/*.nupkg --clobber
