@@ -65,3 +65,13 @@ export 'src/theme/ui_shadows.dart';
 export 'src/theme/ui_tokens.dart';
 export 'src/components/workspace/ui_workspace_components.dart';
 export 'src/shell_icon.dart';
+
+export 'src/design/tokens.dart';
+export 'src/design/keys.dart';
+export 'src/design/controls.dart';
+export 'package:lucide_icons_flutter/lucide_icons.dart';
+export 'src/design/app_tile.dart';
+export 'src/design/brain_scene_3d.dart';
+export 'src/design/copy/ino_copy.dart';
+export 'src/design/cards/cards.dart';
+

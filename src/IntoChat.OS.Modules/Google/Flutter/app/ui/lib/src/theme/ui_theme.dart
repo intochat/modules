@@ -8,8 +8,9 @@ import 'ui_colors.dart';
 import 'ui_tokens.dart';
 
 /// Text styles for the ambient palette. Colours come from [UiColors.of];
-/// families are IntoChat's bundled fonts for the intochat palette and the v1
-/// system fonts for midnight, paper and lumen.
+/// families are IntoChat's bundled `Inter` and `InterDisplay` fonts with
+/// strict `FontFeature.tabularFigures()` (`tnum`) on metrics, counters,
+/// timestamps, table numeric columns, and `neuron://` URIs.
 @immutable
 final class UiTypeSet {
   const UiTypeSet({
@@ -46,7 +47,7 @@ final class UiTypeSet {
   final TextStyle menuLabel;
   final TextStyle toast;
 
-  /// Figma `.model-option strong`: a 13 px row title.
+  /// A 13 px row title.
   final TextStyle rowTitle;
 
   /// A 12 px compact label (toolbar pickers).
@@ -55,22 +56,28 @@ final class UiTypeSet {
 
 abstract final class UiType {
   static const fontPackage = 'intochat_os_ui';
-  static const sansFamily = 'Schibsted Grotesk';
-  static const intochatMonoFamily = 'JetBrains Mono';
+  static const sansFamily = 'Inter';
+  static const displayFamily = 'InterDisplay';
+  static const intochatMonoFamily = 'Inter';
 
   /// Package-qualified family names usable from any package.
   static const sans = 'packages/$fontPackage/$sansFamily';
+  static const display = 'packages/$fontPackage/$displayFamily';
   static const mono = 'packages/$fontPackage/$intochatMonoFamily';
 
-  /// IntoChat heading treatment: w800, -0.015em tracking, 1.18 line height.
+  static const tabular = [FontFeature.tabularFigures()];
+
+  /// IntoChat display/heading treatment: `InterDisplay`, w700–w800, -0.4
+  /// letter-spacing, 1.15 line height (`>= 17px`).
   static TextStyle intochatHeading(TextStyle style) => style.copyWith(
-    fontWeight: FontWeight.w800,
-    letterSpacing: -0.015 * (style.fontSize ?? 16),
-    height: 1.18,
+    fontFamily: display,
+    fontWeight: style.fontWeight ?? FontWeight.w700,
+    letterSpacing: -0.4,
+    height: 1.15,
   );
 
   /// Pins the variable font's `wght` axis to [TextStyle.fontWeight] (default
-  /// 400) so bundled variable fonts render the requested weight.
+  /// 400) so bundled fonts render the requested weight.
   static TextStyle withWeightAxis(TextStyle style) => style.copyWith(
     fontVariations: [
       FontVariation(
@@ -80,25 +87,65 @@ abstract final class UiType {
     ],
   );
 
+  /// Unified text builder matching `IcType.text`.
+  static TextStyle textStyle(
+    double size, {
+    FontWeight weight = FontWeight.w400,
+    Color? color,
+    bool tnum = false,
+    double? height,
+  }) => TextStyle(
+    fontFamily: sans,
+    fontSize: size,
+    fontWeight: weight,
+    color: color,
+    height: height,
+    letterSpacing: size >= 20 ? -0.2 : 0,
+    fontFeatures: tnum ? tabular : null,
+  );
+
+  /// Unified display heading builder matching `IcType.heading`.
+  static TextStyle displayStyle(
+    double size, {
+    FontWeight weight = FontWeight.w700,
+    Color? color,
+  }) => TextStyle(
+    fontFamily: display,
+    fontSize: size,
+    fontWeight: weight,
+    color: color,
+    letterSpacing: -0.4,
+    height: 1.15,
+  );
+
+  /// Unified tabular/URI style matching `IcType.mono`.
+  static TextStyle tabularStyle(
+    double size, {
+    FontWeight weight = FontWeight.w500,
+    Color? color,
+  }) => TextStyle(
+    fontFamily: mono,
+    fontSize: size,
+    fontWeight: weight,
+    color: color,
+    fontFeatures: tabular,
+  );
+
   static UiTypeSet of(BuildContext context) {
     final c = UiColors.of(context);
-    // Family comes from the theme's text, not from UiColors: colours are
-    // lerped during theme animation, the font family is not.
-    final intochat =
-        Theme.of(context).textTheme.bodyMedium?.fontFamily
-            ?.contains(sansFamily) ??
-        false;
     TextStyle s(
-      TextStyle v1,
+      TextStyle baseStyle,
       Color color, {
       bool isMono = false,
       bool head = false,
+      bool tnum = false,
     }) {
-      final style = v1.copyWith(
-        fontFamily: intochat ? (isMono ? mono : sans) : null,
+      final isDisplay = head || (baseStyle.fontSize ?? 14) >= 17 && !tnum;
+      final style = baseStyle.copyWith(
+        fontFamily: isDisplay ? display : (isMono ? mono : sans),
         color: color,
+        fontFeatures: (isMono || tnum) ? tabular : baseStyle.fontFeatures,
       );
-      if (!intochat) return style;
       return withWeightAxis(head ? intochatHeading(style) : style);
     }
 
@@ -106,32 +153,31 @@ abstract final class UiType {
       title: s(_title, c.strong),
       heading: s(_heading, c.strong, head: true),
       cardTitle: s(_cardTitle, c.strong),
-      metric: s(_metric, c.strong),
+      metric: s(_metric, c.strong, tnum: true),
       body: s(_body, c.body),
       bodyMuted: s(_bodyMuted, c.muted),
-      meta: s(_meta, c.muted, isMono: true),
-      metaStrong: s(_metaStrong, c.strong, isMono: true),
+      meta: s(_meta, c.muted, isMono: true, tnum: true),
+      metaStrong: s(_metaStrong, c.strong, isMono: true, tnum: true),
       empty: s(_empty, c.strong, head: true),
       control: s(_control, c.strong),
       fieldLabel: s(_fieldLabel, c.strong),
       menuItem: s(_menuItem, c.body),
-      menuLabel: s(_menuLabel, c.muted, isMono: true),
+      menuLabel: s(_menuLabel, c.muted, isMono: true, tnum: true),
       toast: s(_toast, c.body),
       rowTitle: s(_rowTitle, c.strong),
       caption: s(_caption, c.body),
     );
   }
 
-  static const monoFamily = 'Cascadia Mono';
-  static const monoFallback = ['Consolas', 'Menlo', 'monospace'];
+  static const monoFamily = sans;
+  static const monoFallback = ['Cascadia Mono', 'Consolas', 'Menlo', 'monospace'];
 
-  static const bodyFamily = 'Segoe UI Variable Text';
-  static const bodyFallback = ['Segoe UI', 'Inter', 'Roboto'];
+  static const bodyFamily = sans;
+  static const bodyFallback = ['Segoe UI Variable Text', 'Segoe UI', 'Roboto'];
 }
 
-/// v1 (midnight) base styles; [UiType.of] recolours them per palette.
 final _title = TextStyle(
-  fontFamily: UiType.bodyFamily,
+  fontFamily: UiType.sans,
   fontFamilyFallback: UiType.bodyFallback,
   fontSize: 15,
   fontWeight: FontWeight.w600,
@@ -140,16 +186,17 @@ final _title = TextStyle(
 );
 
 final _heading = TextStyle(
-  fontFamily: UiType.bodyFamily,
+  fontFamily: UiType.display,
   fontFamilyFallback: UiType.bodyFallback,
   fontSize: 28,
-  fontWeight: FontWeight.w600,
-  letterSpacing: -0.8,
+  fontWeight: FontWeight.w700,
+  letterSpacing: -0.4,
+  height: 1.15,
   color: UiColors.midnight.strong,
 );
 
 final _cardTitle = TextStyle(
-  fontFamily: UiType.bodyFamily,
+  fontFamily: UiType.sans,
   fontFamilyFallback: UiType.bodyFallback,
   fontSize: 15,
   fontWeight: FontWeight.w600,
@@ -158,59 +205,63 @@ final _cardTitle = TextStyle(
 );
 
 final _metric = TextStyle(
-  fontFamily: UiType.bodyFamily,
+  fontFamily: UiType.sans,
   fontFamilyFallback: UiType.bodyFallback,
   fontSize: 17,
   fontWeight: FontWeight.w600,
   letterSpacing: -0.2,
+  fontFeatures: UiType.tabular,
   color: UiColors.midnight.strong,
 );
 
 final _body = TextStyle(
-  fontFamily: UiType.bodyFamily,
+  fontFamily: UiType.sans,
   fontFamilyFallback: UiType.bodyFallback,
-  fontSize: 15,
-  height: 1.55,
+  fontSize: 14,
+  height: 1.5,
   color: UiColors.midnight.body,
 );
 
 final _bodyMuted = TextStyle(
-  fontFamily: UiType.bodyFamily,
+  fontFamily: UiType.sans,
   fontFamilyFallback: UiType.bodyFallback,
-  fontSize: 14,
-  height: 1.5,
+  fontSize: 13,
+  height: 1.45,
   color: UiColors.midnight.muted,
 );
 
 final _meta = TextStyle(
-  fontFamily: UiType.monoFamily,
+  fontFamily: UiType.mono,
   fontFamilyFallback: UiType.monoFallback,
   fontSize: 11,
   fontWeight: FontWeight.w500,
   letterSpacing: 0.45,
+  fontFeatures: UiType.tabular,
   color: UiColors.midnight.muted,
 );
 
 final _metaStrong = TextStyle(
-  fontFamily: UiType.monoFamily,
+  fontFamily: UiType.mono,
   fontFamilyFallback: UiType.monoFallback,
   fontSize: 11,
   fontWeight: FontWeight.w600,
   letterSpacing: 0.45,
+  fontFeatures: UiType.tabular,
   color: UiColors.midnight.strong,
 );
 
 final _empty = TextStyle(
-  fontFamily: UiType.bodyFamily,
+  fontFamily: UiType.display,
   fontFamilyFallback: UiType.bodyFallback,
   fontSize: 18,
-  fontWeight: FontWeight.w600,
-  letterSpacing: -0.3,
+  fontWeight: FontWeight.w700,
+  letterSpacing: -0.4,
+  height: 1.15,
   color: UiColors.midnight.strong,
 );
 
 final _control = TextStyle(
-  fontFamily: UiType.bodyFamily,
+  fontFamily: UiType.sans,
   fontFamilyFallback: UiType.bodyFallback,
   fontSize: 14,
   fontWeight: FontWeight.w700,
@@ -218,32 +269,33 @@ final _control = TextStyle(
 );
 
 final _fieldLabel = TextStyle(
-  fontFamily: UiType.bodyFamily,
+  fontFamily: UiType.sans,
   fontFamilyFallback: UiType.bodyFallback,
-  fontSize: 14,
+  fontSize: 13,
   fontWeight: FontWeight.w600,
   color: UiColors.midnight.strong,
 );
 
 final _menuItem = TextStyle(
-  fontFamily: UiType.bodyFamily,
+  fontFamily: UiType.sans,
   fontFamilyFallback: UiType.bodyFallback,
-  fontSize: 14,
+  fontSize: 13,
   fontWeight: FontWeight.w500,
   color: UiColors.midnight.strong,
 );
 
 final _menuLabel = TextStyle(
-  fontFamily: UiType.monoFamily,
+  fontFamily: UiType.mono,
   fontFamilyFallback: UiType.monoFallback,
   fontSize: 11,
   fontWeight: FontWeight.w500,
   letterSpacing: 0.88,
+  fontFeatures: UiType.tabular,
   color: UiColors.midnight.strong,
 );
 
 final _rowTitle = TextStyle(
-  fontFamily: UiType.bodyFamily,
+  fontFamily: UiType.sans,
   fontFamilyFallback: UiType.bodyFallback,
   fontSize: 13,
   fontWeight: FontWeight.w500,
@@ -251,7 +303,7 @@ final _rowTitle = TextStyle(
 );
 
 final _caption = TextStyle(
-  fontFamily: UiType.bodyFamily,
+  fontFamily: UiType.sans,
   fontFamilyFallback: UiType.bodyFallback,
   fontSize: 12,
   fontWeight: FontWeight.w500,
@@ -259,15 +311,12 @@ final _caption = TextStyle(
 );
 
 final _toast = TextStyle(
-  fontFamily: UiType.bodyFamily,
+  fontFamily: UiType.sans,
   fontFamilyFallback: UiType.bodyFallback,
   fontSize: 13,
   fontWeight: FontWeight.w500,
   color: UiColors.midnight.strong,
 );
-
-/// v1 navigation chrome colour; midnight-only, so not a [UiColors] field.
-const _midnightNavigation = Color(0xFF101219);
 
 abstract final class UiTheme {
   static const palettes = [
@@ -283,7 +332,8 @@ abstract final class UiTheme {
 
   static String paletteName(String? stored) => switch (stored) {
     'dark' || 'midnight' => 'midnight',
-    'light' || 'paper' || 'warm-paper' => 'paper',
+    'light' || 'paper' => 'paper',
+    'warm-paper' || 'intochat' => 'intochat',
     'lumen' => 'lumen',
     'fluent-acrylic' => 'fluent-acrylic',
     'spatial-glass' => 'spatial-glass',
@@ -298,49 +348,35 @@ abstract final class UiTheme {
     _ => ThemeMode.dark,
   };
 
-  /// Light theme for a stored palette. v1 palettes reuse their unchanged
-  /// code path and only gain their [UiColors].
+  /// Light theme for a stored palette, built directly from its [UiColors]
+  /// palette so every preset renders its exact identity colors.
   static ThemeData light(String? stored) => switch (paletteName(stored)) {
-    'intochat' => intochat(Brightness.light),
-    _ => _withColors(workspace(Brightness.light), UiColors.paper),
+    'fluent-acrylic' => fromColors(UiColors.fluentAcrylicLight),
+    'spatial-glass' => fromColors(UiColors.spatialGlassLight),
+    'cyber-synaptic' => fromColors(UiColors.cyberSynapticDark),
+    'linear-carbon' => fromColors(UiColors.linearCarbonDark),
+    'lumen' => fromColors(UiColors.lumen),
+    'midnight' => fromColors(UiColors.midnight),
+    'paper' => fromColors(UiColors.paper),
+    _ => intochat(Brightness.light),
   };
 
-  /// Dark theme for a stored palette.
+  /// Dark theme for a stored palette, built directly from its [UiColors]
+  /// palette (eliminating the legacy `workspaceDark` Lumen green fallback).
   static ThemeData dark(String? stored) => switch (paletteName(stored)) {
-    'intochat' => intochat(Brightness.dark),
-    'lumen' => _withColors(workspaceDark(stored), UiColors.lumen),
-    'fluent-acrylic' => _withColors(
-      workspaceDark(stored),
-      UiColors.fluentAcrylicDark,
-    ),
-    'spatial-glass' => _withColors(
-      workspaceDark(stored),
-      UiColors.spatialGlassDark,
-    ),
-    'cyber-synaptic' => _withColors(
-      workspaceDark(stored),
-      UiColors.cyberSynapticDark,
-    ),
-    'linear-carbon' => _withColors(
-      workspaceDark(stored),
-      UiColors.linearCarbonDark,
-    ),
-    _ => _withColors(workspaceDark(stored), UiColors.midnight),
+    'fluent-acrylic' => fromColors(UiColors.fluentAcrylicDark),
+    'spatial-glass' => fromColors(UiColors.spatialGlassDark),
+    'cyber-synaptic' => fromColors(UiColors.cyberSynapticDark),
+    'linear-carbon' => fromColors(UiColors.linearCarbonDark),
+    'lumen' => fromColors(UiColors.lumen),
+    'midnight' => fromColors(UiColors.midnight),
+    'paper' => fromColors(UiColors.paper),
+    _ => intochat(Brightness.dark),
   };
 
-  static ThemeData _withColors(ThemeData base, UiColors colors) =>
-      base.copyWith(
-        extensions: [
-          ...base.extensions.values.where((e) => e is! UiColors),
-          colors,
-        ],
-      );
-
-  /// IntoChat (Figma) theme: Schibsted Grotesk on warm neutrals, blue accent.
-  static ThemeData intochat(Brightness brightness) {
-    final c = brightness == Brightness.dark
-        ? UiColors.intochatDark
-        : UiColors.intochatLight;
+  /// Builds a complete Material 3 [ThemeData] directly from a [UiColors] palette.
+  static ThemeData fromColors(UiColors c) {
+    final brightness = c.brightness;
     final scheme = ColorScheme(
       brightness: brightness,
       primary: c.accent,
@@ -379,11 +415,11 @@ abstract final class UiTheme {
       headlineLarge: w(head(base.headlineLarge)),
       headlineMedium: w(head(base.headlineMedium)),
       headlineSmall: w(head(base.headlineSmall)),
-      titleLarge: w(base.titleLarge),
+      titleLarge: w(head(base.titleLarge)),
       titleMedium: w(base.titleMedium),
       titleSmall: w(base.titleSmall),
-      bodyLarge: w(base.bodyLarge?.copyWith(fontSize: 16, height: 1.5)),
-      bodyMedium: w(base.bodyMedium?.copyWith(height: 1.5)),
+      bodyLarge: w(base.bodyLarge?.copyWith(fontSize: 15, height: 1.5)),
+      bodyMedium: w(base.bodyMedium?.copyWith(fontSize: 14, height: 1.5)),
       bodySmall: w(base.bodySmall),
       labelLarge: w(base.labelLarge),
       labelMedium: w(base.labelMedium),
@@ -413,23 +449,23 @@ abstract final class UiTheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          minimumSize: const Size(48, 44),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          minimumSize: const Size(36, 36),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
           ),
           textStyle: const TextStyle(
             fontFamily: UiType.sans,
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-            fontVariations: [FontVariation('wght', 700)],
+            fontFamilyFallback: UiType.bodyFallback,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          minimumSize: const Size(48, 44),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          minimumSize: const Size(36, 36),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           backgroundColor: c.surface,
           foregroundColor: c.strong,
           side: BorderSide(color: c.inputBorder),
@@ -438,9 +474,9 @@ abstract final class UiTheme {
           ),
           textStyle: const TextStyle(
             fontFamily: UiType.sans,
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-            fontVariations: [FontVariation('wght', 700)],
+            fontFamilyFallback: UiType.bodyFallback,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),
@@ -457,8 +493,8 @@ abstract final class UiTheme {
         filled: true,
         fillColor: c.surface,
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 16,
+          horizontal: 14,
+          vertical: 8,
         ),
         border: border,
         enabledBorder: border,
@@ -483,250 +519,30 @@ abstract final class UiTheme {
           fontFamily: UiType.sans,
           color: c.page,
           fontSize: 12,
-          fontVariations: const [FontVariation('wght', 400)],
         ),
       ),
     );
   }
 
-  static ThemeData workspaceDark(String? stored) {
-    final base = workspace(Brightness.dark);
-    if (paletteName(stored) != 'lumen') return base;
-    const background = Color(0xFF060A08);
-    const surface = Color(0xFF0B120F);
-    final scheme = base.colorScheme.copyWith(
-      primary: const Color(0xFF7CE0A8),
-      onPrimary: const Color(0xFF04170D),
-      primaryContainer: const Color(0xFF12301F),
-      onPrimaryContainer: const Color(0xFFA5F0C4),
-      surface: surface,
-      surfaceContainerLow: const Color(0xFF0F1813),
-      surfaceContainer: const Color(0xFF131E18),
-      surfaceContainerHigh: const Color(0xFF18261E),
-      onSurface: const Color(0xFFE3EFE8),
-      onSurfaceVariant: const Color(0xFF8CA397),
-      outline: const Color(0xFF3F5A4A),
-      outlineVariant: const Color(0xFF1D2D24),
-    );
-    return base.copyWith(
-      colorScheme: scheme,
-      scaffoldBackgroundColor: background,
-      dividerColor: scheme.outlineVariant,
-      textTheme: base.textTheme.apply(
-        bodyColor: scheme.onSurface,
-        displayColor: scheme.onSurface,
-      ),
-      appBarTheme: base.appBarTheme.copyWith(
-        backgroundColor: background,
-        foregroundColor: scheme.onSurface,
-        shape: Border(bottom: BorderSide(color: scheme.outlineVariant)),
-      ),
-      inputDecorationTheme: base.inputDecorationTheme.copyWith(
-        fillColor: scheme.surfaceContainerLow,
-      ),
-      dialogTheme: base.dialogTheme.copyWith(
-        backgroundColor: scheme.surfaceContainerLow,
-      ),
-    );
-  }
-
-  /// Neutral workspace surfaces with the shared Lumen accent. Legacy graph and
-  /// chat tokens remain independent while workspace pages migrate.
-  static ThemeData workspace(Brightness brightness) {
-    final darkMode = brightness == Brightness.dark;
-    final base = darkMode ? baseDark() : baseLight();
-    final scheme =
-        ColorScheme.fromSeed(
-          seedColor: LumenPalette.accent,
-          brightness: brightness,
-        ).copyWith(
-          primary: darkMode ? const Color(0xFF91D3B8) : LumenPalette.accent,
-          onPrimary: darkMode ? const Color(0xFF103B2D) : Colors.white,
-          primaryContainer: darkMode
-              ? const Color(0xFF243B34)
-              : LumenPalette.accentSoft,
-          onPrimaryContainer: darkMode
-              ? const Color(0xFFA5DCC5)
-              : LumenPalette.accent,
-          surface: darkMode ? const Color(0xFF191A1B) : LumenPalette.surface,
-          surfaceContainerLow: darkMode
-              ? const Color(0xFF202122)
-              : LumenPalette.surface,
-          surfaceContainer: darkMode
-              ? const Color(0xFF252627)
-              : LumenPalette.surfaceMuted,
-          surfaceContainerHigh: darkMode
-              ? const Color(0xFF2B2C2D)
-              : LumenPalette.surfaceMuted,
-          onSurface: darkMode ? const Color(0xFFECEBE7) : LumenPalette.ink,
-          onSurfaceVariant: darkMode
-              ? const Color(0xFFA5A6A3)
-              : LumenPalette.muted,
-          outline: darkMode ? const Color(0xFF616360) : LumenPalette.lineStrong,
-          outlineVariant: darkMode
-              ? const Color(0xFF333533)
-              : LumenPalette.line,
-        );
-    final border = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(10),
-      borderSide: BorderSide(color: scheme.outline),
-    );
-    return base.copyWith(
-      colorScheme: scheme,
-      scaffoldBackgroundColor: darkMode
-          ? const Color(0xFF171819)
-          : LumenPalette.background,
-      textTheme:
-          ThemeData(
-            brightness: brightness,
-            fontFamily: UiType.bodyFamily,
-            fontFamilyFallback: UiType.bodyFallback,
-          ).textTheme.apply(
-            bodyColor: scheme.onSurface,
-            displayColor: scheme.onSurface,
-          ),
-      appBarTheme: AppBarTheme(
-        backgroundColor: darkMode
-            ? const Color(0xFF171819)
-            : LumenPalette.background,
-        foregroundColor: scheme.onSurface,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        shape: Border(bottom: BorderSide(color: scheme.outlineVariant)),
-      ),
-      dividerColor: scheme.outlineVariant,
-      filledButtonTheme: FilledButtonThemeData(
-        style: FilledButton.styleFrom(
-          minimumSize: const Size(48, 44),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-          textStyle: const TextStyle(
-            fontFamily: UiType.bodyFamily,
-            fontFamilyFallback: UiType.bodyFallback,
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: scheme.surfaceContainerLow,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 16,
-        ),
-        border: border,
-        enabledBorder: border,
-        focusedBorder: border.copyWith(
-          borderSide: BorderSide(color: scheme.primary, width: 2),
-        ),
-      ),
-      dialogTheme: DialogThemeData(
-        backgroundColor: scheme.surfaceContainerLow,
-        surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
-          side: BorderSide(color: scheme.outlineVariant),
-        ),
-      ),
-    );
-  }
-
-  /// v1 light base (formerly `light()`).
-  static ThemeData baseLight() => ThemeData(
-    useMaterial3: true,
-    extensions: const [UiTokens()],
-    brightness: Brightness.light,
-    fontFamily: UiType.bodyFamily,
-    fontFamilyFallback: UiType.bodyFallback,
-    colorScheme: const ColorScheme.light(
-      primary: LumenPalette.accent,
-      onPrimary: LumenPalette.surface,
-      secondary: LumenPalette.accentSoft,
-      onSecondary: LumenPalette.ink,
-      surface: LumenPalette.surface,
-      onSurface: LumenPalette.ink,
-      error: LumenPalette.error,
-      outline: LumenPalette.lineStrong,
-      outlineVariant: LumenPalette.line,
-    ),
-    scaffoldBackgroundColor: LumenPalette.background,
-    dividerColor: LumenPalette.line,
-    inputDecorationTheme: InputDecorationTheme(
-      filled: true,
-      fillColor: LumenPalette.surface,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: LumenPalette.line),
-      ),
-    ),
-    tooltipTheme: TooltipThemeData(
-      decoration: BoxDecoration(
-        color: LumenPalette.ink,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      textStyle: const TextStyle(color: LumenPalette.surface, fontSize: 12),
-    ),
+  /// IntoChat (Warm Ink & Paper) theme.
+  static ThemeData intochat(Brightness brightness) => fromColors(
+    brightness == Brightness.dark
+        ? UiColors.intochatDark
+        : UiColors.intochatLight,
   );
 
-  /// v1 dark base (formerly `dark()`).
-  static ThemeData baseDark() {
-    final scheme = ColorScheme.fromSeed(
-      seedColor: UiColors.midnight.working,
-      brightness: Brightness.dark,
-      surface: UiColors.midnight.page,
-    );
+  static ThemeData workspaceDark(String? stored) => dark(stored);
 
-    return ThemeData(
-      useMaterial3: true,
-      extensions: const [UiTokens()],
-      brightness: Brightness.dark,
-      scaffoldBackgroundColor: UiColors.midnight.page,
-      colorScheme: scheme.copyWith(
-        primary: UiColors.midnight.working,
-        secondary: UiColors.midnight.accent,
-        surface: UiColors.midnight.page,
-      ),
-      dividerColor: UiColors.midnight.hairline,
-      navigationRailTheme: NavigationRailThemeData(
-        backgroundColor: _midnightNavigation,
-        indicatorColor: UiColors.midnight.working.withValues(alpha: 0.14),
-        selectedIconTheme: IconThemeData(
-          color: UiColors.midnight.working,
-          size: 21,
-        ),
-        unselectedIconTheme: IconThemeData(
-          color: UiColors.midnight.muted,
-          size: 20,
-        ),
-        selectedLabelTextStyle: _metaStrong.copyWith(
-          color: UiColors.midnight.working,
-        ),
-        unselectedLabelTextStyle: _meta,
-      ),
-      navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: _midnightNavigation,
-        indicatorColor: UiColors.midnight.working.withValues(alpha: 0.14),
-        labelTextStyle: WidgetStateProperty.resolveWith(
-          (states) => states.contains(WidgetState.selected)
-              ? _metaStrong.copyWith(color: UiColors.midnight.working)
-              : _meta,
-        ),
-      ),
-      tooltipTheme: TooltipThemeData(
-        decoration: BoxDecoration(color: UiColors.midnight.surface),
-        textStyle: _meta,
-      ),
-    );
-  }
+  static ThemeData workspace(Brightness brightness) => fromColors(
+    brightness == Brightness.dark ? UiColors.midnight : UiColors.paper,
+  );
+
+  static ThemeData baseLight() => fromColors(UiColors.intochatLight);
+
+  static ThemeData baseDark() => fromColors(UiColors.midnight);
 }
 
 /// Installs the approved product control foundation below MaterialApp.
-///
-/// Localization stays in this bridge so surfaces never need to import Forui.
 final class UiThemeScope extends StatelessWidget {
   const UiThemeScope({super.key, required this.child, this.brightness});
 

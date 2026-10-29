@@ -82,6 +82,10 @@ void main() {
 String _repositoryRoot() {
   var directory = Directory.current;
   while (!File('${directory.path}/Intochat.OS.slnx').existsSync()) {
+    final siblingOs = Directory('${directory.path}/os');
+    if (File('${siblingOs.path}/Intochat.OS.slnx').existsSync()) {
+      return siblingOs.path;
+    }
     final parent = directory.parent;
     if (parent.path == directory.path) {
       throw StateError('Repository root not found.');

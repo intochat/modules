@@ -23,21 +23,21 @@ void main() {
     return box.decoration as BoxDecoration;
   }
 
-  testWidgets('primary button: 48 high, radius 10, accent, 14/700', (
+  testWidgets('primary button: 36 high, radius 10, accent, 13/600', (
     tester,
   ) async {
     await host(tester, UiKitButton(label: 'Save', onPressed: () {}));
-    expect(tester.getSize(find.byType(UiKitButton)).height, 48);
+    expect(tester.getSize(find.byType(UiKitButton)).height, 36);
     final d = decorationIn(tester, find.byType(UiKitButton));
     expect(d.borderRadius, BorderRadius.circular(10));
     expect(d.color, c.accent);
     final text = tester.widget<Text>(find.text('Save'));
-    expect(text.style?.fontSize, 14);
-    expect(text.style?.fontWeight, FontWeight.w700);
+    expect(text.style?.fontSize, 13);
+    expect(text.style?.fontWeight, FontWeight.w600);
     expect(text.style?.color, c.onAccent);
   });
 
-  testWidgets('compact secondary button: 36 high, radius 8, inputBorder', (
+  testWidgets('compact secondary button: 30 high, radius 10, inputBorder', (
     tester,
   ) async {
     await host(
@@ -49,9 +49,9 @@ void main() {
         compact: true,
       ),
     );
-    expect(tester.getSize(find.byType(UiKitButton)).height, 36);
+    expect(tester.getSize(find.byType(UiKitButton)).height, 30);
     final d = decorationIn(tester, find.byType(UiKitButton));
-    expect(d.borderRadius, BorderRadius.circular(8));
+    expect(d.borderRadius, BorderRadius.circular(10));
     expect((d.border as Border).top.color, c.inputBorder);
     expect(d.color, c.surface);
     expect(tester.widget<Text>(find.text('More')).style?.fontSize, 13);
@@ -95,7 +95,7 @@ void main() {
     ]);
   });
 
-  testWidgets('field: 48 high, radius 12; focus draws accent + 3px ring', (
+  testWidgets('field: 36 high, radius 12; focus draws accent + 3px ring', (
     tester,
   ) async {
     await host(
@@ -106,7 +106,7 @@ void main() {
       ),
     );
     final box = find.byKey(const ValueKey('ui_kit_field_box'));
-    expect(tester.getSize(box).height, 48);
+    expect(tester.getSize(box).height, 36);
     var d = tester.widget<DecoratedBox>(box).decoration as BoxDecoration;
     expect(d.borderRadius, BorderRadius.circular(12));
     expect((d.border as Border).top.color, c.error);
@@ -253,6 +253,6 @@ void main() {
     expect(tester.takeException(), isNull);
     final button = tester.widget<UiKitButton>(find.byType(UiKitButton));
     expect(button.compact, isTrue);
-    expect(tester.getSize(find.byType(UiKitButton)).height, 36);
+    expect(tester.getSize(find.byType(UiKitButton)).height, 30);
   });
 }

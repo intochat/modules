@@ -30,32 +30,26 @@ class SpaceToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = UiColors.of(context);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
       child: DecoratedBox(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(18),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.42 : 0.10),
-              blurRadius: 24,
-              offset: const Offset(0, 8),
-            ),
-          ],
+          boxShadow: IcShadow.md(IcTheme.of(context)),
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(18),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+            filter: ImageFilter.blur(
+              sigmaX: c.blurSigma > 0 ? c.blurSigma : 24,
+              sigmaY: c.blurSigma > 0 ? c.blurSigma : 24,
+            ),
             child: Material(
-              color: c.surface.withValues(alpha: isDark ? 0.82 : 0.92),
+              color: c.chrome,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(18),
                 side: BorderSide(
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.14)
-                      : c.hairline,
+                  color: c.isGlass ? c.specularBorder : c.chromeBorder,
                 ),
               ),
               child: SizedBox(

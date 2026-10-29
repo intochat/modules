@@ -4,6 +4,11 @@ import '../components/button/ui_neuron_button.dart';
 import '../components/kit/ui_kit_field.dart';
 import '../components/kit/kit_toast.dart';
 import '../components/kit/ui_kit_surface.dart';
+import '../components/kit/ui_kit_switch.dart';
+import '../design/brain_scene_3d.dart';
+import '../design/cards/cards.dart';
+import '../theme/ui_colors.dart';
+import '../theme/ui_theme.dart';
 import '../theme/ui_tokens.dart';
 
 import 'dart:async';
@@ -14,7 +19,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gpt_markdown/gpt_markdown.dart';
-import 'package:intochat_os_flutter/intochat_os_flutter.dart';
+import 'package:intochat_os_flutter/intochat_os_flutter.dart' hide TableColumn;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../voice_input/ui_voice_input.dart';

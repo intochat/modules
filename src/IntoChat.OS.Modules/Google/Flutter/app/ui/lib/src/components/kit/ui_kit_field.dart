@@ -6,11 +6,9 @@ import '../../theme/ui_theme.dart';
 import '../../theme/ui_tokens.dart';
 import 'ui_kit_surface.dart';
 
-/// Figma text field: 14/600 label, 7 gap, then a 48-high box with radius 12,
-/// `inputBorder` border, `surface` fill and xs shadow. Hover turns the border
-/// `muted`; focus turns it `accent` and adds a 3px `focus` ring outside (the
-/// ring alone is too low contrast); an error turns it `error` and shows the
-/// message below.
+/// Desktop-dense text field: 13/600 label, 6 gap, then a 36px single-line box
+/// with radius 12, `inputBorder` border, `surface` fill and xs shadow. Focus
+/// turns the border `accent` and adds a 3px `focus` ring outside.
 final class UiKitField extends StatefulWidget {
   const UiKitField({
     super.key,
@@ -99,7 +97,8 @@ class _UiKitFieldState extends State<UiKitField> {
   Widget build(BuildContext context) {
     final c = UiColors.of(context);
     final type = UiType.of(context);
-    final radius = UiTokens.of(context).fieldRadius;
+    final tokens = UiTokens.of(context);
+    final radius = tokens.fieldRadius;
     final focused = _focus.hasFocus;
     final error = widget.error;
     final hasError = error != null && error.isNotEmpty;
@@ -129,19 +128,14 @@ class _UiKitFieldState extends State<UiKitField> {
       enableSuggestions: widget.autocorrect,
       style: style,
       cursorColor: c.accent,
-      // The box above draws the border; clear every theme border and fill
-      // so the app's InputDecorationTheme does not draw a second one inside.
       decoration:
           InputDecoration.collapsed(
             hintText: null,
             hintStyle: hintStyle,
           ).copyWith(
-            // The placeholder is visual only: the field's name below already
-            // carries it, and a semantic hint would repeat it in the name.
             hint: placeholder == null
                 ? null
                 : ExcludeSemantics(
-                    // Resolved as the decorator resolves a hintText style.
                     child: Text(
                       placeholder,
                       style: Theme.of(context).textTheme.bodyLarge!
@@ -159,11 +153,6 @@ class _UiKitFieldState extends State<UiKitField> {
       onChanged: widget.onChanged,
       onSubmitted: widget.onSubmitted,
     );
-    // The visible label sits outside the TextField, so name the field for
-    // assistive technology explicitly. Merge the name into the TextField's
-    // own node: a separate text-field node would render on the web as a
-    // second, disabled input, and the real input would lose its name once
-    // typing hides the placeholder.
     final input = MergeSemantics(
       child: Semantics(label: name, child: textField),
     );
@@ -176,11 +165,10 @@ class _UiKitFieldState extends State<UiKitField> {
         boxShadow: UiShadows.xs(uiKitShadowBase(context)),
       ),
       child: Padding(
-        // Figma's icon button sits 8px from the edge (34px button, 6px pad).
         padding: EdgeInsets.fromLTRB(
-          14,
+          12,
           widget.multiline ? 6 : 0,
-          widget.suffix == null ? 14 : 6,
+          widget.suffix == null ? 12 : 4,
           widget.multiline ? 6 : 0,
         ),
         child: widget.multiline
@@ -189,7 +177,7 @@ class _UiKitFieldState extends State<UiKitField> {
                 child: Align(alignment: Alignment.centerLeft, child: input),
               )
             : SizedBox(
-                height: 48,
+                height: tokens.inputHeight,
                 child: widget.suffix == null
                     ? Align(alignment: Alignment.centerLeft, child: input)
                     : Row(
@@ -208,7 +196,7 @@ class _UiKitFieldState extends State<UiKitField> {
       children: [
         if (widget.label.isNotEmpty) ...[
           ExcludeSemantics(child: Text(widget.label, style: type.fieldLabel)),
-          const SizedBox(height: 7),
+          const SizedBox(height: 6),
         ],
         MouseRegion(
           onEnter: (_) => setState(() => _hover = true),

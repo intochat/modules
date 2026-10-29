@@ -27,18 +27,18 @@ void main() {
       tester.getTopLeft(find.byKey(thumbKey)).dx -
       tester.getTopLeft(find.byKey(trackKey)).dx;
 
-  testWidgets('is 40x22 with the thumb at dx 0 off and dx 18 on', (
+  testWidgets('is 36x20 with the thumb at dx 0 off and dx 16 on', (
     tester,
   ) async {
     await host(tester, UiKitSwitch(value: false, onChanged: (_) {}));
-    expect(tester.getSize(find.byKey(trackKey)), const Size(40, 22));
-    expect(tester.getSize(find.byKey(thumbKey)), const Size(16, 16));
+    expect(tester.getSize(find.byKey(trackKey)), const Size(36, 20));
+    expect(tester.getSize(find.byKey(thumbKey)), const Size(14, 14));
     // Padding 3 is the thumb's rest offset; "dx 0" is relative to it.
     final off = thumbDx(tester);
-    expect(off, 3);
-    expect(trackColor(tester), c.inputBorder);
+    expect(off, 2);
+    expect(trackColor(tester), c.recessed);
     await host(tester, UiKitSwitch(value: true, onChanged: (_) {}));
-    expect(thumbDx(tester) - off, 18);
+    expect(thumbDx(tester) - off, 16);
     expect(trackColor(tester), c.accent);
   });
 

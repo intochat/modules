@@ -23,10 +23,15 @@ void main() {
           of: find.byWidget(button.widget),
           matching: find.text(label),
         );
-        // Label + 2 x 18 px padding (11 px when compact), plus the border and an optional icon (<= 28).
+        // Label + 2 x 18 px padding (11 px when compact), plus the border and an optional icon (<= 28),
+        // or the dock's explicit slot width when placed inside dockWidth().
+        final maxExpected = [
+          tester.getSize(text).width + 2 * 18 + 2 + 28,
+          dockWidth(label, icon: true).toDouble(),
+        ].reduce((a, b) => a > b ? a : b);
         expect(
           button.size!.width,
-          lessThanOrEqualTo(tester.getSize(text).width + 2 * 18 + 2 + 28),
+          lessThanOrEqualTo(maxExpected),
           reason: label,
         );
       }

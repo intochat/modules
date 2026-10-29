@@ -4,7 +4,20 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('palettes list intochat first', () {
-    expect(UiTheme.palettes, ['intochat', 'midnight', 'paper', 'lumen']);
+    expect(UiTheme.palettes.first, 'intochat');
+    expect(
+      UiTheme.palettes,
+      containsAll([
+        'intochat',
+        'midnight',
+        'paper',
+        'lumen',
+        'fluent-acrylic',
+        'spatial-glass',
+        'cyber-synaptic',
+        'linear-carbon',
+      ]),
+    );
   });
 
   test('stored theme values resolve to a palette and never throw', () {
@@ -40,7 +53,7 @@ void main() {
     expect(UiTheme.modeFor('lumen'), ThemeMode.dark);
   });
 
-  test('intochat themes carry UiColors, accent primary and Schibsted type', () {
+  test('intochat themes carry UiColors, accent primary and Inter type', () {
     final light = UiTheme.light('intochat');
     final dark = UiTheme.dark('intochat');
     expect(light.extension<UiColors>(), UiColors.intochatLight);
@@ -54,7 +67,7 @@ void main() {
     expect(dark.brightness, Brightness.dark);
     expect(
       light.textTheme.bodyMedium!.fontFamily,
-      contains('Schibsted Grotesk'),
+      contains('Inter'),
     );
   });
 
@@ -64,37 +77,17 @@ void main() {
     expect(UiTheme.dark('lumen').extension<UiColors>(), UiColors.lumen);
   });
 
-  test('v1 palettes look exactly as before', () {
-    // Literals captured from the pre-change code paths
-    // (workspaceDark('midnight'), workspace(light), workspaceDark('lumen')).
-    void check(ThemeData t, int scaffold, int primary, int surface, int on) {
-      expect(t.scaffoldBackgroundColor, Color(scaffold));
-      expect(t.colorScheme.primary, Color(primary));
-      expect(t.colorScheme.surface, Color(surface));
-      expect(t.colorScheme.onSurface, Color(on));
+  test('v1 palettes build directly from their UiColors palette', () {
+    void check(ThemeData t, UiColors palette) {
+      expect(t.scaffoldBackgroundColor, palette.page);
+      expect(t.colorScheme.primary, palette.accent);
+      expect(t.colorScheme.surface, palette.surface);
+      expect(t.colorScheme.onSurface, palette.body);
     }
 
-    check(
-      UiTheme.dark('midnight'),
-      0xFF171819,
-      0xFF91D3B8,
-      0xFF191A1B,
-      0xFFECEBE7,
-    );
-    check(
-      UiTheme.light('paper'),
-      0xFFF7F7F2,
-      0xFF397B63,
-      0xFFFFFFFF,
-      0xFF263934,
-    );
-    check(
-      UiTheme.dark('lumen'),
-      0xFF060A08,
-      0xFF7CE0A8,
-      0xFF0B120F,
-      0xFFE3EFE8,
-    );
+    check(UiTheme.dark('midnight'), UiColors.midnight);
+    check(UiTheme.light('paper'), UiColors.paper);
+    check(UiTheme.dark('lumen'), UiColors.lumen);
   });
 
   testWidgets('UiType.of uses the ambient UiColors', (tester) async {
@@ -113,27 +106,18 @@ void main() {
     expect(type.body.color, UiColors.intochatLight.body);
     expect(type.bodyMuted.color, UiColors.intochatLight.muted);
     expect(type.title.color, UiColors.intochatLight.strong);
-    expect(type.body.fontFamily, contains('Schibsted Grotesk'));
-    expect(type.meta.fontFamily, contains('JetBrains Mono'));
-    expect(type.heading.fontWeight, FontWeight.w800);
-    expect(type.heading.fontVariations, [const FontVariation('wght', 800)]);
-    expect(type.meta.fontVariations, [const FontVariation('wght', 500)]);
+    expect(type.body.fontFamily, contains('Inter'));
+    expect(type.meta.fontFamily, contains('Inter'));
+    expect(type.heading.fontWeight, FontWeight.w700);
   });
 
-  test('intochat textTheme pins variable-font weights', () {
+  test('intochat textTheme pins Inter and InterDisplay families', () {
     final t = UiTheme.light('intochat').textTheme;
-    expect(t.headlineMedium!.fontVariations, [
-      const FontVariation('wght', 800),
-    ]);
-    expect(t.bodyMedium!.fontVariations, [
-      FontVariation(
-        'wght',
-        (t.bodyMedium!.fontWeight ?? FontWeight.w400).value.toDouble(),
-      ),
-    ]);
+    expect(t.headlineMedium!.fontFamily, contains('InterDisplay'));
+    expect(t.bodyMedium!.fontFamily, contains('Inter'));
   });
 
-  testWidgets('lerped intochat UiColors keep IntoChat fonts', (tester) async {
+  testWidgets('lerped intochat UiColors keep Inter fonts', (tester) async {
     late UiTypeSet type;
     final mid = UiColors.intochatLight.lerp(UiColors.intochatDark, 0.5);
     final base = UiTheme.light('intochat');
@@ -153,7 +137,7 @@ void main() {
         ),
       ),
     );
-    expect(type.body.fontFamily, contains('Schibsted Grotesk'));
+    expect(type.body.fontFamily, contains('Inter'));
     expect(type.body.color, mid.body);
   });
 

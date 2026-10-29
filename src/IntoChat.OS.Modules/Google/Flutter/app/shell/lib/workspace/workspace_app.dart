@@ -8,6 +8,8 @@ import 'package:flutter/services.dart';
 
 import '../connections/connect_window.dart';
 import '../connections/connectors_menu.dart';
+import '../desktop/command_palette.dart';
+import '../desktop/smart_desktop.dart';
 import '../space/neuron_space.dart';
 import '../space/space_controller.dart';
 import 'apps/app_activations.dart';
@@ -69,6 +71,8 @@ class _WorkspaceAppState extends State<WorkspaceApp>
   Object? _startupError;
   bool _developerMode = false;
   bool _ready = false;
+  bool _paletteOpen = false;
+  BarLayout _barLayout = BarLayout.floatingGlass;
   Uri? _pendingLocation;
   @override
   void initState() {
@@ -489,6 +493,47 @@ class _WorkspaceAppState extends State<WorkspaceApp>
               ),
             ),
           );
+        case 'palette':
+          setState(() => _paletteOpen = !_paletteOpen);
+        case 'smart-desktop':
+          navigator.push(
+            MaterialPageRoute<void>(
+              builder: (_) => Scaffold(
+                appBar: AppBar(title: const Text('Smart Desktop · 3D Brain')),
+                body: SmartDesktop(
+                  stylePreset: _currentStylePreset(),
+                  barLayout: _barLayout,
+                  onLaunchApp: (appId) {
+                    navigator.pop();
+                    if (appId == 'gallery') {
+                      unawaited(_tool('gallery'));
+                    } else {
+                      unawaited(
+                        _activate({
+                          'kind': 'workspace',
+                          'application': appId,
+                          'operation': 'open',
+                        }),
+                      );
+                    }
+                  },
+                  onOpenPalette: () {
+                    navigator.pop();
+                    setState(() => _paletteOpen = true);
+                  },
+                  onSelectPreset: (preset) =>
+                      unawaited(_tool('theme:${preset.id}')),
+                  onCycleBarLayout: () {
+                    setState(() {
+                      _barLayout =
+                          BarLayout.values[(_barLayout.index + 1) %
+                              BarLayout.values.length];
+                    });
+                  },
+                ),
+              ),
+            ),
+          );
         case final String preset when preset.startsWith('theme:'):
           await _localPreferences.write(
             PreferenceStore.localTheme,
@@ -504,6 +549,14 @@ class _WorkspaceAppState extends State<WorkspaceApp>
     }
   }
 
+  IcStylePreset _currentStylePreset() => switch (store.settings.theme) {
+    'spatial-glass' => IcStylePreset.spatialGlass,
+    'cyber-synaptic' => IcStylePreset.cyberSynaptic,
+    'warm-paper' || 'intochat' => IcStylePreset.warmPaper,
+    'linear-carbon' => IcStylePreset.linearCarbon,
+    _ => IcStylePreset.fluentAcrylic,
+  };
+
   Widget _menu() => PopupMenuButton<String>(
     tooltip: 'Profile',
     icon: const Icon(Icons.person_outline),
@@ -516,28 +569,14 @@ class _WorkspaceAppState extends State<WorkspaceApp>
       const PopupMenuItem(value: 'connections', child: Text('Connections')),
       const PopupMenuItem(value: 'compute', child: Text('Compute')),
       const PopupMenuItem(value: 'gallery', child: Text('UI Gallery')),
-      const PopupMenuDivider(),
       const PopupMenuItem(
-        value: 'theme:fluent-acrylic',
-        child: Text('Theme: Fluent Acrylic'),
+        value: 'smart-desktop',
+        child: Text('Smart Desktop (3D)'),
       ),
       const PopupMenuItem(
-        value: 'theme:spatial-glass',
-        child: Text('Theme: Spatial Glass'),
+        value: 'palette',
+        child: Text('Command Palette (⌘K)'),
       ),
-      const PopupMenuItem(
-        value: 'theme:cyber-synaptic',
-        child: Text('Theme: Cyber Synaptic'),
-      ),
-      const PopupMenuItem(
-        value: 'theme:warm-paper',
-        child: Text('Theme: Warm Paper'),
-      ),
-      const PopupMenuItem(
-        value: 'theme:linear-carbon',
-        child: Text('Theme: Linear Carbon'),
-      ),
-      const PopupMenuDivider(),
       if (_developerMode)
         const PopupMenuItem(value: 'csharp', child: Text('C# files')),
       const PopupMenuItem(value: 'new', child: Text('New workspace')),
@@ -569,71 +608,119 @@ class _WorkspaceAppState extends State<WorkspaceApp>
       ),
       child: child!,
     ),
-    home: Scaffold(
-      body: _rootName != null && _brain != null
-          ? SafeArea(
-              child: _widthHinted(
-                NeuronView(
-                  key: ValueKey(_rootName),
-                  kind: _renderKind,
-                  name: _rootName!,
-                  load: (kind, name) => widget.programmingClient!.appRequest(
-                    _brain!,
-                    'node?${Uri(queryParameters: {'kind': kind, 'name': name}).query}',
-                  ),
-                  // Reads once per change signal instead of every 2 s.
-                  watch: (kind, name) => widget.programmingClient!
-                      .watchNode(_brain!, kind, name)
-                      .map((_) {}),
-                  onAction: (event) async {
-                    await widget.programmingClient!.appRequest(
+    home: CallbackShortcuts(
+      bindings: <ShortcutActivator, VoidCallback>{
+        const SingleActivator(LogicalKeyboardKey.keyK, control: true): () =>
+            setState(() => _paletteOpen = !_paletteOpen),
+        const SingleActivator(LogicalKeyboardKey.keyK, meta: true): () =>
+            setState(() => _paletteOpen = !_paletteOpen),
+      },
+      child: Scaffold(
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            _rootName != null && _brain != null
+                ? SafeArea(
+                    child: _widthHinted(
+                      NeuronView(
+                        key: ValueKey(_rootName),
+                        kind: _renderKind,
+                        name: _rootName!,
+                        load: (kind, name) =>
+                            widget.programmingClient!.appRequest(
+                              _brain!,
+                              'node?${Uri(queryParameters: {'kind': kind, 'name': name}).query}',
+                            ),
+                        // Reads once per change signal instead of every 2 s.
+                        watch: (kind, name) => widget.programmingClient!
+                            .watchNode(_brain!, kind, name)
+                            .map((_) {}),
+                        onAction: (event) async {
+                          await widget.programmingClient!.appRequest(
+                            _brain!,
+                            'event',
+                            body: event,
+                          );
+                        },
+                        onActivate: (action) => unawaited(_activate(action)),
+                        scenes: widget.programmingClient!.scenes(_brain!),
+                        entries: (brain) =>
+                            EntriesClient(widget.programmingClient!, brain),
+                        localPreferences: _localPreferences,
+                      ),
+                    ),
+                  )
+                : _space == null
+                ? Center(
+                    child: Text(
+                      _startupError?.toString() ??
+                          widget.statusMessage ??
+                          'Connect to your brain to begin.',
+                    ),
+                  )
+                : NeuronSpace(
+                    key: ValueKey(_brain),
+                    controller: _space!,
+                    load: (kind, name) => widget.programmingClient!.appRequest(
                       _brain!,
-                      'event',
-                      body: event,
+                      'node?${Uri(queryParameters: {'kind': kind, 'name': name}).query}',
+                    ),
+                    watch: (kind, name) => widget.programmingClient!
+                        .watchNode(_brain!, kind, name)
+                        .map((_) {}),
+                    onAction: (event) async {
+                      await widget.programmingClient!.appRequest(
+                        _brain!,
+                        'event',
+                        body: event,
+                      );
+                    },
+                    onActivate: (action) => unawaited(_activate(action)),
+                    onRequest: _request,
+                    loadIcon: _icon,
+                    menu: _menu(),
+                    onSettings: () => unawaited(_activate({'kind': 'settings'})),
+                    entries: (brain) =>
+                        EntriesClient(widget.programmingClient!, brain),
+                    localPreferences: _localPreferences,
+                  ),
+            if (_paletteOpen)
+              CommandPalette(
+                onClose: () => setState(() => _paletteOpen = false),
+                onLaunchApp: (appId) {
+                  if (appId == 'gallery') {
+                    unawaited(_tool('gallery'));
+                  } else {
+                    unawaited(
+                      _activate({
+                        'kind': 'workspace',
+                        'application': appId,
+                        'operation': 'open',
+                      }),
                     );
-                  },
-                  onActivate: (action) => unawaited(_activate(action)),
-                  scenes: widget.programmingClient!.scenes(_brain!),
-                  entries: (brain) =>
-                      EntriesClient(widget.programmingClient!, brain),
-                  localPreferences: _localPreferences,
+                  }
+                },
+                onAskIno: (prompt) => unawaited(
+                  _activate({
+                    'kind': 'workspace',
+                    'application': 'ino',
+                    'operation': 'send',
+                    'input': prompt,
+                  }),
                 ),
+                onSelectPreset: (preset) =>
+                    unawaited(_tool('theme:${preset.id}')),
+                onCycleBarLayout: () {
+                  setState(() {
+                    _barLayout =
+                        BarLayout.values[(_barLayout.index + 1) %
+                            BarLayout.values.length];
+                  });
+                },
               ),
-            )
-          : _space == null
-          ? Center(
-              child: Text(
-                _startupError?.toString() ??
-                    widget.statusMessage ??
-                    'Connect to your brain to begin.',
-              ),
-            )
-          : NeuronSpace(
-              key: ValueKey(_brain),
-              controller: _space!,
-              load: (kind, name) => widget.programmingClient!.appRequest(
-                _brain!,
-                'node?${Uri(queryParameters: {'kind': kind, 'name': name}).query}',
-              ),
-              watch: (kind, name) => widget.programmingClient!
-                  .watchNode(_brain!, kind, name)
-                  .map((_) {}),
-              onAction: (event) async {
-                await widget.programmingClient!.appRequest(
-                  _brain!,
-                  'event',
-                  body: event,
-                );
-              },
-              onActivate: (action) => unawaited(_activate(action)),
-              onRequest: _request,
-              loadIcon: _icon,
-              menu: _menu(),
-              onSettings: () => unawaited(_activate({'kind': 'settings'})),
-              entries: (brain) =>
-                  EntriesClient(widget.programmingClient!, brain),
-              localPreferences: _localPreferences,
-            ),
+          ],
+        ),
+      ),
     ),
   );
 }
