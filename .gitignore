@@ -58,3 +58,4 @@ deployment/*.json
 .deployment-values/
 __pycache__/
 /packages/
+/.nuget-local/

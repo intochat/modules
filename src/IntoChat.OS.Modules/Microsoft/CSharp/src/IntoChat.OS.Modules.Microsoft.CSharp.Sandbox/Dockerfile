@@ -8,7 +8,8 @@ ENV DOTNET_CLI_TELEMETRY_OPTOUT=1 \
     CodeGraphRefresh=false
 WORKDIR /src
 COPY . .
-RUN dotnet publish src/IntoChat.OS.Modules/Microsoft/CSharp/src/IntoChat.OS.Modules.Microsoft.CSharp.Sandbox/IntoChat.OS.Modules.Microsoft.CSharp.Sandbox.csproj -c Release -o /app \
+RUN mkdir -p /nuget && if [ -d /src/.nuget-local ]; then cp /src/.nuget-local/*.nupkg /nuget/ 2>/dev/null || true; fi \
+    && dotnet publish src/IntoChat.OS.Modules/Microsoft/CSharp/src/IntoChat.OS.Modules.Microsoft.CSharp.Sandbox/IntoChat.OS.Modules.Microsoft.CSharp.Sandbox.csproj -c Release -o /app \
     && for contracts in $(find src -name '*.Contracts.csproj' -not -path '*/tests/*') $(grep -rl --include='*.csproj' '<IntoChatOSContractsHost>true</IntoChatOSContractsHost>' src); do dotnet build "$contracts" -c Release -p:CopyLocalLockFileAssemblies=true -o /app/contracts || exit 1; done \
     && cp -n /app/contracts/*.dll /app/ && rm -rf /app/contracts     && test -f /app/DigitalBrain.dll && test -f /app/DigitalBrain.UI.dll
 
