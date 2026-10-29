@@ -12,7 +12,7 @@
     <InternalsVisibleTo Include="IntoChat.OS.Modules.Supabase.Tests.Integration" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="../../../../IntoChat.OS/Hosting/IntoChat.OS.Framework/IntoChat.OS.Framework.csproj" />
+    <PackageReference Include="IntoChat.OS.Framework" />
   </ItemGroup>
-  <ItemGroup><ProjectReference Include="../../../IntoChat.OS/Identity/src/IntoChat.OS.Modules.Identity/IntoChat.OS.Modules.Identity.csproj" /></ItemGroup>
+  <ItemGroup><PackageReference Include="IntoChat.OS.Modules.Identity" /></ItemGroup>
 </Project>

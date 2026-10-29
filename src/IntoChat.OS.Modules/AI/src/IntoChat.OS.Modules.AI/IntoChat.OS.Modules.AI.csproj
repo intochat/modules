@@ -32,8 +32,8 @@
 
   <ItemGroup>
     <ProjectReference Include="../../Contracts/IntoChat.OS.Modules.AI.Contracts/IntoChat.OS.Modules.AI.Contracts.csproj" />
-    <ProjectReference Include="../../../IntoChat.OS/Apps/Contracts/IntoChat.OS.Modules.Apps.Contracts/IntoChat.OS.Modules.Apps.Contracts.csproj" />
-    <ProjectReference Include="../../../../IntoChat.OS/Hosting/IntoChat.OS.Framework/IntoChat.OS.Framework.csproj" />
+    <PackageReference Include="IntoChat.OS.Modules.Apps.Contracts" />
+    <PackageReference Include="IntoChat.OS.Framework" />
   </ItemGroup>
 
   <ItemGroup>
@@ -44,5 +44,5 @@
   <ItemGroup>
     <EmbeddedResource Include="Pricing/models.prices.json" LogicalName="IntoChat.OS.Modules.AI.Pricing.models.prices.json" />
   </ItemGroup>
-  <ItemGroup><ProjectReference Include="../../../IntoChat.OS/Identity/src/IntoChat.OS.Modules.Identity/IntoChat.OS.Modules.Identity.csproj" /></ItemGroup>
+  <ItemGroup><PackageReference Include="IntoChat.OS.Modules.Identity" /></ItemGroup>
 </Project>

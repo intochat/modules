@@ -2,5 +2,5 @@
   <ItemGroup>
     <ProjectReference Include="../../src/IntoChat.OS.Modules.Microsoft.Roslyn/IntoChat.OS.Modules.Microsoft.Roslyn.csproj" />
   </ItemGroup>
-  <ItemGroup><ProjectReference Include="../../../../../../framework/src/DigitalBrain.Testing.Silo/DigitalBrain.Testing.Silo.csproj" /></ItemGroup>
+  <ItemGroup><PackageReference Include="DigitalBrain.Testing.Silo" /></ItemGroup>
 </Project>

@@ -150,7 +150,11 @@ bool Win32Window::Create(const std::wstring& title,
 }
 
 bool Win32Window::Show() {
-  return ShowWindow(window_handle_, SW_SHOWNORMAL);
+  ShowWindow(window_handle_, SW_SHOWDEFAULT);
+  ShowWindow(window_handle_, SW_SHOWNORMAL);
+  UpdateWindow(window_handle_);
+  SetForegroundWindow(window_handle_);
+  return true;
 }
 
 // static

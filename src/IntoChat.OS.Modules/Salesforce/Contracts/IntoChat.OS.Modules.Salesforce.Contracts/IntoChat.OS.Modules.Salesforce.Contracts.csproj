@@ -7,6 +7,6 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Neuron interfaces and signals use the IntoChat.OS wire vocabulary; module runtime uses Framework. -->
-    <ProjectReference Include="../../../../IntoChat.OS/IntoChat.OS.csproj" />
+    <PackageReference Include="IntoChat.OS" />
   </ItemGroup>
 </Project>

@@ -5,6 +5,6 @@
     <RootNamespace>IntoChat.OS.Modules.Microsoft.Orleans.Contracts</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../../../../../IntoChat.OS/IntoChat.OS.csproj" />
+    <PackageReference Include="IntoChat.OS" />
   </ItemGroup>
 </Project>

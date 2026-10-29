@@ -6,12 +6,12 @@
     <NoWarn>$(NoWarn);ORLEANSEXP005;CA1812</NoWarn>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../../../IntoChat.OS/Apps/Contracts/IntoChat.OS.Modules.Apps.Contracts/IntoChat.OS.Modules.Apps.Contracts.csproj" />
+    <PackageReference Include="IntoChat.OS.Modules.Apps.Contracts" />
     <ProjectReference Include="../../Contracts/IntoChat.OS.Modules.Postgres.Contracts/IntoChat.OS.Modules.Postgres.Contracts.csproj" />
-    <ProjectReference Include="../../../../IntoChat.OS/Hosting/IntoChat.OS.Framework/IntoChat.OS.Framework.csproj" />
+    <PackageReference Include="IntoChat.OS.Framework" />
     <PackageReference Include="Npgsql" />
     <InternalsVisibleTo Include="IntoChat.OS.Modules.Postgres.Tests.Unit" />
     <InternalsVisibleTo Include="IntoChat.OS.Modules.Postgres.Tests.Integration" />
   </ItemGroup>
-  <ItemGroup><ProjectReference Include="../../../IntoChat.OS/Identity/src/IntoChat.OS.Modules.Identity/IntoChat.OS.Modules.Identity.csproj" /></ItemGroup>
+  <ItemGroup><PackageReference Include="IntoChat.OS.Modules.Identity" /></ItemGroup>
 </Project>

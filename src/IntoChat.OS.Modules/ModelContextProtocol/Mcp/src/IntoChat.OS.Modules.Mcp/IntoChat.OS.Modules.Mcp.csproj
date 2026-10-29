@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <Description>Generic MCP client: any Streamable-HTTP MCP server as a tool-source neuron.</Description>
+    <RootNamespace>IntoChat.OS.Modules.Mcp</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="IntoChat.OS.Modules.Mcp.Tests.Unit" />
+    <InternalsVisibleTo Include="IntoChat.OS.Modules.Mcp.Tests.Integration" />
+    <PackageReference Include="ModelContextProtocol.Core" />
+    <ProjectReference Include="../../Contracts/IntoChat.OS.Modules.Mcp.Contracts/IntoChat.OS.Modules.Mcp.Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup><PackageReference Include="IntoChat.OS.Framework" /></ItemGroup>
+  <ItemGroup><PackageReference Include="IntoChat.OS.Modules.Identity" /></ItemGroup>
+</Project>

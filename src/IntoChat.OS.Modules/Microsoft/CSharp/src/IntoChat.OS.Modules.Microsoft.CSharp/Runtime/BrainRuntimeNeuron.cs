@@ -356,7 +356,7 @@ internal sealed class BrainRuntimeNeuron(
         var behaviors = compiled.Behaviors;
         var hash = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(string.Join("\n", behaviors.Select(b => b.Path + ":" + b.Hash)))));
         var previous = Snapshot.Programs.FirstOrDefault(p => p.Owner == owner);
-        var program = ProgramAssignment.Of(owner, hash, compiled.Settings, compiled.Caller ?? previous?.Principal, behaviors);
+        var program = ProgramAssignment.Of(owner, hash, compiled.Settings, compiled.Caller ?? previous?.Principal ?? new CapabilityCaller(Brain, Brain, Brain), behaviors);
         var replaced = previous?.Behaviors.Except(behaviors).Select(b => b.Id(owner)).ToArray() ?? [];
         // With a sandbox connected the old build may keep running, so what replacing it removes is kept until the new one runs.
         if (previous is not null && replaced.Length > 0 && Snapshot.Session is { Status: SessionStatus.Connected })

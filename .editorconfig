@@ -1,0 +1,79 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{csproj,props,targets,slnx,xml,json,yml,yaml,mts,mjs,md,config}]
+indent_size = 2
+
+[*.cs]
+#### Gate-level style (EnforceCodeStyleInBuild + TreatWarningsAsErrors)
+csharp_style_namespace_declarations = file_scoped:error
+csharp_prefer_braces = true:error
+csharp_using_directive_placement = outside_namespace:error
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:error
+dotnet_style_readonly_field = true:error
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = false
+
+#### Folders organize; public namespaces are flat
+dotnet_style_namespace_match_folder = false
+dotnet_diagnostic.IDE0130.severity = none
+# Forward the in-scope CancellationToken. Grain contract methods without a token parameter have no source for one (no contract changes).
+dotnet_diagnostic.CA2016.severity = error
+
+#### Soft style under preview-all — do not break the gate
+csharp_style_prefer_primary_constructors = true:suggestion
+csharp_style_expression_bodied_methods = when_on_single_line:suggestion
+csharp_style_expression_bodied_constructors = when_on_single_line:silent
+csharp_style_var_for_built_in_types = true:silent
+csharp_style_var_when_type_is_apparent = true:silent
+csharp_style_var_elsewhere = true:silent
+dotnet_diagnostic.IDE0005.severity = none
+dotnet_diagnostic.IDE0008.severity = none
+dotnet_diagnostic.IDE0010.severity = none
+dotnet_diagnostic.IDE0021.severity = none
+dotnet_diagnostic.IDE0024.severity = none
+dotnet_diagnostic.IDE0028.severity = none
+dotnet_diagnostic.IDE0032.severity = none
+dotnet_diagnostic.IDE0042.severity = none
+dotnet_diagnostic.IDE0046.severity = none
+dotnet_diagnostic.IDE0048.severity = none
+dotnet_diagnostic.IDE0051.severity = none
+dotnet_diagnostic.IDE0055.severity = none
+dotnet_diagnostic.IDE0057.severity = none
+dotnet_diagnostic.IDE0058.severity = none
+dotnet_diagnostic.IDE0059.severity = none
+dotnet_diagnostic.IDE0061.severity = none
+dotnet_diagnostic.IDE0072.severity = none
+dotnet_diagnostic.IDE0078.severity = none
+dotnet_diagnostic.IDE0090.severity = none
+dotnet_diagnostic.IDE0270.severity = none
+dotnet_diagnostic.IDE0301.severity = none
+dotnet_diagnostic.IDE0305.severity = none
+dotnet_diagnostic.IDE0330.severity = none
+dotnet_diagnostic.IDE0340.severity = none
+dotnet_diagnostic.IDE0370.severity = none
+dotnet_diagnostic.IDE0390.severity = none
+
+#### Product-wide low-value naming noise (C#-first API)
+dotnet_diagnostic.CA1716.severity = none
+
+#### Aspire MCP hosting API is preview / evaluation-only
+dotnet_diagnostic.ASPIREMCP001.severity = none
+
+# ORLEANSEXP005: Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+dotnet_diagnostic.ORLEANSEXP005.severity = none
+
+[*.{cs,vb}]
+dotnet_analyzer_diagnostic.category-Style.severity = none
+
+dotnet_diagnostic.IDE0022.severity = silent
+
+# ASPIREPROBES001: Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+dotnet_diagnostic.ASPIREPROBES001.severity = none

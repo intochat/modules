@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\..\framework\src\DigitalBrain.Testing.Silo\DigitalBrain.Testing.Silo.csproj" />
+    <PackageReference Include="DigitalBrain.Testing.Silo" />
     <ProjectReference Include="../../src/IntoChat.OS.Modules.Postgres/IntoChat.OS.Modules.Postgres.csproj" />
   </ItemGroup>
 </Project>

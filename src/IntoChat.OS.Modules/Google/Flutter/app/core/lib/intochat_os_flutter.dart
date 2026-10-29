@@ -19,3 +19,4 @@ export 'src/scene_client.dart';
 export 'src/ui_client.dart';
 export 'src/neuron_channel.dart';
 export 'src/neuron_watch_mux.dart';
+export 'src/node_contracts.dart';

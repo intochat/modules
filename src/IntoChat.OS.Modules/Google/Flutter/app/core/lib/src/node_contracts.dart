@@ -128,6 +128,8 @@ abstract final class NodeContracts {
     ),
   };
 
+  static NodeContract? tryResolve(String kind) => _byKind[kind];
+
   static NodeContract of(String kind) =>
       _byKind[kind] ??
       (throw ArgumentError.value(kind, 'kind', 'Unknown app UI kind'));

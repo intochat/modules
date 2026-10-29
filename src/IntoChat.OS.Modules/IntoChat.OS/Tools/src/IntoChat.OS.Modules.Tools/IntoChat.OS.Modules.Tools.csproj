@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <Description>The per-brain tool source registry and its capability source.</Description>
+    <RootNamespace>IntoChat.OS.Modules.Tools</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="IntoChat.OS.Modules.Tools.Tests.Unit" />
+    <ProjectReference Include="../../Contracts/IntoChat.OS.Modules.Tools.Contracts/IntoChat.OS.Modules.Tools.Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup><PackageReference Include="IntoChat.OS.Framework" /></ItemGroup>
+  <ItemGroup><PackageReference Include="IntoChat.OS.Modules.Identity" /></ItemGroup>
+</Project>

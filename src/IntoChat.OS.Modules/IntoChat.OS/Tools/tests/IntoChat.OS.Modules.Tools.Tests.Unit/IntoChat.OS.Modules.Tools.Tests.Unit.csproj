@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/IntoChat.OS.Modules.Tools/IntoChat.OS.Modules.Tools.csproj" />
+  </ItemGroup>
+</Project>

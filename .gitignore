@@ -57,3 +57,4 @@ src/IntoChat.OS/OS/IntoChat.OS.Kernel.Host/applications/
 deployment/*.json
 .deployment-values/
 __pycache__/
+/packages/

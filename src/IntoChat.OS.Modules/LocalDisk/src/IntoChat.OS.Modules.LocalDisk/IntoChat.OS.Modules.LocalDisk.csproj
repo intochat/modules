@@ -7,7 +7,7 @@
   <ItemGroup>
     <InternalsVisibleTo Include="IntoChat.OS.Modules.LocalDisk.Tests.Unit" />
     <InternalsVisibleTo Include="IntoChat.OS.Modules.LocalDisk.Tests.Integration" />
-    <ProjectReference Include="../../../../IntoChat.OS/Hosting/IntoChat.OS.Framework/IntoChat.OS.Framework.csproj" />
-    <ProjectReference Include="../../../IntoChat.OS/Identity/src/IntoChat.OS.Modules.Identity/IntoChat.OS.Modules.Identity.csproj" />
+    <PackageReference Include="IntoChat.OS.Framework" />
+    <PackageReference Include="IntoChat.OS.Modules.Identity" />
   </ItemGroup>
 </Project>

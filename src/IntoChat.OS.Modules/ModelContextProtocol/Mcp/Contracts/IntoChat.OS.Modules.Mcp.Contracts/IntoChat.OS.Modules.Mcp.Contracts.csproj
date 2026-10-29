@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <Description>A generic MCP server connector: any MCP server becomes a neuron whose tools the assistant searches and runs.</Description>
+    <RootNamespace>IntoChat.OS.Modules.Mcp.Contracts</RootNamespace>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="IntoChat.OS" />
+    <ProjectReference Include="../../../../IntoChat.OS/Tools/Contracts/IntoChat.OS.Modules.Tools.Contracts/IntoChat.OS.Modules.Tools.Contracts.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,110 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AnalysisLevel>preview-all</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <IsPackable>false</IsPackable>
+    <NoWarn>$(NoWarn);ASPIRE010</NoWarn>
+    <!-- NU5104: .NET 11 is still RC, so stable IntoChat.OS packages depend on prerelease Microsoft packages; remove at .NET 11 GA -->
+    <NoWarn>$(NoWarn);NU5104</NoWarn>
+    <!-- Web SDK defaults this true; on Linux that forces RID=linux-x64 for every project.
+         Container publishes opt back in via PublishProfiles/Container.pubxml + release.yml. -->
+    <EnableSdkContainerSupport>false</EnableSdkContainerSupport>
+    <!-- Every project builds into artifacts/bin/<project>/<config>, so CI uploads one tree and
+         runs prebuilt test modules from that tree. -->
+    <UseArtifactsOutput>true</UseArtifactsOutput>
+  </PropertyGroup>
+  <!-- GitHub Actions sets CI=true. Keep solution builds portable (no -r on .slnx). -->
+  <PropertyGroup Condition="'$(CI)' == 'true'">
+    <RuntimeIdentifier></RuntimeIdentifier>
+  </PropertyGroup>
+  <!-- Opt-in: dump generator output to artifacts/generated/<project> for inspection. -->
+  <PropertyGroup Condition="'$(IntoChatOSEmitGenerated)' == 'true'">
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <CompilerGeneratedFilesOutputPath>$(MSBuildThisFileDirectory)artifacts/generated/$(MSBuildProjectName)</CompilerGeneratedFilesOutputPath>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(IntoChatOSEmitGenerated)' == 'true'">
+    <Compile Remove="$(CompilerGeneratedFilesOutputPath)/**" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <IntoChatOSVersion>$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)VERSION').Trim())</IntoChatOSVersion>
+    <VersionPrefix>$(IntoChatOSVersion)</VersionPrefix>
+    <Authors>Digital Brain Tech</Authors>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/intochat/os</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/intochat/os</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageTags>agents;orleans;aspire;durable;actors</PackageTags>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <DebugType>portable</DebugType>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <!-- A module whose contracts no other module references keeps them in its own assembly (IntoChatOSContractsHost).
+       The assembly declares it, so the sandbox image, the script compiler and the architecture facts find it by
+       that declaration, not by a .Contracts name. Such a package is a runtime package: it is not MIT-stamped. -->
+  <ItemGroup Condition="'$(IntoChatOSContractsHost)' == 'true'">
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>IntoChat.OS.ContractsHost</_Parameter1>
+      <_Parameter2>true</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <!-- Every test project in the repo, replacing the boilerplate that used to be copied into each
+       .csproj. This is repository convention only: package consumers choose their own test runner
+       and project shape. Module tests host on DigitalBrain.Testing (TestOS, SiloHost). -->
+  <PropertyGroup Condition="($(MSBuildProjectName.EndsWith('.Tests')) Or $(MSBuildProjectName.Contains('.Tests.'))) And !$(MSBuildProjectName.EndsWith('.Tests.Support'))">
+    <OutputType>Exe</OutputType>
+    <IsTestProject>true</IsTestProject>
+    <!-- The MTP package sets this when its targets import. The tier jobs test from the archived
+         binaries and have no project.assets.json, so the flag has to be true here or the SDK
+         reports the project as VSTest. -->
+    <IsTestingPlatformApplication>true</IsTestingPlatformApplication>
+    <!-- The tier comes from the suffix. CI selects one tier with the Tier trait filter. -->
+    <IntoChatOSTestTier>Legacy</IntoChatOSTestTier>
+    <IntoChatOSTestTier Condition="$(MSBuildProjectName.EndsWith('.Tests.Unit'))">Unit</IntoChatOSTestTier>
+    <IntoChatOSTestTier Condition="$(MSBuildProjectName.EndsWith('.Tests.Integration'))">Integration</IntoChatOSTestTier>
+    <IntoChatOSTestTier Condition="$(MSBuildProjectName.EndsWith('.Tests.E2E'))">E2E</IntoChatOSTestTier>
+    <IntoChatOSTestTier Condition="$(MSBuildProjectName.EndsWith('.Tests.Browser'))">Browser</IntoChatOSTestTier>
+    <IntoChatOSTestTier Condition="$(MSBuildProjectName.EndsWith('.Tests.Hosting'))">Hosting</IntoChatOSTestTier>
+    <!-- IntoChatOSNightly=false drops the nightly tiers (E2E, Browser) from `dotnet test`.
+         IntoChatOSE2E=false is the previous name, kept for one release. -->
+    <IntoChatOSNightly Condition="'$(IntoChatOSNightly)' == '' And '$(IntoChatOSE2E)' == 'false'">false</IntoChatOSNightly>
+    <IntoChatOSNightly Condition="'$(IntoChatOSNightly)' == ''">true</IntoChatOSNightly>
+    <IsTestProject Condition="'$(IntoChatOSNightly)' == 'false' And ('$(IntoChatOSTestTier)' == 'E2E' Or '$(IntoChatOSTestTier)' == 'Browser')">false</IsTestProject>
+    <IsTestingPlatformApplication Condition="'$(IntoChatOSNightly)' == 'false' And ('$(IntoChatOSTestTier)' == 'E2E' Or '$(IntoChatOSTestTier)' == 'Browser')">false</IsTestingPlatformApplication>
+    <!-- A solution test of one tier must not invoke the other tiers: a tier with no selected tests exits 8. -->
+    <IsTestProject Condition="'$(IntoChatOSOnlyTier)' != '' And '$(IntoChatOSTestTier)' != '$(IntoChatOSOnlyTier)'">false</IsTestProject>
+    <IsTestingPlatformApplication Condition="'$(IntoChatOSOnlyTier)' != '' And '$(IntoChatOSTestTier)' != '$(IntoChatOSOnlyTier)'">false</IsTestingPlatformApplication>
+    <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+    <RootNamespace>$(MSBuildProjectName)</RootNamespace>
+    <DisableMSBuildAssemblyCopyCheck>true</DisableMSBuildAssemblyCopyCheck>
+    <NoWarn>$(NoWarn);ORLEANSEXP005;CS1591</NoWarn>
+  </PropertyGroup>
+  <ItemGroup Condition="($(MSBuildProjectName.EndsWith('.Tests')) Or $(MSBuildProjectName.Contains('.Tests.'))) And !$(MSBuildProjectName.EndsWith('.Tests.Support'))">
+    <PackageReference Include="xunit.v3.mtp-v2" />
+    <Using Include="Xunit" />
+    <AssemblyAttribute Include="Xunit.TraitAttribute" Condition="'$(IntoChatOSTestTier)' != 'Legacy'">
+      <_Parameter1>Tier</_Parameter1>
+      <_Parameter2>$(IntoChatOSTestTier)</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <PropertyGroup>
+    <CodeGraphRefresh Condition="'$(CodeGraphRefresh)' == ''">true</CodeGraphRefresh>
+    <_CodeGraphRepositoryRoot>$([MSBuild]::NormalizePath('$(MSBuildThisFileDirectory).'))</_CodeGraphRepositoryRoot>
+    <_CodeGraphIndex>$([System.IO.Path]::Combine('$(_CodeGraphRepositoryRoot)', '.codegraph'))</_CodeGraphIndex>
+    <_CodeGraphStamp>$([System.IO.Path]::Combine('$(_CodeGraphIndex)', 'msbuild-refresh.stamp'))</_CodeGraphStamp>
+    <_CodeGraphCommand Condition="'$(_CodeGraphCommand)' == ''">npx -y @colbymchenry/codegraph@1.6.0</_CodeGraphCommand>
+  </PropertyGroup>
+</Project>

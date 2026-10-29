@@ -1,0 +1,15 @@
+<Project>
+  <!-- Runs after SDK/package props. Keep CI solution builds framework-dependent / portable. -->
+  <PropertyGroup Condition="'$(CI)' == 'true'">
+    <RuntimeIdentifier></RuntimeIdentifier>
+    <EnableSdkContainerSupport>false</EnableSdkContainerSupport>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(IsPackable)' == 'true'">
+    <None Include="$(MSBuildThisFileDirectory)src/Assets/nuget/icon.png" Pack="true" PackagePath="/" Visible="false" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(MSBuildProjectExtension)' == '.csproj'">
+    <PackageReference Include="DigitalBrain.Analyzers" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
+  </ItemGroup>
+</Project>

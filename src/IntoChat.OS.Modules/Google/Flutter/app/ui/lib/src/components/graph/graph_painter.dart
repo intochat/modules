@@ -36,11 +36,21 @@ final class GraphPainter extends CustomPainter {
   }
 
   void _paintHull(Canvas canvas, Size size, Offset center) {
+    final radius = math.min(size.width, size.height) * 0.34;
+    final glow = Paint()
+      ..shader = RadialGradient(
+        colors: [
+          colors.accent.withValues(alpha: 0.14),
+          colors.working.withValues(alpha: 0.05),
+          Colors.transparent,
+        ],
+      ).createShader(Rect.fromCircle(center: center, radius: radius * 1.4));
+    canvas.drawCircle(center, radius * 1.4, glow);
+
     final hull = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1
-      ..color = colors.inputBorder.withValues(alpha: 0.55);
-    final radius = math.min(size.width, size.height) * 0.34;
+      ..color = colors.accent.withValues(alpha: 0.28);
     canvas.drawOval(
       Rect.fromCenter(
         center: center,
@@ -55,7 +65,7 @@ final class GraphPainter extends CustomPainter {
         width: radius * 1.35,
         height: radius * 2.05,
       ),
-      hull..color = colors.hairline.withValues(alpha: 0.5),
+      hull..color = colors.hairline.withValues(alpha: 0.55),
     );
   }
 

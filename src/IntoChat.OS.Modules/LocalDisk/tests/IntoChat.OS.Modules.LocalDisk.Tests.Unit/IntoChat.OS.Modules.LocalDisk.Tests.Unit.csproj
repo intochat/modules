@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <ProjectReference Include="../../../../../framework/src/DigitalBrain.Testing/DigitalBrain.Testing.csproj" />
+    <PackageReference Include="DigitalBrain.Testing" />
     <ProjectReference Include="../../src/IntoChat.OS.Modules.LocalDisk/IntoChat.OS.Modules.LocalDisk.csproj" />
   </ItemGroup>
 </Project>

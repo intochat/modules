@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:intochat_os_flutter/intochat_os_flutter.dart';
 
 import '../lumen/lumen_controls.dart';
 import '../lumen/lumen_palette.dart';
 import '../models/ui_part.dart';
+import '../theme/ui_colors.dart';
 import '../theme/ui_theme.dart';
 import 'ui_gallery_preview.dart';
 
-/// Offline component catalog. Example state never changes the brain.
+/// Offline WinUI 3 Gallery-inspired component & neuron catalog.
+/// Example state never changes the brain.
 final class UiGalleryScreen extends StatefulWidget {
   const UiGalleryScreen({super.key, this.onButtonPressed});
   final ValueChanged<UiButtonPart>? onButtonPressed;
@@ -19,6 +23,16 @@ final class _UiGalleryScreenState extends State<UiGalleryScreen> {
   String _category = 'All components';
   GalleryEntry _selected = galleryEntries.first;
   bool _showDetail = false;
+  int _presetIndex = 0;
+
+  static const _presets = [
+    ('Fluent Acrylic', UiColors.fluentAcrylicDark),
+    ('Spatial Glass', UiColors.spatialGlassDark),
+    ('Cyber Synaptic', UiColors.cyberSynapticDark),
+    ('Warm Paper', UiColors.intochatLight),
+    ('Linear Carbon', UiColors.linearCarbonDark),
+  ];
+
   @override
   void dispose() {
     _search.dispose();
@@ -76,7 +90,26 @@ final class _UiGalleryScreenState extends State<UiGalleryScreen> {
                           ],
                         ),
                       ),
-                      if (wide)
+                      if (wide) ...[
+                        if (constraints.maxWidth >= 1280) ...[
+                          Wrap(
+                            spacing: 6,
+                            children: [
+                              for (var i = 0; i < _presets.length; i++)
+                                ChoiceChip(
+                                  label: Text(
+                                    _presets[i].$1,
+                                    style: const TextStyle(fontSize: 11),
+                                  ),
+                                  selected: _presetIndex == i,
+                                  onSelected: (_) =>
+                                      setState(() => _presetIndex = i),
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                            ],
+                          ),
+                          const SizedBox(width: 14),
+                        ],
                         const Text(
                           'FLUTTER / COMPONENT LIBRARY',
                           style: TextStyle(
@@ -85,6 +118,7 @@ final class _UiGalleryScreenState extends State<UiGalleryScreen> {
                             color: LumenPalette.muted,
                           ),
                         ),
+                      ],
                     ],
                   ),
                 ),
@@ -340,6 +374,49 @@ final class _UiGalleryScreenState extends State<UiGalleryScreen> {
                 height: 1.6,
               ),
             ),
+            if (_selected.id.startsWith('neuron:')) ...[
+              const SizedBox(height: 16),
+              Builder(
+                builder: (context) {
+                  final kind = _selected.id.substring(7);
+                  final contract = NodeContracts.tryResolve(kind);
+                  final neuronUri = 'neuron://nordlys/flutter.$kind/sample-1';
+                  return Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      if (contract != null) ...[
+                        Chip(
+                          label: Text(
+                            'Contract: ${contract.contract}',
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                        Chip(
+                          label: Text(
+                            '[Signal] ${contract.changed}',
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ],
+                      ActionChip(
+                        avatar: const Icon(Icons.copy, size: 14),
+                        label: Text(
+                          neuronUri,
+                          style: const TextStyle(fontSize: 11),
+                        ),
+                        visualDensity: VisualDensity.compact,
+                        onPressed: () {
+                          Clipboard.setData(ClipboardData(text: neuronUri));
+                        },
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ],
           ],
         ),
       ),

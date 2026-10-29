@@ -270,12 +270,25 @@ final _toast = TextStyle(
 const _midnightNavigation = Color(0xFF101219);
 
 abstract final class UiTheme {
-  static const palettes = ['intochat', 'midnight', 'paper', 'lumen'];
+  static const palettes = [
+    'intochat',
+    'midnight',
+    'paper',
+    'lumen',
+    'fluent-acrylic',
+    'spatial-glass',
+    'cyber-synaptic',
+    'linear-carbon',
+  ];
 
   static String paletteName(String? stored) => switch (stored) {
     'dark' || 'midnight' => 'midnight',
-    'light' || 'paper' => 'paper',
+    'light' || 'paper' || 'warm-paper' => 'paper',
     'lumen' => 'lumen',
+    'fluent-acrylic' => 'fluent-acrylic',
+    'spatial-glass' => 'spatial-glass',
+    'cyber-synaptic' => 'cyber-synaptic',
+    'linear-carbon' => 'linear-carbon',
     _ => 'intochat',
   };
 
@@ -296,6 +309,10 @@ abstract final class UiTheme {
   static ThemeData dark(String? stored) => switch (paletteName(stored)) {
     'intochat' => intochat(Brightness.dark),
     'lumen' => _withColors(workspaceDark(stored), UiColors.lumen),
+    'fluent-acrylic' => _withColors(workspaceDark(stored), UiColors.fluentAcrylicDark),
+    'spatial-glass' => _withColors(workspaceDark(stored), UiColors.spatialGlassDark),
+    'cyber-synaptic' => _withColors(workspaceDark(stored), UiColors.cyberSynapticDark),
+    'linear-carbon' => _withColors(workspaceDark(stored), UiColors.linearCarbonDark),
     _ => _withColors(workspaceDark(stored), UiColors.midnight),
   };
 

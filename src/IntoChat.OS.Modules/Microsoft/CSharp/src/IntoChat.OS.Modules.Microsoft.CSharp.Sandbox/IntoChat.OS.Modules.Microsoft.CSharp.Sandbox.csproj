@@ -4,14 +4,16 @@
     <RootNamespace>IntoChat.OS.Modules.Microsoft.CSharp.Sandbox</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="../../../../../IntoChat.OS.Aspire/IntoChat.OS.ServiceDefaults/TelemetryExportBarrier.cs" Link="TelemetryExportBarrier.cs" />
     <!-- The protocol, the session connection and the client behaviors connect through; shared, never reloaded per behavior. -->
-    <ProjectReference Include="../../../../../IntoChat.OS.Client/IntoChat.OS.Client/IntoChat.OS.Client.csproj" />
+    <PackageReference Include="IntoChat.OS.Client" />
     <!-- The core vocabulary the script compiler seeds (DigitalBrain arrives through IntoChat.OS). -->
-    <ProjectReference Include="../../../../../../framework/src/DigitalBrain.UI/DigitalBrain.UI.csproj" />
+    <PackageReference Include="DigitalBrain.UI" />
     <!-- What an [App] program is run against: its app's requests and the shell's view tree (contracts only). -->
-    <ProjectReference Include="../../../../IntoChat.OS/Apps/Contracts/IntoChat.OS.Modules.Apps.Contracts/IntoChat.OS.Modules.Apps.Contracts.csproj" />
+    <PackageReference Include="IntoChat.OS.Modules.Apps.Contracts" />
     <ProjectReference Include="../../../../Google/Flutter/Contracts/IntoChat.OS.Modules.Flutter.Contracts/IntoChat.OS.Modules.Flutter.Contracts.csproj" />
+    <PackageReference Include="IntoChat.OS.Modules.Identity.Contracts" />
+    <PackageReference Include="IntoChat.OS.Modules.Circles.Contracts" />
+    <PackageReference Include="IntoChat.OS.Modules.Flame.Contracts" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
     <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />

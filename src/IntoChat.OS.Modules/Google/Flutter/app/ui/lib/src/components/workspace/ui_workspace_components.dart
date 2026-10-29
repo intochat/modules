@@ -1,5 +1,8 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
+import '../../theme/ui_colors.dart';
 import '../../theme/ui_tokens.dart';
 
 // A mounted snapshot is already current; only a subsequent identity change moves.
@@ -72,22 +75,42 @@ class UiSurface extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tokens = UiTokens.of(context);
-    return Material(
-      color: emphasized
-          ? theme.colorScheme.primaryContainer
-          : theme.colorScheme.surface,
-      shape: RoundedRectangleBorder(
+    final c = UiColors.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final fill = emphasized
+        ? theme.colorScheme.primaryContainer.withValues(alpha: isDark ? 0.88 : 0.96)
+        : c.surface.withValues(alpha: isDark ? 0.86 : 0.96);
+    final borderColor = emphasized
+        ? c.accent.withValues(alpha: 0.35)
+        : (isDark ? Colors.white.withValues(alpha: 0.12) : c.hairline);
+    return DecoratedBox(
+      decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(tokens.surfaceRadius),
-        side: BorderSide(
-          color: emphasized
-              ? theme.colorScheme.primary.withValues(alpha: .25)
-              : theme.colorScheme.outlineVariant,
-        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.38 : 0.08),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
-      clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: padding ?? EdgeInsets.all(tokens.spaceLarge),
-        child: child,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(tokens.surfaceRadius),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Material(
+            color: fill,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(tokens.surfaceRadius),
+              side: BorderSide(color: borderColor),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Padding(
+              padding: padding ?? EdgeInsets.all(tokens.spaceLarge),
+              child: child,
+            ),
+          ),
+        ),
       ),
     );
   }

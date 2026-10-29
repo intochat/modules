@@ -480,6 +480,20 @@ class _WorkspaceAppState extends State<WorkspaceApp>
         case 'new':
           final brain = await client.createWorkspace();
           if (mounted) await _selectBrain(brain);
+        case 'gallery':
+          navigator.push(
+            MaterialPageRoute<void>(
+              builder: (_) => Scaffold(
+                appBar: AppBar(title: const Text('IntoChat UI Gallery')),
+                body: const UiGalleryScreen(),
+              ),
+            ),
+          );
+        case final String preset when preset.startsWith('theme:'):
+          await _localPreferences.write(
+            PreferenceStore.localTheme,
+            preset.substring('theme:'.length),
+          );
         case 'switch':
           await widget.onSwitchAccount?.call();
       }
@@ -501,6 +515,29 @@ class _WorkspaceAppState extends State<WorkspaceApp>
       ),
       const PopupMenuItem(value: 'connections', child: Text('Connections')),
       const PopupMenuItem(value: 'compute', child: Text('Compute')),
+      const PopupMenuItem(value: 'gallery', child: Text('UI Gallery')),
+      const PopupMenuDivider(),
+      const PopupMenuItem(
+        value: 'theme:fluent-acrylic',
+        child: Text('Theme: Fluent Acrylic'),
+      ),
+      const PopupMenuItem(
+        value: 'theme:spatial-glass',
+        child: Text('Theme: Spatial Glass'),
+      ),
+      const PopupMenuItem(
+        value: 'theme:cyber-synaptic',
+        child: Text('Theme: Cyber Synaptic'),
+      ),
+      const PopupMenuItem(
+        value: 'theme:warm-paper',
+        child: Text('Theme: Warm Paper'),
+      ),
+      const PopupMenuItem(
+        value: 'theme:linear-carbon',
+        child: Text('Theme: Linear Carbon'),
+      ),
+      const PopupMenuDivider(),
       if (_developerMode)
         const PopupMenuItem(value: 'csharp', child: Text('C# files')),
       const PopupMenuItem(value: 'new', child: Text('New workspace')),
