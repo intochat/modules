@@ -7,7 +7,11 @@ import '../components/kit/ui_kit_surface.dart';
 import '../components/kit/ui_kit_switch.dart';
 import '../design/brain_scene_3d.dart';
 import '../design/cards/cards.dart';
+import '../design/controls.dart';
+import '../design/tokens.dart';
+import '../gallery/ui_gallery_screen.dart';
 import '../theme/ui_colors.dart';
+import '../theme/ui_shadows.dart';
 import '../theme/ui_theme.dart';
 import '../theme/ui_tokens.dart';
 
@@ -20,6 +24,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gpt_markdown/gpt_markdown.dart';
 import 'package:intochat_os_flutter/intochat_os_flutter.dart' hide TableColumn;
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../voice_input/ui_voice_input.dart';
@@ -307,16 +312,17 @@ class _NeuronViewState extends State<NeuronView> {
     }
     final horizontal =
         definition['mode'] == 'row' || definition['mode'] == 'split';
+    final stretch = definition['stretch'] == true;
     final flex = Flex(
       direction: horizontal ? Axis.horizontal : Axis.vertical,
-      crossAxisAlignment: horizontal
+      crossAxisAlignment: horizontal && !stretch
           ? CrossAxisAlignment.center
           : CrossAxisAlignment.stretch,
       spacing: gap,
       children: [
         for (var i = 0; i < children.length; i++)
           if ((definition['extents'] as List?)?.elementAtOrNull(i)
-              case final num extent when extent > 0)
+              case final num extent when extent > 1)
             SizedBox(
               key: children[i].key,
               width: horizontal ? extent.toDouble() : null,
@@ -335,7 +341,7 @@ class _NeuronViewState extends State<NeuronView> {
       ],
     );
     final extents = definition['extents'] as List? ?? const [];
-    if (!horizontal && !extents.any((extent) => extent is num && extent > 0)) {
+    if (!horizontal && !extents.any((extent) => extent is num && extent > 1)) {
       return flex;
     }
     // Keep declared controls reachable when their fixed extents exceed the
@@ -344,7 +350,7 @@ class _NeuronViewState extends State<NeuronView> {
         gap * (children.length - 1) +
         List.generate(children.length, (index) {
           final extent = extents.elementAtOrNull(index);
-          return extent is num && extent > 0 ? extent.toDouble() : 96.0;
+          return extent is num && extent > 1 ? extent.toDouble() : 96.0;
         }).fold(0.0, (sum, extent) => sum + extent);
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -536,6 +542,10 @@ class _NeuronViewState extends State<NeuronView> {
       case 'confirmation':
         final root = data['root'];
         if (root is! Map) return const SizedBox.shrink();
+        if (widget.kind == 'view' &&
+            widget.name.endsWith('/apps/gallery/view')) {
+          return const UiGalleryScreen();
+        }
         return _ImmutableView(
           name: widget.name,
           generation: (data['generation'] as num?)?.toInt() ?? 0,
@@ -547,6 +557,7 @@ class _NeuronViewState extends State<NeuronView> {
           markdown: _markdown,
           reference: (node, key) => _child(node, key: key),
           layout: _layout,
+          localPreferences: widget.localPreferences,
         );
       case 'viewport':
         final root = data['root'];

@@ -78,6 +78,20 @@ class DesktopWindowState extends ChangeNotifier {
   }
 }
 
+class DesktopTabSpec {
+  const DesktopTabSpec({
+    required this.key,
+    required this.label,
+    required this.selected,
+    this.onTap,
+  });
+
+  final String key;
+  final String label;
+  final bool selected;
+  final VoidCallback? onTap;
+}
+
 /// Free-floating, draggable, 8-way resizable Acrylic window frame (`38px` title
 /// bar with Close/Minimise/Zoom traffic lights, double-click zoom, and focus
 /// mode below `1024×640`).
@@ -89,10 +103,16 @@ class WindowFrame extends StatelessWidget {
     required this.forceZoom,
     required this.desk,
     required this.child,
+    this.tabs = const [],
     this.onFocus,
     this.onClose,
     this.onMinimize,
     this.onToggleZoom,
+    this.onNewTab,
+    this.onFavourite,
+    this.isFavourite = false,
+    this.onPin,
+    this.isPinned = false,
   });
 
   final DesktopWindowState window;
@@ -100,10 +120,16 @@ class WindowFrame extends StatelessWidget {
   final bool forceZoom;
   final Size desk;
   final Widget child;
+  final List<DesktopTabSpec> tabs;
   final VoidCallback? onFocus;
   final VoidCallback? onClose;
   final VoidCallback? onMinimize;
   final VoidCallback? onToggleZoom;
+  final VoidCallback? onNewTab;
+  final VoidCallback? onFavourite;
+  final bool isFavourite;
+  final VoidCallback? onPin;
+  final bool isPinned;
 
   static final Map<int, bool> _lastZoom = {};
 
@@ -126,7 +152,13 @@ class WindowFrame extends StatelessWidget {
           onClose: onClose,
           onMinimize: onMinimize,
           onToggleZoom: onToggleZoom ?? window.toggleZoom,
+          onNewTab: onNewTab,
+          onFavourite: onFavourite,
+          isFavourite: isFavourite,
+          onPin: onPin,
+          isPinned: isPinned,
         ),
+        if (tabs.length > 1) _WindowTabStrip(tabs: tabs),
         Expanded(
           child: Listener(
             behavior: HitTestBehavior.translucent,
@@ -205,6 +237,11 @@ class _TitleBar extends StatefulWidget {
     this.onFocus,
     this.onClose,
     this.onMinimize,
+    this.onNewTab,
+    this.onFavourite,
+    this.isFavourite = false,
+    this.onPin,
+    this.isPinned = false,
   });
 
   final DesktopWindowState window;
@@ -216,6 +253,11 @@ class _TitleBar extends StatefulWidget {
   final VoidCallback? onClose;
   final VoidCallback? onMinimize;
   final VoidCallback onToggleZoom;
+  final VoidCallback? onNewTab;
+  final VoidCallback? onFavourite;
+  final bool isFavourite;
+  final VoidCallback? onPin;
+  final bool isPinned;
 
   @override
   State<_TitleBar> createState() => _TitleBarState();
@@ -326,9 +368,153 @@ class _TitleBarState extends State<_TitleBar> {
                   ],
                 ),
               ),
+              if (widget.onNewTab != null ||
+                  widget.onFavourite != null ||
+                  widget.onPin != null)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (widget.onFavourite != null)
+                        _TitleActionButton(
+                          icon: LucideIcons.star,
+                          tooltip: widget.isFavourite
+                              ? 'Remove from favourites'
+                              : 'Add to favourites',
+                          active: widget.isFavourite,
+                          onTap: widget.onFavourite!,
+                        ),
+                      if (widget.onPin != null)
+                        _TitleActionButton(
+                          icon: widget.isPinned
+                              ? LucideIcons.pinOff
+                              : LucideIcons.pin,
+                          tooltip: widget.isPinned
+                              ? 'Unpin from Dock'
+                              : 'Pin to Dock',
+                          active: widget.isPinned,
+                          onTap: widget.onPin!,
+                        ),
+                      if (widget.onNewTab != null)
+                        _TitleActionButton(
+                          icon: LucideIcons.plus,
+                          tooltip: 'New tab',
+                          onTap: widget.onNewTab!,
+                        ),
+                    ],
+                  ),
+                ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _TitleActionButton extends StatefulWidget {
+  const _TitleActionButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+    this.active = false,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+  final bool active;
+
+  @override
+  State<_TitleActionButton> createState() => _TitleActionButtonState();
+}
+
+class _TitleActionButtonState extends State<_TitleActionButton> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = IcTheme.of(context);
+    return Tooltip(
+      message: widget.tooltip,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _hover = true),
+        onExit: (_) => setState(() => _hover = false),
+        child: GestureDetector(
+          onTap: widget.onTap,
+          child: Container(
+            width: 26,
+            height: 26,
+            margin: const EdgeInsets.only(left: 4),
+            decoration: BoxDecoration(
+              color: widget.active
+                  ? c.accentTint
+                  : (_hover ? c.surfaceSunk : Colors.transparent),
+              borderRadius: BorderRadius.circular(IcRadius.xs),
+            ),
+            child: Icon(
+              widget.icon,
+              size: 13.5,
+              color: widget.active
+                  ? c.accent
+                  : (_hover ? c.textStrong : c.textMuted),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _WindowTabStrip extends StatelessWidget {
+  const _WindowTabStrip({required this.tabs});
+
+  final List<DesktopTabSpec> tabs;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = IcTheme.of(context);
+    return Container(
+      height: 32,
+      decoration: BoxDecoration(
+        color: c.surfaceSunk.withValues(alpha: 0.72),
+        border: Border(bottom: BorderSide(color: c.borderHairline)),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: tabs.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 4),
+        itemBuilder: (context, index) {
+          final tab = tabs[index];
+          return GestureDetector(
+            onTap: tab.onTap,
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: tab.selected ? c.surfaceCard : Colors.transparent,
+                  borderRadius: BorderRadius.circular(IcRadius.xs),
+                  border: tab.selected
+                      ? Border.all(color: c.borderHairline)
+                      : null,
+                ),
+                child: Text(
+                  tab.label,
+                  style: IcType.text(
+                    12,
+                    weight: tab.selected ? FontWeight.w600 : FontWeight.w500,
+                    color: tab.selected ? c.textStrong : c.textMuted,
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }

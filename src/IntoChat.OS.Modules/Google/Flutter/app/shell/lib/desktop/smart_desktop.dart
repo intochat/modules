@@ -128,7 +128,7 @@ class _SmartDesktopState extends State<SmartDesktop> {
         Positioned.fill(
           child: BrainScene3D(
             selectedId: _selectedNeuronId,
-            ambientOpacity: hasOpenWindows ? 0.42 : 0.92,
+            ambientOpacity: hasOpenWindows ? 0.72 : 0.96,
             showHud: !hasOpenWindows,
             onSelectNode: (node) {
               setState(() => _selectedNeuronId = node.id);
@@ -143,15 +143,13 @@ class _SmartDesktopState extends State<SmartDesktop> {
           ),
         ),
 
-        // 2. Startup Smart Apps Overlay (fades softly when windows cover desktop)
+        // 2. Smart Desktop Glass Cards Layer (stays interactive around floating windows)
         AnimatedOpacity(
           duration: IcMotion.base,
-          opacity: hasOpenWindows ? 0.18 : 1.0,
-          child: IgnorePointer(
-            ignoring: hasOpenWindows,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(28, 28, 28, 64),
-              child: LayoutBuilder(
+          opacity: hasOpenWindows ? 0.88 : 1.0,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 56),
+            child: LayoutBuilder(
                 builder: (context, constraints) {
                   final compact = constraints.maxWidth < 860;
                   final leftCards = SizedBox(
@@ -200,10 +198,9 @@ class _SmartDesktopState extends State<SmartDesktop> {
               ),
             ),
           ),
-        ),
-      ],
-    );
-  }
+        ],
+      );
+    }
 
   Widget _buildLauncherCard(IcColors c) {
     return IcAcrylicBox(
@@ -329,15 +326,19 @@ class _SmartDesktopState extends State<SmartDesktop> {
             children: [
               Icon(LucideIcons.radio, size: 15, color: c.accent),
               const SizedBox(width: 7),
-              Text(
-                'LIVE SMART APP SIGNAL',
-                style: IcType.text(
-                  11,
-                  weight: FontWeight.w700,
-                  color: c.textMuted,
+              Expanded(
+                child: Text(
+                  'LIVE SMART APP SIGNAL',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: IcType.text(
+                    11,
+                    weight: FontWeight.w700,
+                    color: c.textMuted,
+                  ),
                 ),
               ),
-              const Spacer(),
+              const SizedBox(width: 8),
               TagPill(
                 label: _briefApproved ? 'Approved' : 'Needs you',
                 tone: _briefApproved ? TagTone.done : TagTone.accent,
@@ -360,7 +361,9 @@ class _SmartDesktopState extends State<SmartDesktop> {
             style: IcType.text(12.5, color: c.textBody, height: 1.4),
           ),
           const SizedBox(height: 12),
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
               Btn(
                 label: _briefApproved ? 'Updated in CRM' : 'Approve & Sync',
@@ -377,7 +380,6 @@ class _SmartDesktopState extends State<SmartDesktop> {
                         );
                       },
               ),
-              const SizedBox(width: 8),
               Btn(
                 label: 'Open in Ino',
                 small: true,
@@ -402,15 +404,19 @@ class _SmartDesktopState extends State<SmartDesktop> {
             children: [
               Icon(LucideIcons.palette, size: 15, color: c.accent),
               const SizedBox(width: 7),
-              Text(
-                'UI IDENTITY & GLASS THEME',
-                style: IcType.text(
-                  11,
-                  weight: FontWeight.w700,
-                  color: c.textMuted,
+              Expanded(
+                child: Text(
+                  'UI IDENTITY & GLASS THEME',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: IcType.text(
+                    11,
+                    weight: FontWeight.w700,
+                    color: c.textMuted,
+                  ),
                 ),
               ),
-              const Spacer(),
+              const SizedBox(width: 8),
               GestureDetector(
                 onTap: widget.onToggleDark,
                 child: MouseRegion(
@@ -436,9 +442,16 @@ class _SmartDesktopState extends State<SmartDesktop> {
             ),
           const SizedBox(height: 8),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Bar layout', style: IcType.text(12, color: c.textMuted)),
+              Expanded(
+                child: Text(
+                  'Bar layout',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: IcType.text(12, color: c.textMuted),
+                ),
+              ),
+              const SizedBox(width: 8),
               GestureDetector(
                 onTap: widget.onCycleBarLayout,
                 child: MouseRegion(
@@ -469,15 +482,19 @@ class _SmartDesktopState extends State<SmartDesktop> {
             children: [
               Icon(LucideIcons.layoutGrid, size: 15, color: c.accent),
               const SizedBox(width: 7),
-              Text(
-                'SMART APPS & WORKSPACE',
-                style: IcType.text(
-                  11,
-                  weight: FontWeight.w700,
-                  color: c.textMuted,
+              Expanded(
+                child: Text(
+                  'SMART APPS & WORKSPACE',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: IcType.text(
+                    11,
+                    weight: FontWeight.w700,
+                    color: c.textMuted,
+                  ),
                 ),
               ),
-              const Spacer(),
+              const SizedBox(width: 8),
               Text(
                 '${(widget.tokensToday / 1000).toStringAsFixed(1)}k tok',
                 style: IcType.text(

@@ -15,15 +15,19 @@ class OsBar extends StatelessWidget {
   const OsBar({
     super.key,
     this.barLayout = BarLayout.floatingGlass,
+    this.stylePreset = IcStylePreset.fluentAcrylic,
     this.apps = defaultSmartAppSpecs,
     this.openAppIds = const {'ino'},
     this.workingAppIds = const {},
     this.focusedAppId = 'ino',
     this.paletteOpen = false,
+    this.showingDesktop = false,
     this.notifications = 2,
     this.tokensToday = 14800,
     this.connected = true,
     this.onTogglePalette,
+    this.onToggleShowDesktop,
+    this.onCycleStylePreset,
     this.onLaunchApp,
     this.onOpenSettings,
     this.onOpenNotifications,
@@ -31,15 +35,19 @@ class OsBar extends StatelessWidget {
   });
 
   final BarLayout barLayout;
+  final IcStylePreset stylePreset;
   final List<SmartAppTileSpec> apps;
   final Set<String> openAppIds;
   final Set<String> workingAppIds;
   final String? focusedAppId;
   final bool paletteOpen;
+  final bool showingDesktop;
   final int notifications;
   final int tokensToday;
   final bool connected;
   final VoidCallback? onTogglePalette;
+  final VoidCallback? onToggleShowDesktop;
+  final VoidCallback? onCycleStylePreset;
   final ValueChanged<String>? onLaunchApp;
   final VoidCallback? onOpenSettings;
   final VoidCallback? onOpenNotifications;
@@ -59,11 +67,49 @@ class OsBar extends StatelessWidget {
         children: [
           Align(
             alignment: Alignment.centerLeft,
-            child: _BarButton(
-              tooltip: 'Search or ask  ⌘K',
-              selected: paletteOpen,
-              onTap: onTogglePalette ?? () {},
-              child: Icon(LucideIcons.command, size: 16, color: c.textStrong),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _BarButton(
+                  tooltip: 'Search or ask  ⌘K',
+                  selected: paletteOpen,
+                  onTap: onTogglePalette ?? () {},
+                  child: Icon(
+                    LucideIcons.command,
+                    size: 16,
+                    color: c.textStrong,
+                  ),
+                ),
+                if (onToggleShowDesktop != null) ...[
+                  const SizedBox(width: 4),
+                  _BarButton(
+                    tooltip: showingDesktop
+                        ? 'Restore open windows'
+                        : 'Show 3D DigitalBrain Desktop',
+                    selected: showingDesktop,
+                    onTap: onToggleShowDesktop!,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          LucideIcons.brainCircuit,
+                          size: 14,
+                          color: showingDesktop ? c.accent : c.textBody,
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          '3D Brain',
+                          style: IcType.text(
+                            11.5,
+                            weight: FontWeight.w600,
+                            color: showingDesktop ? c.textStrong : c.textBody,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
           Row(
@@ -82,9 +128,11 @@ class OsBar extends StatelessWidget {
           Align(
             alignment: Alignment.centerRight,
             child: _StatusTray(
+              stylePreset: stylePreset,
               notifications: notifications,
               tokensToday: tokensToday,
               connected: connected,
+              onCycleStylePreset: onCycleStylePreset,
               onOpenNotifications: onOpenNotifications,
               onOpenCompute: onOpenCompute,
               onOpenSettings: onOpenSettings,
@@ -244,17 +292,21 @@ class _DockAppItemState extends State<_DockAppItem> {
 
 class _StatusTray extends StatelessWidget {
   const _StatusTray({
+    required this.stylePreset,
     required this.notifications,
     required this.tokensToday,
     required this.connected,
+    this.onCycleStylePreset,
     this.onOpenNotifications,
     this.onOpenCompute,
     this.onOpenSettings,
   });
 
+  final IcStylePreset stylePreset;
   final int notifications;
   final int tokensToday;
   final bool connected;
+  final VoidCallback? onCycleStylePreset;
   final VoidCallback? onOpenNotifications;
   final VoidCallback? onOpenCompute;
   final VoidCallback? onOpenSettings;
@@ -269,6 +321,28 @@ class _StatusTray extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
+        if (onCycleStylePreset != null) ...[
+          _BarButton(
+            tooltip: 'Switch UI Identity (${stylePreset.label})',
+            onTap: onCycleStylePreset!,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(LucideIcons.palette, size: 13, color: c.accent),
+                const SizedBox(width: 4),
+                Text(
+                  stylePreset.label,
+                  style: IcType.text(
+                    11,
+                    weight: FontWeight.w600,
+                    color: c.textBody,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 4),
+        ],
         _BarButton(
           tooltip: 'Compute tokens used today',
           onTap: onOpenCompute ?? () {},
