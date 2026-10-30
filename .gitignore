@@ -29,7 +29,6 @@ node_modules/
 
 # Dart / Flutter clients
 **/.dart_tool/
-/src/IntoChat.OS.Modules/Google/Flutter/app/build/
 **/packages/pubspec_overrides.yaml
 
 plans/stage1/logs/

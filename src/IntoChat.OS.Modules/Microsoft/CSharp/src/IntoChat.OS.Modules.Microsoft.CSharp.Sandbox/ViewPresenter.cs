@@ -259,6 +259,8 @@ internal sealed class ViewPresenter(IntoChatOSConnection brain, string appKey, l
 
         StatCardNode stat => MapStatCard(key, stat),
 
+        DigitalBrain.UI.WebBrowser wb => MapWebBrowser(key, wb),
+
         _ => throw new InvalidOperationException("Unsupported view node " + node.GetType().Name + "."),
     };
 
@@ -312,6 +314,18 @@ internal sealed class ViewPresenter(IntoChatOSConnection brain, string appKey, l
             delta = stat.Delta,
             tone = stat.Tone.ToString().ToLowerInvariant(),
             icon = SanitizeIcon(stat.Icon) ?? stat.Icon,
+        }));
+
+    private static UiNode MapWebBrowser(string key, DigitalBrain.UI.WebBrowser wb) => Ui.Card(
+        NonEmpty(wb.Key, key),
+        wb.Title ?? "WASM Web Studio",
+        JsonSerializer.Serialize(new
+        {
+            _ui = "webbrowser",
+            url = wb.Url,
+            title = wb.Title ?? "WASM Web Studio",
+            height = wb.Height,
+            executionMode = wb.ExecutionMode,
         }));
 
     private static UiNode MapTabs(string key, Tabs tabs)
@@ -583,6 +597,9 @@ internal sealed class ViewPresenter(IntoChatOSConnection brain, string appKey, l
             {
                 _ui = "brain3d",
                 selectedId = scene.SelectedId,
+                pauseRotation = scene.PauseRotation,
+                zoomTargetId = scene.ZoomTargetId,
+                targetZoom = scene.TargetZoom,
                 height = 340.0,
                 interactive = true,
                 showHud = true,

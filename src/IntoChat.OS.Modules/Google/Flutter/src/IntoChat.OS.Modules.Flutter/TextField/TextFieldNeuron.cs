@@ -12,7 +12,7 @@ namespace IntoChat.OS.Modules.Flutter.TextField;
 internal sealed class TextFieldNeuron
     : UiNeuron<TextFieldState>, ITextField
 {
-    private static readonly HashSet<string> Kinds = new(StringComparer.OrdinalIgnoreCase) { "text", "number", "password", "secret", "suggest", "multiline" };
+    private static readonly HashSet<string> Kinds = new(StringComparer.OrdinalIgnoreCase) { "text", "search", "number", "password", "secret", "suggest", "multiline" };
     private static readonly HashSet<string> SecretKinds = new(StringComparer.OrdinalIgnoreCase) { "password", "secret" };
 
     // Secret kinds never persist or journal the value: state records only that a value is set.
