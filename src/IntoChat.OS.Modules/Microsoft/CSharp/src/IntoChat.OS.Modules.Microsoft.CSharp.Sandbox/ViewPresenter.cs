@@ -5,6 +5,7 @@ using DigitalBrain.UI;
 using IntoChat.OS.Client;
 using IntoChat.OS.Modules.Flutter;
 using IntoChat.OS.Modules.Flutter.Views;
+using Ui = IntoChat.OS.Modules.Flutter.Views.Ui;
 
 namespace IntoChat.OS.Modules.Microsoft.CSharp.Sandbox;
 
@@ -252,8 +253,66 @@ internal sealed class ViewPresenter(IntoChatOSConnection brain, string appKey, l
 
         NeuronRef neuronRef => MapNeuronRef(key, neuronRef, brainId),
 
+        AppShellNode shell => MapAppShell(key, shell, brainId),
+
+        NavItemNode nav => MapNavItem(key, nav),
+
+        StatCardNode stat => MapStatCard(key, stat),
+
         _ => throw new InvalidOperationException("Unsupported view node " + node.GetType().Name + "."),
     };
+
+    private static UiNode MapAppShell(string key, AppShellNode shell, string? brainId)
+    {
+        var shellKey = NonEmpty(shell.Key, key);
+        var children = new List<UiNode>();
+        if (shell.Sidebar is not null) { children.Add(Map($"{shellKey}.sidebar", shell.Sidebar, brainId)); }
+        if (shell.Toolbar is not null) { children.Add(Map($"{shellKey}.toolbar", shell.Toolbar, brainId)); }
+        children.Add(Map($"{shellKey}.body", shell.Body, brainId));
+        if (shell.Inspector is not null) { children.Add(Map($"{shellKey}.inspector", shell.Inspector, brainId)); }
+
+        return Ui.Card(
+            shellKey,
+            string.Empty,
+            JsonSerializer.Serialize(new
+            {
+                _ui = "appshell",
+                hasSidebar = shell.Sidebar is not null,
+                hasToolbar = shell.Toolbar is not null,
+                hasInspector = shell.Inspector is not null,
+            }),
+            [.. children]);
+    }
+
+    private static UiNode MapNavItem(string key, NavItemNode nav)
+    {
+        var navKey = NonEmpty(nav.Key, key);
+        return Ui.Card(
+            navKey,
+            nav.Label,
+            JsonSerializer.Serialize(new
+            {
+                _ui = "navitem",
+                label = nav.Label,
+                icon = SanitizeIcon(nav.Icon) ?? nav.Icon,
+                selected = nav.Selected,
+                badge = nav.Badge,
+            }),
+            [Ui.Button($"{navKey}.act", NonEmpty(nav.Label, "Select"), NonEmpty(nav.Action, "noop"), style: nav.Selected ? UiStyle.Primary : UiStyle.Ghost)]);
+    }
+
+    private static UiNode MapStatCard(string key, StatCardNode stat) => Ui.Card(
+        NonEmpty(stat.Key, key),
+        stat.Label,
+        JsonSerializer.Serialize(new
+        {
+            _ui = "statcard",
+            label = stat.Label,
+            value = stat.Value,
+            delta = stat.Delta,
+            tone = stat.Tone.ToString().ToLowerInvariant(),
+            icon = SanitizeIcon(stat.Icon) ?? stat.Icon,
+        }));
 
     private static UiNode MapTabs(string key, Tabs tabs)
     {
