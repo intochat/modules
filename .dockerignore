@@ -42,8 +42,5 @@ obj
 **/*.coverage
 **/*.log
 
-# The sandbox image builds from the repository root; the Flutter shell is never part of it.
-src/IntoChat.OS.Modules/Google/Flutter/app
-
 # Live builds and candidate worktrees (gitignored, many GB) are never part of the sandbox image.
 .intochat-os

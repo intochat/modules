@@ -4,6 +4,8 @@
     <RootNamespace>IntoChat.OS.Modules.Microsoft.CSharp.Sandbox</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="IntoChat.OS.Modules.Microsoft.CSharp.Tests.Unit" />
+    <InternalsVisibleTo Include="IntoChat.OS.Modules.Microsoft.CSharp.Tests.Integration" />
     <!-- The protocol, the session connection and the client behaviors connect through; shared, never reloaded per behavior. -->
     <PackageReference Include="IntoChat.OS.Client" />
     <!-- The core vocabulary the script compiler seeds (DigitalBrain arrives through IntoChat.OS). -->

@@ -1,0 +1,14 @@
+title = "IntoChat Modules Gitleaks Configuration"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Test fixtures, Azurite well-known key, and Azure RBAC role definition IDs"
+paths = [
+    '''\.gitleaks-baseline\.json$''',
+    '''\.Tests\.''',
+    '''tests/''',
+    '''CandidateStorage\.cs$''',
+    '''InstallPlan\.cs$''',
+]
