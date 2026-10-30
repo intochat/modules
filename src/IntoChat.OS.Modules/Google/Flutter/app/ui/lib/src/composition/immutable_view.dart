@@ -42,17 +42,11 @@ class _ImmutableView extends StatelessWidget {
     }
   }
 
-  static CardSource _cardSource(BuildContext context, String sourceName) {
-    final c = UiColors.of(context);
-    return CardSource(
-      sourceName,
-      Icon(Icons.auto_awesome, size: 14, color: c.accent),
-    );
-  }
+  static CardSource _cardSource(BuildContext context, String sourceName) =>
+      CardSource(sourceName, Icon(Icons.auto_awesome, size: 14, color: UiColors.of(context).accent));
 
   /// The one button dispatch for every kind; null when it cannot act.
-  /// A `copy:` action is handled here: it copies its payload and dispatches
-  /// nothing.
+  /// A `copy:` action is handled here: it copies its payload and dispatches nothing.
   VoidCallback? _dispatchButton(BuildContext context, Map node) =>
       enabled && node['enabled'] != false && node['action'] is String
       ? () {
@@ -62,18 +56,10 @@ class _ImmutableView extends StatelessWidget {
             unawaited(
               Clipboard.setData(ClipboardData(text: action.substring(5))).then(
                 (_) {
-                  if (context.mounted) {
-                    showKitToast(context, 'Link copied.');
-                  }
+                  if (context.mounted) showKitToast(context, 'Link copied.');
                 },
                 onError: (Object _) {
-                  if (context.mounted) {
-                    showKitToast(
-                      context,
-                      'Could not copy the link.',
-                      tone: UiTone.error,
-                    );
-                  }
+                  if (context.mounted) showKitToast(context, 'Could not copy the link.', tone: UiTone.error);
                 },
               ),
             );
@@ -100,6 +86,11 @@ class _ImmutableView extends StatelessWidget {
     return null;
   }
 
+  VoidCallback? _childAction(BuildContext context, List<Map> children, String suffix) {
+    final child = _findChildByKeySuffix(children, suffix);
+    return child != null ? _dispatchButton(context, child) : null;
+  }
+
   Widget _buildRichCard(
     BuildContext context,
     String text,
@@ -117,22 +108,11 @@ class _ImmutableView extends StatelessWidget {
         return SizedBox(height: size, width: size);
 
       case 'appshell':
-        final hasSidebar = meta['hasSidebar'] == true;
-        final hasToolbar = meta['hasToolbar'] == true;
-        final hasInspector = meta['hasInspector'] == true;
         var idx = 0;
-        final sidebarWidget = hasSidebar && idx < widgets.length
-            ? widgets[idx++]
-            : null;
-        final toolbarWidget = hasToolbar && idx < widgets.length
-            ? widgets[idx++]
-            : null;
-        final bodyWidget = idx < widgets.length
-            ? widgets[idx++]
-            : const SizedBox.shrink();
-        final inspectorWidget = hasInspector && idx < widgets.length
-            ? widgets[idx++]
-            : null;
+        final sidebarWidget = meta['hasSidebar'] == true && idx < widgets.length ? widgets[idx++] : null;
+        final toolbarWidget = meta['hasToolbar'] == true && idx < widgets.length ? widgets[idx++] : null;
+        final bodyWidget = idx < widgets.length ? widgets[idx++] : const SizedBox.shrink();
+        final inspectorWidget = meta['hasInspector'] == true && idx < widgets.length ? widgets[idx++] : null;
 
         final mainColumn = Column(
           mainAxisSize: MainAxisSize.min,
@@ -140,10 +120,7 @@ class _ImmutableView extends StatelessWidget {
           children: [
             if (toolbarWidget != null) ...[
               IcAcrylicBox(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 10,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 borderRadius: BorderRadius.circular(IcRadius.card),
                 child: toolbarWidget,
               ),
@@ -170,39 +147,27 @@ class _ImmutableView extends StatelessWidget {
         );
 
         if (sidebarWidget == null) return mainColumn;
+        final sidebarCard = IcAcrylicBox(
+          padding: const EdgeInsets.all(12),
+          borderRadius: BorderRadius.circular(IcRadius.card),
+          child: sidebarWidget,
+        );
         return LayoutBuilder(
-          builder: (context, constraints) {
-            if (constraints.maxWidth < 680) {
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                spacing: 12,
-                children: [
-                  IcAcrylicBox(
-                    padding: const EdgeInsets.all(12),
-                    borderRadius: BorderRadius.circular(IcRadius.card),
-                    child: sidebarWidget,
-                  ),
-                  mainColumn,
-                ],
-              );
-            }
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  width: 220,
-                  child: IcAcrylicBox(
-                    padding: const EdgeInsets.all(12),
-                    borderRadius: BorderRadius.circular(IcRadius.card),
-                    child: sidebarWidget,
-                  ),
+          builder: (context, constraints) => constraints.maxWidth < 680
+              ? Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  spacing: 12,
+                  children: [sidebarCard, mainColumn],
+                )
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(width: 220, child: sidebarCard),
+                    const SizedBox(width: 14),
+                    Expanded(child: mainColumn),
+                  ],
                 ),
-                const SizedBox(width: 14),
-                Expanded(child: mainColumn),
-              ],
-            );
-          },
         );
 
       case 'navitem':
@@ -210,12 +175,7 @@ class _ImmutableView extends StatelessWidget {
         final iconSlug = meta['icon'] as String?;
         final selected = meta['selected'] == true;
         final badge = meta['badge'] as String?;
-        final actChild =
-            _findChildByKeySuffix(children, '.act') ??
-            (children.isNotEmpty ? children.first : null);
-        final onTap = actChild != null
-            ? _dispatchButton(context, actChild)
-            : null;
+        final actChild = _findChildByKeySuffix(children, '.act') ?? (children.isNotEmpty ? children.first : null);
         return Row(
           children: [
             Expanded(
@@ -224,15 +184,12 @@ class _ImmutableView extends StatelessWidget {
                 primary: selected,
                 small: true,
                 icon: iconSlug != null ? uiIcon(iconSlug) : null,
-                onTap: onTap,
+                onTap: actChild != null ? _dispatchButton(context, actChild) : null,
               ),
             ),
             if (badge != null && badge.isNotEmpty) ...[
               const SizedBox(width: 6),
-              TagPill(
-                label: badge,
-                tone: selected ? TagTone.accent : TagTone.neutral,
-              ),
+              TagPill(label: badge, tone: selected ? TagTone.accent : TagTone.neutral),
             ],
           ],
         );
@@ -241,9 +198,8 @@ class _ImmutableView extends StatelessWidget {
         final label = meta['label'] as String? ?? text;
         final value = meta['value'] as String? ?? '0';
         final delta = meta['delta'] as String?;
-        final toneStr = (meta['tone'] as String? ?? 'neutral').toLowerCase();
         final iconSlug = meta['icon'] as String?;
-        final tagTone = switch (toneStr) {
+        final tagTone = switch ((meta['tone'] as String? ?? 'neutral').toLowerCase()) {
           'accent' => TagTone.accent,
           'done' => TagTone.done,
           'working' => TagTone.working,
@@ -269,15 +225,10 @@ class _ImmutableView extends StatelessWidget {
                       label,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: IcType.text(
-                        12,
-                        weight: FontWeight.w500,
-                        color: ic.textMuted,
-                      ),
+                      style: IcType.text(12, weight: FontWeight.w500, color: ic.textMuted),
                     ),
                   ),
-                  if (delta != null && delta.isNotEmpty)
-                    TagPill(label: delta, tone: tagTone),
+                  if (delta != null && delta.isNotEmpty) TagPill(label: delta, tone: tagTone),
                 ],
               ),
               const SizedBox(height: 8),
@@ -285,12 +236,7 @@ class _ImmutableView extends StatelessWidget {
                 value,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: IcType.text(
-                  22,
-                  weight: FontWeight.w700,
-                  color: ic.textStrong,
-                  tnum: true,
-                ),
+                style: IcType.text(22, weight: FontWeight.w700, color: ic.textStrong, tnum: true),
               ),
             ],
           ),
@@ -300,28 +246,21 @@ class _ImmutableView extends StatelessWidget {
         final cols = ((meta['columns'] as num?)?.toInt() ?? 2).clamp(1, 12);
         final gap = (meta['gap'] as num?)?.toDouble() ?? 12.0;
         if (widgets.isEmpty) return const SizedBox.shrink();
-        final rows = <Widget>[];
-        for (var i = 0; i < widgets.length; i += cols) {
-          rows.add(
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              spacing: gap,
-              children: [
-                for (var col = 0; col < cols; col++)
-                  Expanded(
-                    child: i + col < widgets.length
-                        ? widgets[i + col]
-                        : const SizedBox.shrink(),
-                  ),
-              ],
-            ),
-          );
-        }
         return Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           spacing: gap,
-          children: rows,
+          children: [
+            for (var i = 0; i < widgets.length; i += cols)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                spacing: gap,
+                children: [
+                  for (var col = 0; col < cols; col++)
+                    Expanded(child: i + col < widgets.length ? widgets[i + col] : const SizedBox.shrink()),
+                ],
+              ),
+          ],
         );
 
       case 'surface':
@@ -333,83 +272,49 @@ class _ImmutableView extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           spacing: gap,
           children: [
-            if (text.isNotEmpty)
-              Text(
-                text,
-                style: UiType.displayStyle(
-                  15,
-                  weight: FontWeight.w600,
-                  color: c.strong,
-                ),
-              ),
+            if (text.isNotEmpty) Text(text, style: UiType.displayStyle(15, weight: FontWeight.w600, color: c.strong)),
             ...widgets,
           ],
         );
-        if (surfaceKind == 'recessed') {
-          return Container(
-            width: double.infinity,
-            padding: EdgeInsets.all(pad),
-            decoration: BoxDecoration(
-              color: c.recessed,
-              borderRadius: BorderRadius.circular(tokens.card),
-              border: Border.all(color: c.hairline),
-            ),
-            child: inner,
-          );
-        }
-        return SizedBox(
-          width: double.infinity,
-          child: UiKitSurface(padding: EdgeInsets.all(pad), child: inner),
-        );
+        return surfaceKind == 'recessed'
+            ? Container(
+                width: double.infinity,
+                padding: EdgeInsets.all(pad),
+                decoration: BoxDecoration(
+                  color: c.recessed,
+                  borderRadius: BorderRadius.circular(tokens.card),
+                  border: Border.all(color: c.hairline),
+                ),
+                child: inner,
+              )
+            : SizedBox(width: double.infinity, child: UiKitSurface(padding: EdgeInsets.all(pad), child: inner));
 
       case 'textfield':
         final fieldName = meta['name'] as String? ?? '';
-        final value = meta['value'] as String? ?? '';
-        final placeholder = meta['placeholder'] as String? ?? fieldName;
-        final secret = meta['secret'] == true;
-        final submitChild = _findChildByKeySuffix(children, '.submit');
         return _ImmutableFieldBox(
           label: fieldName,
-          value: value,
-          placeholder: placeholder,
-          secret: secret,
+          value: meta['value'] as String? ?? '',
+          placeholder: meta['placeholder'] as String? ?? fieldName,
+          secret: meta['secret'] == true,
           enabled: enabled,
-          onSubmit: submitChild != null
-              ? _dispatchButton(context, submitChild)
-              : null,
+          onSubmit: _childAction(context, children, '.submit'),
         );
 
       case 'switch':
         final label = meta['label'] as String? ?? text;
-        final value = meta['value'] == true;
         final swEnabled = meta['enabled'] != false && enabled;
-        final locked = meta['locked'] == true;
-        final toggleChild = _findChildByKeySuffix(children, '.toggle');
-        final onToggle = toggleChild != null
-            ? _dispatchButton(context, toggleChild)
-            : null;
+        final onToggle = _childAction(context, children, '.toggle');
         return Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             UiKitSwitch(
-              value: value,
-              locked: locked,
-              onChanged: swEnabled && onToggle != null
-                  ? (_) => onToggle()
-                  : null,
+              value: meta['value'] == true,
+              locked: meta['locked'] == true,
+              onChanged: swEnabled && onToggle != null ? (_) => onToggle() : null,
             ),
             if (label.isNotEmpty) ...[
               const SizedBox(width: 10),
-              Flexible(
-                child: Text(
-                  label,
-                  style: UiType.textStyle(
-                    13,
-                    weight: FontWeight.w500,
-                    color: c.strong,
-                  ),
-                ),
-              ),
+              Flexible(child: Text(label, style: UiType.textStyle(13, weight: FontWeight.w500, color: c.strong))),
             ],
           ],
         );
@@ -417,23 +322,14 @@ class _ImmutableView extends StatelessWidget {
       case 'select':
         final label = meta['label'] as String? ?? text;
         final selectedId = meta['selectedId'] as String?;
-        final options = (meta['options'] as List? ?? const [])
-            .whereType<Map>()
-            .toList();
+        final options = (meta['options'] as List? ?? const []).whereType<Map>().toList();
         final btnChildren = children.where((ch) => ch['kind'] == 1).toList();
         return Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (label.isNotEmpty) ...[
-              Text(
-                label,
-                style: UiType.textStyle(
-                  12,
-                  weight: FontWeight.w600,
-                  color: c.muted,
-                ),
-              ),
+              Text(label, style: UiType.textStyle(12, weight: FontWeight.w600, color: c.muted)),
               const SizedBox(height: 6),
             ],
             Wrap(
@@ -444,12 +340,8 @@ class _ImmutableView extends StatelessWidget {
                   UiKitButton(
                     label: '${options[i]['label'] ?? options[i]['id'] ?? ''}',
                     compact: true,
-                    style: options[i]['id'] == selectedId
-                        ? UiKitButtonStyle.primary
-                        : UiKitButtonStyle.secondary,
-                    onPressed: i < btnChildren.length
-                        ? _dispatchButton(context, btnChildren[i])
-                        : null,
+                    style: options[i]['id'] == selectedId ? UiKitButtonStyle.primary : UiKitButtonStyle.secondary,
+                    onPressed: i < btnChildren.length ? _dispatchButton(context, btnChildren[i]) : null,
                   ),
               ],
             ),
@@ -457,20 +349,14 @@ class _ImmutableView extends StatelessWidget {
         );
 
       case 'progress':
-        final val = (meta['value'] as num?)?.toDouble() ?? 0.0;
-        final label = meta['label'] as String? ?? text;
-        final indeterminate = meta['indeterminate'] == true;
         return UiProgress(
-          determinate: !indeterminate,
-          value: val,
-          label: label,
+          determinate: meta['indeterminate'] != true,
+          value: (meta['value'] as num?)?.toDouble() ?? 0.0,
+          label: meta['label'] as String? ?? text,
         );
 
       case 'infobar':
-        final title = meta['title'] as String? ?? text;
-        final body = meta['body'] as String? ?? '';
-        final tone = meta['tone'] as String? ?? 'info';
-        final severity = switch (tone) {
+        final severity = switch (meta['tone'] as String? ?? 'info') {
           'danger' => 'error',
           'warning' => 'warning',
           'success' => 'success',
@@ -480,19 +366,14 @@ class _ImmutableView extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            UiInfoBar(severity: severity, title: title, body: body),
-            if (widgets.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Wrap(spacing: 8, runSpacing: 6, children: widgets),
-            ],
+            UiInfoBar(severity: severity, title: meta['title'] as String? ?? text, body: meta['body'] as String? ?? ''),
+            if (widgets.isNotEmpty) ...[const SizedBox(height: 8), Wrap(spacing: 8, runSpacing: 6, children: widgets)],
           ],
         );
 
       case 'datatable':
         final title = meta['title'] as String? ?? text;
-        final colLabels = (meta['columns'] as List? ?? const [])
-            .map((e) => '$e')
-            .toList();
+        final colLabels = (meta['columns'] as List? ?? const []).map((e) => '$e').toList();
         final rows = (meta['rows'] as List? ?? const [])
             .whereType<List>()
             .map((r) => r.map((cell) => '$cell').toList())
@@ -505,27 +386,15 @@ class _ImmutableView extends StatelessWidget {
                   rows.every(
                     (r) =>
                         cIdx < r.length &&
-                        double.tryParse(
-                              r[cIdx].replaceAll(RegExp(r'[^0-9.\-]'), ''),
-                            ) !=
-                            null &&
+                        double.tryParse(r[cIdx].replaceAll(RegExp(r'[^0-9.\-]'), '')) != null &&
                         RegExp(r'\d').hasMatch(r[cIdx]),
                   ),
             ),
         ];
         final sourceUri = meta['sourceNeuronUri'] as String?;
-        final copyNode = _findChildByKeySuffix(children, '.copy');
-        final sortNode = _findChildByKeySuffix(children, '.sort');
-        final filterNode = _findChildByKeySuffix(children, '.filter');
-        final copyAction = copyNode != null
-            ? _dispatchButton(context, copyNode)
-            : null;
-        final sortAction = sortNode != null
-            ? _dispatchButton(context, sortNode)
-            : null;
-        final filterAction = filterNode != null
-            ? _dispatchButton(context, filterNode)
-            : null;
+        final copyAction = _childAction(context, children, '.copy');
+        final sortAction = _childAction(context, children, '.sort');
+        final filterAction = _childAction(context, children, '.filter');
         return TableCard(
           source: _cardSource(context, sourceUri ?? 'Data Table'),
           data: TableData(
@@ -542,47 +411,31 @@ class _ImmutableView extends StatelessWidget {
         );
 
       case 'chart':
-        final chartKindStr = (meta['kind'] as String? ?? 'bar').toLowerCase();
-        final chartKind = chartKindStr == 'line'
+        final chartKind = (meta['kind'] as String? ?? 'bar').toLowerCase() == 'line'
             ? ChartKind.line
             : ChartKind.columns;
-        final title = meta['title'] as String? ?? text;
         final subtitle = meta['subtitle'] as String?;
-        final unit = meta['unit'] as String? ?? '';
-        final seriesName = meta['seriesName'] as String? ?? 'Primary';
-        final compareName = meta['compareName'] as String? ?? '';
         final sourceUri = meta['sourceNeuronUri'] as String?;
         final points = (meta['points'] as List? ?? const [])
             .whereType<Map>()
-            .map(
-              (p) => ChartPoint(
-                '${p['label'] ?? p['id'] ?? ''}',
-                (p['value'] as num?)?.toDouble() ?? 0,
-              ),
-            )
+            .map((p) => ChartPoint('${p['label'] ?? p['id'] ?? ''}', (p['value'] as num?)?.toDouble() ?? 0))
             .toList();
         final comparePoints = (meta['comparePoints'] as List?)
             ?.whereType<Map>()
             .map((p) => (p['value'] as num?)?.toDouble() ?? 0.0)
             .toList();
-        final copyNode = _findChildByKeySuffix(children, '.copy');
-        final kindNode = _findChildByKeySuffix(children, '.kind');
-        final copyAction = copyNode != null
-            ? _dispatchButton(context, copyNode)
-            : null;
-        final kindAction = kindNode != null
-            ? _dispatchButton(context, kindNode)
-            : null;
+        final copyAction = _childAction(context, children, '.copy');
+        final kindAction = _childAction(context, children, '.kind');
         return ChartCard(
           source: _cardSource(context, subtitle ?? sourceUri ?? 'Chart'),
           data: ChartData(
-            title: title,
+            title: meta['title'] as String? ?? text,
             points: points,
             from: subtitle ?? sourceUri ?? 'DigitalBrain',
-            prefix: unit,
+            prefix: meta['unit'] as String? ?? '',
             compare: comparePoints,
-            seriesName: seriesName,
-            compareName: compareName,
+            seriesName: meta['seriesName'] as String? ?? 'Primary',
+            compareName: meta['compareName'] as String? ?? '',
             sourceNeuronUri: sourceUri,
           ),
           state: points.isEmpty ? ChartState.empty : ChartState.ready,
@@ -599,238 +452,149 @@ class _ImmutableView extends StatelessWidget {
         final scopeUri = meta['scopeUri'] as String?;
         final rows = [
           for (final r in (meta['rows'] as List? ?? const []).whereType<Map>())
-            ApprovalRow(
-              label: '${r['key'] ?? ''}',
-              oldValue: 'current',
-              newValue: '${r['value'] ?? ''}',
-            ),
+            ApprovalRow(label: '${r['key'] ?? ''}', oldValue: 'current', newValue: '${r['value'] ?? ''}'),
           if (sourceUri != null && sourceUri.isNotEmpty)
-            ApprovalRow(
-              label: 'source',
-              oldValue: 'neuron',
-              newValue: sourceUri,
-            ),
+            ApprovalRow(label: 'source', oldValue: 'neuron', newValue: sourceUri),
           if (scopeUri != null && scopeUri.isNotEmpty)
-            ApprovalRow(
-              label: 'scope',
-              oldValue: 'policy',
-              newValue: scopeUri,
-            ),
+            ApprovalRow(label: 'scope', oldValue: 'policy', newValue: scopeUri),
         ];
-        final stateStr = (meta['state'] as String? ?? 'pending').toLowerCase();
-        final approvalState = switch (stateStr) {
+        final approvalState = switch ((meta['state'] as String? ?? 'pending').toLowerCase()) {
           'approved' || 'settled' || 'done' => ApprovalState.approved,
           'rejected' || 'denied' => ApprovalState.rejected,
           'saving' => ApprovalState.saving,
           'error' => ApprovalState.error,
           _ => ApprovalState.pending,
         };
-        final rememberHint = meta['rememberHint'] as String?;
-        final approveNode = _findChildByKeySuffix(children, '.approve');
-        final rejectNode = _findChildByKeySuffix(children, '.reject');
-        final editNode = _findChildByKeySuffix(children, '.edit');
         return ApprovalCard(
           source: _cardSource(context, sourceApp),
           data: ApprovalData(
             title: '$verb $target'.trim(),
-            summary: rememberHint ?? (scopeUri ?? 'Requires explicit confirmation'),
-            rows: rows.isEmpty
-                ? [
-                    ApprovalRow(
-                      label: target,
-                      oldValue: 'pending',
-                      newValue: verb,
-                    ),
-                  ]
-                : rows,
+            summary: (meta['rememberHint'] as String?) ?? (scopeUri ?? 'Requires explicit confirmation'),
+            rows: rows.isEmpty ? [ApprovalRow(label: target, oldValue: 'pending', newValue: verb)] : rows,
             valueLabel: 'Value',
             systemName: sourceApp,
           ),
           state: approvalState,
-          onApprove: approveNode != null
-              ? _dispatchButton(context, approveNode)
-              : null,
-          onReject: rejectNode != null
-              ? _dispatchButton(context, rejectNode)
-              : null,
-          onEdited: editNode != null
-              ? _dispatchButton(context, editNode)
-              : null,
+          onApprove: _childAction(context, children, '.approve'),
+          onReject: _childAction(context, children, '.reject'),
+          onEdited: _childAction(context, children, '.edit'),
         );
 
       case 'choice':
-        final question = meta['question'] as String? ?? text;
-        final selectedIndex = (meta['selectedIndex'] as num?)?.toInt();
-        final sourceApp = meta['sourceApp'] as String? ?? 'Ino';
-        final options = (meta['options'] as List? ?? const [])
-            .whereType<Map>()
-            .map(
-              (o) => ChoiceOption(
-                '${o['label'] ?? ''}',
-                detail: o['note'] as String?,
-              ),
-            )
-            .toList();
         final optButtons = children.where((ch) => ch['kind'] == 1).toList();
         return ChoiceCard(
-          source: _cardSource(context, sourceApp),
-          question: question,
-          options: options,
-          picked: selectedIndex,
+          source: _cardSource(context, meta['sourceApp'] as String? ?? 'Ino'),
+          question: meta['question'] as String? ?? text,
+          options: [
+            for (final o in (meta['options'] as List? ?? const []).whereType<Map>())
+              ChoiceOption('${o['label'] ?? ''}', detail: o['note'] as String?),
+          ],
+          picked: (meta['selectedIndex'] as num?)?.toInt(),
           onPick: (idx) {
-            if (idx >= 0 && idx < optButtons.length) {
-              _dispatchButton(context, optButtons[idx])?.call();
-            }
+            if (idx >= 0 && idx < optButtons.length) _dispatchButton(context, optButtons[idx])?.call();
           },
         );
 
       case 'draft':
-        final channelStr = (meta['channel'] as String? ?? 'email').toLowerCase();
-        final channel = switch (channelStr) {
+        final channel = switch ((meta['channel'] as String? ?? 'email').toLowerCase()) {
           'slack' => DraftChannel.slack,
           'sms' || 'message' || 'post' => DraftChannel.sms,
           _ => DraftChannel.email,
         };
-        final recipient = meta['recipient'] as String? ?? '';
-        final subject = meta['subject'] as String?;
-        final body = meta['body'] as String? ?? '';
-        final sent = meta['sent'] == true;
-        final sendNode = _findChildByKeySuffix(children, '.send');
-        final cancelNode = _findChildByKeySuffix(children, '.cancel');
         return DraftCard(
           source: _cardSource(context, channel.noun),
           data: DraftData(
             channel: channel,
-            to: recipient,
-            subject: subject,
-            body: body,
+            to: meta['recipient'] as String? ?? '',
+            subject: meta['subject'] as String?,
+            body: meta['body'] as String? ?? '',
             from: 'owner@intochat.os',
           ),
-          state: sent ? DraftState.sent : DraftState.pending,
-          onSend: sendNode != null ? _dispatchButton(context, sendNode) : null,
-          onDiscard: cancelNode != null
-              ? _dispatchButton(context, cancelNode)
-              : null,
+          state: meta['sent'] == true ? DraftState.sent : DraftState.pending,
+          onSend: _childAction(context, children, '.send'),
+          onDiscard: _childAction(context, children, '.cancel'),
         );
 
       case 'record':
-        final kindStr = meta['kind'] as String? ?? 'Record';
-        final title = meta['title'] as String? ?? text;
-        final subtitle = meta['subtitle'] as String?;
         final sourceApp = meta['sourceApp'] as String? ?? 'DigitalBrain';
-        final fields = <RecordField>[
-          for (final f in (meta['fields'] as List? ?? const []).whereType<Map>())
-            RecordField('${f['key'] ?? ''}', '${f['value'] ?? ''}'),
-        ];
-        final openNode = _findChildByKeySuffix(children, '.open');
         return RecordCard(
           source: _cardSource(context, sourceApp),
           data: RecordData(
-            objectLabel: kindStr,
-            name: title,
-            subtitle: subtitle,
-            fields: fields,
+            objectLabel: meta['kind'] as String? ?? 'Record',
+            name: meta['title'] as String? ?? text,
+            subtitle: meta['subtitle'] as String?,
+            fields: [
+              for (final f in (meta['fields'] as List? ?? const []).whereType<Map>())
+                RecordField('${f['key'] ?? ''}', '${f['value'] ?? ''}'),
+            ],
             linkLabel: 'Open in $sourceApp',
           ),
-          onOpen: openNode != null ? _dispatchButton(context, openNode) : null,
+          onOpen: _childAction(context, children, '.open'),
         );
 
       case 'secret':
         final service = meta['service'] as String? ?? text;
         final keyName = meta['keyName'] as String? ?? 'API_KEY';
-        final hint = meta['hint'] as String? ?? 'Stored encrypted in your personal vault.';
-        final saved = meta['saved'] == true;
-        final saveNode = _findChildByKeySuffix(children, '.save');
-        final skipNode = _findChildByKeySuffix(children, '.skip');
         return SecretCard(
           source: _cardSource(context, service),
           data: SecretRequestData(
             name: '$service ($keyName)',
-            why: hint,
+            why: meta['hint'] as String? ?? 'Stored encrypted in your personal vault.',
           ),
-          state: saved ? SecretState.saved : SecretState.pending,
-          onEnter: saveNode != null ? _dispatchButton(context, saveNode) : null,
-          onSkip: skipNode != null ? _dispatchButton(context, skipNode) : null,
+          state: meta['saved'] == true ? SecretState.saved : SecretState.pending,
+          onEnter: _childAction(context, children, '.save'),
+          onSkip: _childAction(context, children, '.skip'),
         );
 
       case 'job':
-        final title = meta['title'] as String? ?? text;
         final currentStep = (meta['currentStep'] as num?)?.toInt() ?? 0;
-        final progress = (meta['progress'] as num?)?.toDouble() ?? 0.5;
-        final eta = meta['eta'] as String?;
         final done = meta['done'] == true;
-        final rawSteps = (meta['steps'] as List? ?? const [])
-            .whereType<Map>()
-            .toList();
-        final steps = <JobStep>[
-          for (var i = 0; i < rawSteps.length; i++)
-            JobStep(
-              '${rawSteps[i]['label'] ?? ''}',
-              detail: rawSteps[i]['detail'] as String?,
-              status: done || i < currentStep
-                  ? StepStatus.done
-                  : (i == currentStep ? StepStatus.running : StepStatus.waiting),
-            ),
-        ];
-        final cancelNode = _findChildByKeySuffix(children, '.cancel');
+        final rawSteps = (meta['steps'] as List? ?? const []).whereType<Map>().toList();
         return JobCard(
           source: _cardSource(context, 'Background Job'),
           data: JobData(
-            title: title,
-            steps: steps,
-            progress: progress,
-            elapsed: eta,
+            title: meta['title'] as String? ?? text,
+            steps: [
+              for (var i = 0; i < rawSteps.length; i++)
+                JobStep(
+                  '${rawSteps[i]['label'] ?? ''}',
+                  detail: rawSteps[i]['detail'] as String?,
+                  status: done || i < currentStep
+                      ? StepStatus.done
+                      : (i == currentStep ? StepStatus.running : StepStatus.waiting),
+                ),
+            ],
+            progress: (meta['progress'] as num?)?.toDouble() ?? 0.5,
+            elapsed: meta['eta'] as String?,
           ),
           state: done ? JobState.done : JobState.running,
-          onCancel: cancelNode != null
-              ? _dispatchButton(context, cancelNode)
-              : null,
+          onCancel: _childAction(context, children, '.cancel'),
         );
 
       case 'brain3d':
-        final selectedId = meta['selectedId'] as String?;
-        final height = (meta['height'] as num?)?.toDouble() ?? 340.0;
-        final interactive = meta['interactive'] != false;
-        final showHud = meta['showHud'] != false;
-        final rawNodes = (meta['nodes'] as List? ?? const [])
-            .whereType<Map>()
-            .toList();
+        final rawNodes = (meta['nodes'] as List? ?? const []).whereType<Map>().toList();
         final nodes3d = <BrainNode3D>[
           for (var i = 0; i < rawNodes.length; i++)
             () {
               final n = rawNodes[i];
-              final hasExplicitCoords =
-                  n['x'] is num || n['y'] is num || n['z'] is num;
+              final hasExplicitCoords = n['x'] is num || n['y'] is num || n['z'] is num;
               (double, double, double) pos;
               if (hasExplicitCoords) {
                 final rx = (n['x'] as num?)?.toDouble() ?? 0.0;
                 final ry = (n['y'] as num?)?.toDouble() ?? 0.0;
                 final rz = (n['z'] as num?)?.toDouble() ?? 0.0;
-                final scale =
-                    (rx.abs() > 1.5 || ry.abs() > 1.5 || rz.abs() > 1.5)
-                    ? 120.0
-                    : 1.0;
+                final scale = (rx.abs() > 1.5 || ry.abs() > 1.5 || rz.abs() > 1.5) ? 120.0 : 1.0;
                 pos = (rx / scale, ry / scale, rz / scale);
               } else {
-                final phase =
-                    (n['orbitPhase'] as num?)?.toDouble() ??
-                    (i * 2 * pi / max(1, rawNodes.length));
+                final phase = (n['orbitPhase'] as num?)?.toDouble() ?? (i * 2 * pi / max(1, rawNodes.length));
                 final tilt = (n['orbitTilt'] as num?)?.toDouble() ?? 0.2;
-                final orbitR =
-                    ((n['orbitRadius'] as num?)?.toDouble() ?? 140.0) / 260.0;
+                final orbitR = ((n['orbitRadius'] as num?)?.toDouble() ?? 140.0) / 260.0;
                 pos = i == 0 && orbitR == 0
                     ? (0.0, 0.0, 0.0)
-                    : (
-                        orbitR * cos(phase),
-                        orbitR * sin(tilt) * sin(phase),
-                        orbitR * sin(phase),
-                      );
+                    : (orbitR * cos(phase), orbitR * sin(tilt) * sin(phase), orbitR * sin(phase));
               }
               final nodeId = '${n['id'] ?? ''}';
-              final uriStr =
-                  '${n['uri'] ?? n['subtitle'] ?? 'neuron://owner/${n['category'] ?? 'os'}/$nodeId'}';
-              final sigs =
-                  (n['signalsPerMin'] as num?)?.toInt() ??
+              final sigs = (n['signalsPerMin'] as num?)?.toInt() ??
                   switch (nodeId) {
                     'creator' => 48,
                     'aspire' => 96,
@@ -840,15 +604,13 @@ class _ImmutableView extends StatelessWidget {
                   };
               return BrainNode3D(
                 id: nodeId,
-                uri: uriStr,
+                uri: '${n['uri'] ?? n['subtitle'] ?? 'neuron://owner/${n['category'] ?? 'os'}/$nodeId'}',
                 label: '${n['label'] ?? ''}',
                 kind: BrainNodeKind.app,
                 moduleId: '${n['category'] ?? 'DigitalBrain'}',
                 subtitle: n['subtitle'] as String?,
                 signalsPerMin: sigs,
-                appId: nodeId.startsWith('app.')
-                    ? nodeId.substring(4)
-                    : nodeId,
+                appId: nodeId.startsWith('app.') ? nodeId.substring(4) : nodeId,
                 position: pos,
                 status: switch ('${n['status'] ?? 'healthy'}'.toLowerCase()) {
                   'pulse' || 'working' => BrainNodeStatus.working,
@@ -860,40 +622,30 @@ class _ImmutableView extends StatelessWidget {
               );
             }(),
         ];
-        final synapses3d = (meta['synapses'] as List? ?? const [])
-            .whereType<Map>()
-            .map(
-              (s) => BrainSynapse3D(
-                fromId: '${s['fromId'] ?? ''}',
-                toId: '${s['toId'] ?? ''}',
-                signalLabel: s['signalType'] as String?,
-                active: s['active'] != false,
-              ),
-            )
-            .toList();
+        final synapses3d = [
+          for (final s in (meta['synapses'] as List? ?? const []).whereType<Map>())
+            BrainSynapse3D(
+              fromId: '${s['fromId'] ?? ''}',
+              toId: '${s['toId'] ?? ''}',
+              signalLabel: s['signalType'] as String?,
+              active: s['active'] != false,
+            ),
+        ];
         final nodeButtons = children.where((ch) => ch['kind'] == 1).toList();
-        final effectiveNodes = nodes3d.isEmpty ? defaultBrainNodes : nodes3d;
-        final effectiveSynapses =
-            synapses3d.isEmpty ? defaultBrainSynapses : synapses3d;
         return _InteractiveBrainSceneBox(
-          height: height,
-          nodes: effectiveNodes,
-          synapses: effectiveSynapses,
-          initialSelectedId: selectedId,
-          interactive: interactive,
-          showHud: showHud,
+          height: (meta['height'] as num?)?.toDouble() ?? 340.0,
+          nodes: nodes3d.isEmpty ? defaultBrainNodes : nodes3d,
+          synapses: synapses3d.isEmpty ? defaultBrainSynapses : synapses3d,
+          initialSelectedId: meta['selectedId'] as String?,
+          interactive: meta['interactive'] != false,
+          showHud: meta['showHud'] != false,
           onSelectNodeIndex: (idx) {
-            if (idx >= 0 && idx < nodeButtons.length) {
-              _dispatchButton(context, nodeButtons[idx])?.call();
-            }
+            if (idx >= 0 && idx < nodeButtons.length) _dispatchButton(context, nodeButtons[idx])?.call();
           },
         );
 
       case 'neuronRef':
-        final refKind = meta['kind'] as String? ?? 'neuron';
-        final neuronUri = meta['neuronUri'] as String? ?? text;
-        final title = meta['title'] as String?;
-        final copyNode = _findChildByKeySuffix(children, '.copy');
+        final copyAction = _childAction(context, children, '.copy');
         final embeddedRefs = [
           for (var i = 0; i < children.length; i++)
             if (children[i]['kind'] == 5) widgets[i],
@@ -906,29 +658,26 @@ class _ImmutableView extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  ViewBadge(text: refKind, tone: 2, icon: 'cpu'),
+                  ViewBadge(text: meta['kind'] as String? ?? 'neuron', tone: 2, icon: 'cpu'),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      title ?? neuronUri,
+                      (meta['title'] as String?) ?? (meta['neuronUri'] as String? ?? text),
                       style: UiType.tabularStyle(12, color: c.strong),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  if (copyNode != null)
+                  if (copyAction != null)
                     UiKitButton(
                       label: 'Copy URI',
                       icon: 'copy',
                       compact: true,
                       style: UiKitButtonStyle.ghost,
-                      onPressed: _dispatchButton(context, copyNode),
+                      onPressed: copyAction,
                     ),
                 ],
               ),
-              if (embeddedRefs.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                ...embeddedRefs,
-              ],
+              if (embeddedRefs.isNotEmpty) ...[const SizedBox(height: 10), ...embeddedRefs],
             ],
           ),
         );
@@ -944,8 +693,7 @@ class _ImmutableView extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (text.isNotEmpty)
-              Text(text, style: Theme.of(context).textTheme.titleLarge),
+            if (text.isNotEmpty) Text(text, style: Theme.of(context).textTheme.titleLarge),
             ...widgets,
           ],
         ),
@@ -954,22 +702,12 @@ class _ImmutableView extends StatelessWidget {
   }
 
   /// [slotted]: the node fills an explicit Row/Column extent.
-  Widget _node(
-    BuildContext context,
-    Map node,
-    int depth, {
-    bool slotted = false,
-  }) {
+  Widget _node(BuildContext context, Map node, int depth, {bool slotted = false}) {
     if (depth > 32) return const Text('This component cannot be displayed.');
     final key = ValueKey('view:$name:${node['key']}');
-    final children = (node['children'] as List? ?? const [])
-        .whereType<Map>()
-        .take(512)
-        .toList();
+    final children = (node['children'] as List? ?? const []).whereType<Map>().take(512).toList();
     // Built on demand so a List builds only its visible rows.
-    final extents = node['kind'] == 2 || node['kind'] == 3
-        ? node['extents'] as List? ?? const []
-        : const [];
+    final extents = node['kind'] == 2 || node['kind'] == 3 ? node['extents'] as List? ?? const [] : const [];
     late final widgets = [
       for (var i = 0; i < children.length; i++)
         _node(
@@ -989,42 +727,27 @@ class _ImmutableView extends StatelessWidget {
         final meta = _tryParseUiMeta(node['detail']);
         if (meta != null) {
           final c = UiColors.of(context);
-          final uiKind = meta['_ui'] as String? ?? '';
-          if (uiKind == 'heading') {
-            final level = (meta['level'] as num?)?.toInt() ?? 2;
-            final subtitle = meta['subtitle'] as String?;
-            final fontSize = switch (level) {
+          if ((meta['_ui'] as String? ?? '') == 'heading') {
+            final fontSize = switch ((meta['level'] as num?)?.toInt() ?? 2) {
               1 => 22.0,
               2 => 17.0,
               _ => 15.0,
             };
+            final subtitle = meta['subtitle'] as String?;
             content = Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  text,
-                  style: UiType.displayStyle(
-                    fontSize,
-                    weight: FontWeight.w700,
-                    color: c.strong,
-                  ),
-                ),
+                Text(text, style: UiType.displayStyle(fontSize, weight: FontWeight.w700, color: c.strong)),
                 if (subtitle != null && subtitle.isNotEmpty) ...[
                   const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: UiType.textStyle(12.5, color: c.muted),
-                  ),
+                  Text(subtitle, style: UiType.textStyle(12.5, color: c.muted)),
                 ],
               ],
             );
           } else {
-            final tone = meta['tone'] as String? ?? 'default';
-            final tabular = meta['tabular'] == true;
-            final mono = meta['mono'] == true;
             final size = (meta['size'] as num?)?.toDouble() ?? 13.0;
-            final color = switch (tone) {
+            final color = switch (meta['tone'] as String? ?? 'default') {
               'strong' => c.strong,
               'muted' => c.muted,
               'subtle' => c.subtle,
@@ -1034,9 +757,9 @@ class _ImmutableView extends StatelessWidget {
               'danger' => c.error,
               _ => c.body,
             };
-            final style = mono
+            final style = meta['mono'] == true
                 ? UiType.tabularStyle(size, color: color)
-                : UiType.textStyle(size, color: color, tnum: tabular);
+                : UiType.textStyle(size, color: color, tnum: meta['tabular'] == true);
             content = SelectionArea(child: Text(text, style: style));
           }
         } else {
@@ -1044,7 +767,6 @@ class _ImmutableView extends StatelessWidget {
         }
       case 1:
         final forceCompact = node['detail'] == 'small';
-        // Server slots shorter than the 48px button get the compact one.
         content = LayoutBuilder(
           builder: (context, constraints) => viewButton(
             node,
@@ -1052,46 +774,22 @@ class _ImmutableView extends StatelessWidget {
             compact: forceCompact || constraints.maxHeight < 48,
           ),
         );
-        // Only an explicit extent stretches a button; elsewhere it keeps
-        // its content width, capped by the space it is given.
         if (!slotted) {
-          content = Align(
-            alignment: AlignmentDirectional.centerStart,
-            heightFactor: 1,
-            child: content,
-          );
+          content = Align(alignment: AlignmentDirectional.centerStart, heightFactor: 1, child: content);
         }
       case 2:
       case 3:
-        if (node['kind'] == 2 &&
-            node['key'] == 'settings' &&
-            children.length >= 2 &&
-            children[0]['key'] == 'tabs') {
-          content = _buildSettingsDesktopView(
-            context,
-            node,
-            children,
-            widgets,
-            depth,
-          );
+        if (node['kind'] == 2 && node['key'] == 'settings' && children.length >= 2 && children[0]['key'] == 'tabs') {
+          content = _buildSettingsDesktopView(context, node, children, widgets, depth);
           break;
         }
         content = layout(
           {
-            'mode': node['kind'] == 3
-                ? 'row'
-                : (node['extents'] as List? ?? const []).isEmpty
-                ? 'list'
-                : 'column',
+            'mode': node['kind'] == 3 ? 'row' : (node['extents'] as List? ?? const []).isEmpty ? 'list' : 'column',
             'extents': node['extents'],
             'gap': node['gap'],
             'followEnd': node['followEnd'],
-            'stretch': const {
-              'view',
-              'split',
-              'files-full',
-              'browse-split',
-            }.contains(node['key']),
+            'stretch': const {'view', 'split', 'files-full', 'browse-split'}.contains(node['key']),
           },
           widgets,
           children,
@@ -1109,11 +807,8 @@ class _ImmutableView extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (text.isNotEmpty)
-                      Text(text, style: Theme.of(context).textTheme.titleLarge),
-                    if (node['detail'] case final String detail
-                        when detail.isNotEmpty)
-                      markdown(detail),
+                    if (text.isNotEmpty) Text(text, style: Theme.of(context).textTheme.titleLarge),
+                    if (node['detail'] case final String detail when detail.isNotEmpty) markdown(detail),
                     ...widgets,
                   ],
                 ),
@@ -1123,9 +818,7 @@ class _ImmutableView extends StatelessWidget {
         }
       case 5:
         final target = node['reference'];
-        if (target is Map &&
-            target['kind'] is String &&
-            target['name'] is String) {
+        if (target is Map && target['kind'] is String && target['name'] is String) {
           return reference(target, key);
         }
         content = const Text('This component cannot be displayed.');
@@ -1134,8 +827,7 @@ class _ImmutableView extends StatelessWidget {
           node: node,
           action: (node) => _dispatchButton(context, node),
           reference: (child) => switch (child['reference']) {
-            final Map target
-                when target['kind'] is String && target['name'] is String =>
+            final Map target when target['kind'] is String && target['name'] is String =>
               reference(target, ValueKey('view:$name:${child['key']}')),
             _ => const SizedBox.shrink(),
           },
@@ -1144,28 +836,18 @@ class _ImmutableView extends StatelessWidget {
         content = ViewModal(
           node: node,
           children: [
-            // Slotted buttons are not aligned, so they fill the modal width.
             for (final child in children)
               (
                 child,
-                child['kind'] == 1
-                    ? _node(context, child, depth + 1, slotted: true)
-                    : widgets[children.indexOf(child)],
+                child['kind'] == 1 ? _node(context, child, depth + 1, slotted: true) : widgets[children.indexOf(child)],
               ),
           ],
           action: (node) => _dispatchButton(context, node),
         );
       case 8:
-        content = ViewToast(
-          node: node,
-          generation: generation,
-          action: (node) => _dispatchButton(context, node),
-        );
+        content = ViewToast(node: node, generation: generation, action: (node) => _dispatchButton(context, node));
       case 9:
-        content = ViewList(
-          count: children.length,
-          row: (i) => _node(context, children[i], depth + 1),
-        );
+        content = ViewList(count: children.length, row: (i) => _node(context, children[i], depth + 1));
       case 10:
         content = ViewBadge(
           text: text,
@@ -1177,10 +859,7 @@ class _ImmutableView extends StatelessWidget {
       case 12:
         content = ViewDivider(label: text);
       case 13:
-        content = ViewTabs(
-          node: node,
-          action: (node) => _dispatchButton(context, node),
-        );
+        content = ViewTabs(node: node, action: (node) => _dispatchButton(context, node));
       default:
         content = const Text('This component cannot be displayed.');
     }
@@ -1214,40 +893,21 @@ class _ImmutableView extends StatelessWidget {
       builder: (context, constraints) {
         if (constraints.maxWidth < 680) {
           return layout(
-            {
-              'mode': 'column',
-              'extents': node['extents'],
-              'gap': node['gap'],
-              'followEnd': node['followEnd'],
-            },
+            {'mode': 'column', 'extents': node['extents'], 'gap': node['gap'], 'followEnd': node['followEnd']},
             widgets,
             children,
           );
         }
         final c = UiColors.of(context);
-        final tabsNode = children[0];
-        final tabItems = (tabsNode['children'] as List? ?? const [])
-            .whereType<Map>()
-            .toList();
+        final tabItems = (children[0]['children'] as List? ?? const []).whereType<Map>().toList();
         final bodyNode = children[1];
         final bodyKey = bodyNode['key'] as String? ?? '';
-        final bodyChildren = (bodyNode['children'] as List? ?? const [])
-            .whereType<Map>()
-            .toList();
-        final bodyWidgets = [
-          for (final child in bodyChildren) _node(context, child, depth + 2),
-        ];
+        final bodyChildren = (bodyNode['children'] as List? ?? const []).whereType<Map>().toList();
+        final bodyWidgets = [for (final child in bodyChildren) _node(context, child, depth + 2)];
 
-        final headingText = bodyChildren.isNotEmpty
-            ? bodyChildren[0]['text'] as String? ?? ''
-            : '';
-        final descriptionText = bodyChildren.length > 1
-            ? bodyChildren[1]['text'] as String? ?? ''
-            : '';
-        final restWidgets = bodyWidgets.length > 2
-            ? bodyWidgets.sublist(2)
-            : bodyWidgets;
-
+        final headingText = bodyChildren.isNotEmpty ? bodyChildren[0]['text'] as String? ?? '' : '';
+        final descriptionText = bodyChildren.length > 1 ? bodyChildren[1]['text'] as String? ?? '' : '';
+        final restWidgets = bodyWidgets.length > 2 ? bodyWidgets.sublist(2) : bodyWidgets;
         final currentTheme = localPreferences?.read(PreferenceStore.localTheme);
 
         return Row(
@@ -1270,29 +930,15 @@ class _ImmutableView extends StatelessWidget {
                         Container(
                           width: 26,
                           height: 26,
-                          decoration: BoxDecoration(
-                            color: c.accentTint,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Icon(
-                            LucideIcons.settings,
-                            size: 14,
-                            color: c.accent,
-                          ),
+                          decoration: BoxDecoration(color: c.accentTint, borderRadius: BorderRadius.circular(8)),
+                          child: Icon(LucideIcons.settings, size: 14, color: c.accent),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                'System Settings',
-                                style: UiType.textStyle(
-                                  13,
-                                  weight: FontWeight.w700,
-                                  color: c.strong,
-                                ),
-                              ),
+                              Text('System Settings', style: UiType.textStyle(13, weight: FontWeight.w700, color: c.strong)),
                               Text(
                                 'neuron://local/apps/settings',
                                 maxLines: 1,
@@ -1321,19 +967,13 @@ class _ImmutableView extends StatelessWidget {
                           child: GestureDetector(
                             onTap: onTap,
                             child: MouseRegion(
-                              cursor: onTap != null
-                                  ? SystemMouseCursors.click
-                                  : SystemMouseCursors.basic,
+                              cursor: onTap != null ? SystemMouseCursors.click : SystemMouseCursors.basic,
                               child: AnimatedContainer(
                                 duration: IcMotion.fast,
                                 height: 34,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                ),
+                                padding: const EdgeInsets.symmetric(horizontal: 10),
                                 decoration: BoxDecoration(
-                                  color: selected
-                                      ? c.accentTint
-                                      : Colors.transparent,
+                                  color: selected ? c.accentTint : Colors.transparent,
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Row(
@@ -1341,9 +981,7 @@ class _ImmutableView extends StatelessWidget {
                                     Icon(
                                       _settingsIconFor(tabKey),
                                       size: 15,
-                                      color: isDanger
-                                          ? c.error
-                                          : (selected ? c.accent : c.muted),
+                                      color: isDanger ? c.error : (selected ? c.accent : c.muted),
                                     ),
                                     const SizedBox(width: 10),
                                     Expanded(
@@ -1353,16 +991,10 @@ class _ImmutableView extends StatelessWidget {
                                         overflow: TextOverflow.ellipsis,
                                         style: UiType.textStyle(
                                           13,
-                                          weight: selected
-                                              ? FontWeight.w600
-                                              : FontWeight.w500,
+                                          weight: selected ? FontWeight.w600 : FontWeight.w500,
                                           color: onTap == null && !selected
                                               ? c.subtle
-                                              : (isDanger
-                                                    ? c.error
-                                                    : (selected
-                                                          ? c.strong
-                                                          : c.body)),
+                                              : (isDanger ? c.error : (selected ? c.strong : c.body)),
                                         ),
                                       ),
                                     ),
@@ -1392,31 +1024,16 @@ class _ImmutableView extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           if (headingText.isNotEmpty)
-                            Text(
-                              headingText,
-                              style: UiType.displayStyle(
-                                22,
-                                weight: FontWeight.w700,
-                                color: c.strong,
-                              ),
-                            ),
+                            Text(headingText, style: UiType.displayStyle(22, weight: FontWeight.w700, color: c.strong)),
                           if (descriptionText.isNotEmpty) ...[
                             const SizedBox(height: 6),
-                            Text(
-                              descriptionText,
-                              style: UiType.textStyle(13, color: c.muted),
-                            ),
+                            Text(descriptionText, style: UiType.textStyle(13, color: c.muted)),
                           ],
                           const SizedBox(height: 20),
-                          if (bodyKey == 'tab-body-general' &&
-                              localPreferences != null) ...[
+                          if (bodyKey == 'tab-body-general' && localPreferences != null) ...[
                             Text(
                               'UI IDENTITY & GLASS MATERIALITY',
-                              style: UiType.textStyle(
-                                11,
-                                weight: FontWeight.w700,
-                                color: c.muted,
-                              ),
+                              style: UiType.textStyle(11, weight: FontWeight.w700, color: c.muted),
                             ),
                             const SizedBox(height: 10),
                             Wrap(
@@ -1429,9 +1046,7 @@ class _ImmutableView extends StatelessWidget {
                                     c,
                                     preset,
                                     currentTheme == preset.id ||
-                                        (currentTheme == 'intochat' &&
-                                            preset ==
-                                                IcStylePreset.fluentAcrylic),
+                                        (currentTheme == 'intochat' && preset == IcStylePreset.fluentAcrylic),
                                   ),
                               ],
                             ),
@@ -1462,20 +1077,10 @@ class _ImmutableView extends StatelessWidget {
     );
   }
 
-  Widget _buildPresetCard(
-    BuildContext context,
-    UiColors c,
-    IcStylePreset preset,
-    bool active,
-  ) {
+  Widget _buildPresetCard(BuildContext context, UiColors c, IcStylePreset preset, bool active) {
     final palette = IcColors.forPreset(preset, dark: true);
     return GestureDetector(
-      onTap: () {
-        unawaited(
-          localPreferences?.write(PreferenceStore.localTheme, preset.id) ??
-              Future.value(),
-        );
-      },
+      onTap: () => unawaited(localPreferences?.write(PreferenceStore.localTheme, preset.id) ?? Future.value()),
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         child: AnimatedContainer(
@@ -1485,10 +1090,7 @@ class _ImmutableView extends StatelessWidget {
           decoration: BoxDecoration(
             color: active ? c.accentTint : c.surface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: active ? c.accent : c.hairline,
-              width: active ? 1.5 : 1,
-            ),
+            border: Border.all(color: active ? c.accent : c.hairline, width: active ? 1.5 : 1),
             boxShadow: active ? UiShadows.sm(c) : null,
           ),
           child: Column(
@@ -1508,15 +1110,11 @@ class _ImmutableView extends StatelessWidget {
                     child: Container(
                       width: 8,
                       height: 8,
-                      decoration: BoxDecoration(
-                        color: palette.accent,
-                        shape: BoxShape.circle,
-                      ),
+                      decoration: BoxDecoration(color: palette.accent, shape: BoxShape.circle),
                     ),
                   ),
                   const Spacer(),
-                  if (palette.isGlass)
-                    const TagPill(label: 'Glass', tone: TagTone.accent),
+                  if (palette.isGlass) const TagPill(label: 'Glass', tone: TagTone.accent),
                 ],
               ),
               const SizedBox(height: 8),
@@ -1524,19 +1122,10 @@ class _ImmutableView extends StatelessWidget {
                 preset.label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: UiType.textStyle(
-                  12.5,
-                  weight: FontWeight.w600,
-                  color: c.strong,
-                ),
+                style: UiType.textStyle(12.5, weight: FontWeight.w600, color: c.strong),
               ),
               const SizedBox(height: 2),
-              Text(
-                preset.description,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: UiType.textStyle(11, color: c.muted),
-              ),
+              Text(preset.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: UiType.textStyle(11, color: c.muted)),
             ],
           ),
         ),
@@ -1570,9 +1159,7 @@ class _ImmutableFieldBox extends StatefulWidget {
 }
 
 class _ImmutableFieldBoxState extends State<_ImmutableFieldBox> {
-  late final TextEditingController _controller = TextEditingController(
-    text: widget.value,
-  );
+  late final TextEditingController _controller = TextEditingController(text: widget.value);
   final FocusNode _focus = FocusNode();
 
   @override
@@ -1591,17 +1178,15 @@ class _ImmutableFieldBoxState extends State<_ImmutableFieldBox> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return UiKitField(
-      label: widget.label,
-      placeholder: widget.placeholder,
-      controller: _controller,
-      focusNode: _focus,
-      secret: widget.secret,
-      enabled: widget.enabled,
-      onSubmitted: widget.onSubmit != null ? (_) => widget.onSubmit!() : null,
-    );
-  }
+  Widget build(BuildContext context) => UiKitField(
+    label: widget.label,
+    placeholder: widget.placeholder,
+    controller: _controller,
+    focusNode: _focus,
+    secret: widget.secret,
+    enabled: widget.enabled,
+    onSubmitted: widget.onSubmit != null ? (_) => widget.onSubmit!() : null,
+  );
 }
 
 class _InteractiveBrainSceneBox extends StatefulWidget {
@@ -1624,20 +1209,17 @@ class _InteractiveBrainSceneBox extends StatefulWidget {
   final ValueChanged<int> onSelectNodeIndex;
 
   @override
-  State<_InteractiveBrainSceneBox> createState() =>
-      _InteractiveBrainSceneBoxState();
+  State<_InteractiveBrainSceneBox> createState() => _InteractiveBrainSceneBoxState();
 }
 
 class _InteractiveBrainSceneBoxState extends State<_InteractiveBrainSceneBox> {
   late String? _selectedId =
-      widget.initialSelectedId ??
-      (widget.nodes.isNotEmpty ? widget.nodes.first.id : null);
+      widget.initialSelectedId ?? (widget.nodes.isNotEmpty ? widget.nodes.first.id : null);
 
   @override
   void didUpdateWidget(_InteractiveBrainSceneBox oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.initialSelectedId != widget.initialSelectedId &&
-        widget.initialSelectedId != null) {
+    if (oldWidget.initialSelectedId != widget.initialSelectedId && widget.initialSelectedId != null) {
       _selectedId = widget.initialSelectedId;
     }
   }
@@ -1645,9 +1227,7 @@ class _InteractiveBrainSceneBoxState extends State<_InteractiveBrainSceneBox> {
   void _selectNode(BrainNode3D node) {
     setState(() => _selectedId = node.id);
     final idx = widget.nodes.indexWhere((item) => item.id == node.id);
-    if (idx >= 0) {
-      widget.onSelectNodeIndex(idx);
-    }
+    if (idx >= 0) widget.onSelectNodeIndex(idx);
   }
 
   @override
@@ -1686,10 +1266,7 @@ class _InteractiveBrainSceneBoxState extends State<_InteractiveBrainSceneBox> {
             children: [
               Row(
                 children: [
-                  IcAppIcon(
-                    appId: selectedNode.appId ?? selectedNode.id,
-                    size: 24,
-                  ),
+                  IcAppIcon(appId: selectedNode.appId ?? selectedNode.id, size: 24),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Column(
@@ -1699,11 +1276,7 @@ class _InteractiveBrainSceneBoxState extends State<_InteractiveBrainSceneBox> {
                           selectedNode.label,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: IcType.text(
-                            13.5,
-                            weight: FontWeight.w700,
-                            color: c.textStrong,
-                          ),
+                          style: IcType.text(13.5, weight: FontWeight.w700, color: c.textStrong),
                         ),
                         Text(
                           selectedNode.neuronUri,
@@ -1716,11 +1289,7 @@ class _InteractiveBrainSceneBoxState extends State<_InteractiveBrainSceneBox> {
                   ),
                   TagPill(label: selectedNode.moduleId, tone: TagTone.neutral),
                   const SizedBox(width: 6),
-                  TagPill(
-                    label: '${selectedNode.signalsPerMin} signals/min',
-                    tone: TagTone.accent,
-                    icon: LucideIcons.zap,
-                  ),
+                  TagPill(label: '${selectedNode.signalsPerMin} signals/min', tone: TagTone.accent, icon: LucideIcons.zap),
                   const SizedBox(width: 6),
                   Btn(
                     key: ValueKey('brain3d-copy-uri-${selectedNode.id}'),
@@ -1728,9 +1297,7 @@ class _InteractiveBrainSceneBoxState extends State<_InteractiveBrainSceneBox> {
                     small: true,
                     icon: LucideIcons.copy,
                     onTap: () {
-                      Clipboard.setData(
-                        ClipboardData(text: selectedNode.neuronUri),
-                      );
+                      Clipboard.setData(ClipboardData(text: selectedNode.neuronUri));
                       showKitToast(context, 'Copied ${selectedNode.neuronUri}');
                     },
                   ),
