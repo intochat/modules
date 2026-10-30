@@ -12,6 +12,7 @@ class _ImmutableView extends StatelessWidget {
     required this.reference,
     required this.layout,
     this.localPreferences,
+    this.onActivate,
   });
   final String name;
   final int generation;
@@ -22,6 +23,7 @@ class _ImmutableView extends StatelessWidget {
   final Widget Function(Map, Key) reference;
   final Widget Function(Map<String, dynamic>, List<Widget>, List) layout;
   final LocalPreferences? localPreferences;
+  final ValueChanged<Map<String, dynamic>>? onActivate;
 
   static final _random = Random.secure();
   static String _operationId() {
@@ -64,6 +66,19 @@ class _ImmutableView extends StatelessWidget {
               ),
             );
             return;
+          }
+          if (action.startsWith('os://')) {
+            final uri = Uri.tryParse(action);
+            if (onActivate != null) {
+              onActivate!({
+                'kind': 'os_uri',
+                'uri': action,
+                'host': uri?.host ?? '',
+                'target': uri?.pathSegments.firstOrNull ?? '',
+                'query': uri?.queryParameters ?? const <String, String>{},
+              });
+              return;
+            }
           }
           unawaited(
             dispatch({

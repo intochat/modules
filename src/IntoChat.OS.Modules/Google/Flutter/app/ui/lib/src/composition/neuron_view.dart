@@ -560,6 +560,7 @@ class _NeuronViewState extends State<NeuronView> {
           reference: (node, key) => _child(node, key: key),
           layout: _layout,
           localPreferences: widget.localPreferences,
+          onActivate: widget.onActivate,
         );
       case 'viewport':
         final root = data['root'];

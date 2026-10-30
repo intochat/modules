@@ -115,6 +115,7 @@ class _LiveDesktopShellState extends State<LiveDesktopShell> {
   };
   bool _switcherOpen = false;
   int _switcherIndex = 0;
+  DesktopSystemSheetKind _systemSheet = DesktopSystemSheetKind.none;
 
   @override
   void initState() {
@@ -211,6 +212,10 @@ class _LiveDesktopShellState extends State<LiveDesktopShell> {
       }
       if (_popover != DesktopPopoverKind.none) {
         setState(() => _popover = DesktopPopoverKind.none);
+        return true;
+      }
+      if (_systemSheet != DesktopSystemSheetKind.none) {
+        setState(() => _systemSheet = DesktopSystemSheetKind.none);
         return true;
       }
     }
@@ -516,6 +521,21 @@ class _LiveDesktopShellState extends State<LiveDesktopShell> {
     Map<String, Map<String, dynamic>> dockButtons,
   ) {
     setState(() => _showDesktopOnly = false);
+    if (appId.startsWith('os://')) {
+      final parsedSheet = DesktopSystemModalSheet.parseUri(appId);
+      if (parsedSheet != DesktopSystemSheetKind.none) {
+        setState(() => _systemSheet = parsedSheet);
+        return;
+      }
+    }
+    if (appId == 'secure') {
+      setState(() => _systemSheet = DesktopSystemSheetKind.secure);
+      return;
+    }
+    if (appId == 'profile') {
+      setState(() => _systemSheet = DesktopSystemSheetKind.profile);
+      return;
+    }
     for (final w in windows.reversed) {
       if (w.appId == appId) {
         _focusWindow(w);
@@ -713,7 +733,21 @@ class _LiveDesktopShellState extends State<LiveDesktopShell> {
                                 load: widget.load,
                                 watch: widget.watch,
                                 onAction: widget.onAction,
-                                onActivate: widget.onActivate,
+                                onActivate: (activation) {
+                                  if (activation['kind'] == 'os_uri') {
+                                    final uriStr = '${activation['uri'] ?? ''}';
+                                    final sheet = DesktopSystemModalSheet.parseUri(uriStr);
+                                    if (sheet != DesktopSystemSheetKind.none) {
+                                      setState(() => _systemSheet = sheet);
+                                      return;
+                                    }
+                                    if (uriStr.contains('settings')) {
+                                      _launchOrFocusApp('settings', windows, dockButtons);
+                                      return;
+                                    }
+                                  }
+                                  widget.onActivate(activation);
+                                },
                                 scenes: widget.scenes,
                                 entries: widget.entries,
                                 localPreferences: widget.localPreferences,
@@ -905,6 +939,16 @@ class _LiveDesktopShellState extends State<LiveDesktopShell> {
                       if (target != null) _focusWindow(target);
                     },
                     onCancel: () => setState(() => _switcherOpen = false),
+                  ),
+                ),
+
+              // 8. Declarative os:// System Modal Sheets & Utility Windows (Secure, Profile, Install, Re-Consent, Conflict, 2FA)
+              if (_systemSheet != DesktopSystemSheetKind.none)
+                Positioned.fill(
+                  child: DesktopSystemModalSheet(
+                    kind: _systemSheet,
+                    onClose: () => setState(() => _systemSheet = DesktopSystemSheetKind.none),
+                    onOpenSheet: (next) => setState(() => _systemSheet = next),
                   ),
                 ),
             ],

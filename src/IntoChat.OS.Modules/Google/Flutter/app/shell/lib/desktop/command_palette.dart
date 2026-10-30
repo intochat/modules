@@ -108,6 +108,24 @@ class _CommandPaletteState extends State<CommandPalette> {
           widget.onClose();
         },
       ),
+      for (final (id, label, detail, icon, uri) in const [
+        ('os:secure', 'Open Secure Vault (Zero-Leakage Secrets)', 'os://window/secure', LucideIcons.keyRound, 'os://window/secure'),
+        ('os:profile', 'Open Profile, Identity & 2FA', 'os://window/profile', LucideIcons.userCheck, 'os://window/profile'),
+        ('os:install', 'Install Smart App by Link', 'os://sheet/install', LucideIcons.packagePlus, 'os://sheet/install'),
+        ('os:reconsent', 'Review App Capability Re-Consent', 'os://sheet/reconsent', LucideIcons.shieldCheck, 'os://sheet/reconsent'),
+        ('os:conflict', 'Resolve Two-Version File Conflict', 'os://sheet/conflict', LucideIcons.gitCompare, 'os://sheet/conflict'),
+      ])
+        CommandPaletteEntry(
+          id: id,
+          label: label,
+          kind: 'System & Security',
+          detail: detail,
+          icon: icon,
+          onRun: () {
+            widget.onClose();
+            widget.onLaunchApp?.call(uri);
+          },
+        ),
     ];
 
     final filtered = q.isEmpty
