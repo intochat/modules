@@ -1,23 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:intochat_os_flutter/intochat_os_flutter.dart' hide TableColumn;
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../components/kit/kit_toast.dart';
 import '../components/kit/ui_kit_button.dart';
+import '../design/app_tile.dart';
 import '../design/brain_scene_3d.dart';
 import '../design/cards/cards.dart';
 import '../design/controls.dart';
+import '../design/copy/ino_copy.dart';
 import '../design/tokens.dart';
 import '../models/ui_part.dart';
 import '../theme/ui_theme.dart';
-import 'ui_gallery_preview.dart';
 
-/// Canonical alias matching `design/apps/os/lib/apps/gallery/gallery_app.dart`.
 typedef GalleryApp = UiGalleryScreen;
+typedef GallerySample = GalleryComponentSpec;
 
-class GallerySample {
-  const GallerySample({
+enum GalleryStateKnob { interactive, loading, disabled, empty }
+
+enum GallerySurfaceKnob { acrylic, elevated, recessed }
+
+enum GalleryChartKindKnob { line, bar, sparkline }
+
+@immutable
+class GalleryComponentSpec {
+  const GalleryComponentSpec({
     required this.id,
     required this.title,
     required this.subtitle,
@@ -25,8 +32,6 @@ class GallerySample {
     required this.icon,
     required this.contract,
     required this.signal,
-    required this.csharpCode,
-    required this.flutterCode,
   });
 
   final String id;
@@ -36,243 +41,280 @@ class GallerySample {
   final IconData icon;
   final String contract;
   final String signal;
-  final String csharpCode;
-  final String flutterCode;
 }
 
-const gallerySamples = <GallerySample>[
-  GallerySample(
+const galleryComponentSpecs = <GalleryComponentSpec>[
+  // 1. Design & Identity
+  GalleryComponentSpec(
     id: 'themes',
-    title: 'Color & Acrylic Themes',
-    subtitle:
-        'Switch between Fluent Acrylic, Spatial Glass, Cyber Synaptic, Warm Paper & Linear Carbon.',
-    category: 'Design',
+    title: '7 UI Identities & Glass Materiality',
+    subtitle: 'Fluent Acrylic, Spatial Glass, Cyber Synaptic, Warm Paper, Warm Mica, Linear Carbon & Nordic Tactical.',
+    category: 'Design & Identity',
     icon: LucideIcons.palette,
     contract: 'IntoChat.OS.Identity.IUserSettings',
     signal: 'UserSettingsChanged',
-    csharpCode: '''[On("settings", Contract = typeof(IUserSettings))]
-public void OnSettingsChanged(UserSettingsChanged? changed)
-{
-    if (changed is null) return;
-    State = State with { Theme = changed.Theme };
-}''',
-    flutterCode: '''final colors = IcColors.forPreset(
-  os.stylePreset,
-  dark: isDark,
-);
-return IcTheme(colors: colors, child: const Desktop());''',
   ),
-  GallerySample(
+  GalleryComponentSpec(
     id: 'typography',
-    title: 'Typography & Tabular Figures',
-    subtitle:
-        'Inter and InterDisplay scale with strict tabular numerals (tnum) for live telemetry.',
-    category: 'Design',
+    title: 'Typography (Inter + InterDisplay + tnum)',
+    subtitle: 'Inter and InterDisplay scale with strict tabular numerals (tnum) for live telemetry.',
+    category: 'Design & Identity',
     icon: LucideIcons.type,
     contract: 'IntoChat.OS.Modules.Flutter.Text.IText',
     signal: 'TextChanged',
-    csharpCode: '''new Column([
-    new Heading("WinUI-Grade Typography", Level: 1),
-    new Text("1,248,920 tokens · 99.98% uptime", Tone: TextTone.Muted, Tabular: true),
-])''',
-    flutterCode: '''Text(
-  '1,248,920 tokens',
-  style: IcType.heading(28, color: c.textStrong),
-);
-Text(
-  'neuron://nordlys/apps.ino/main',
-  style: IcType.text(13, color: c.textMuted, tnum: true),
-);''',
   ),
-  GallerySample(
+  GalleryComponentSpec(
     id: 'iconography',
-    title: 'Iconography & Status Pairing',
-    subtitle:
-        'Lucide vector glyphs paired with semantic status tokens—never bare color dots.',
-    category: 'Design',
+    title: 'Iconography & Squircle IcAppIcon Builder',
+    subtitle: 'Two-stop gradient squircle app badges with 1px specular border and custom/Lucide vector glyphs.',
+    category: 'Design & Identity',
     icon: LucideIcons.sparkles,
-    contract: 'IntoChat.OS.Modules.Flutter.InfoBar.IInfoBar',
-    signal: 'InfoBarChanged',
-    csharpCode: '''new Row([
-    new TagPill("Connected", BadgeTone.Success, Icon: "circle-check"),
-    new TagPill("Syncing", BadgeTone.Warning, Icon: "loader-circle"),
-    new TagPill("Needs approval", BadgeTone.Accent, Icon: "hand"),
-])''',
-    flutterCode: '''Row(
-  children: [
-    TagPill(label: 'Connected', tone: TagTone.done, icon: LucideIcons.circleCheck),
-    TagPill(label: 'Working', tone: TagTone.working, icon: LucideIcons.loaderCircle),
-    TagPill(label: 'Needs you', tone: TagTone.accent, icon: LucideIcons.hand),
-  ],
-)''',
+    contract: 'DigitalBrain.AppManifest',
+    signal: 'AppRegisteredSignal',
   ),
-  GallerySample(
+  GalleryComponentSpec(
     id: 'acrylic',
-    title: 'AcrylicBrush & Glass Elevation',
-    subtitle:
-        'Translucent multi-layer surfaces with Gaussian blur and 1px specular borders.',
-    category: 'Design',
+    title: 'Acrylic & Elevation Tokens',
+    subtitle: 'Translucent multi-layer surfaces with Gaussian blur and 1px specular borders.',
+    category: 'Design & Identity',
     icon: LucideIcons.layers,
     contract: 'IntoChat.OS.Modules.Flutter.Surface.ISurface',
     signal: 'SurfaceChanged',
-    csharpCode: '''new Surface(
-    SurfaceKind.Acrylic,
-    [new Text("Translucent Acrylic Panel")],
-    Title: "Fluent Acrylic Surface"
-)''',
-    flutterCode: '''IcAcrylicBox(
-  radius: IcRadius.card,
-  padding: const EdgeInsets.all(20),
-  shadows: IcShadow.lg(c),
-  child: Text('Acrylic Surface', style: IcType.heading(18, color: c.textStrong)),
-)''',
   ),
-  GallerySample(
+  // 2. Basic Input
+  GalleryComponentSpec(
     id: 'buttons',
-    title: 'Buttons & Action Controls',
-    subtitle:
-        'Primary, Secondary, Danger, and Small buttons with keyboard ring & spring press.',
-    category: 'Basic input',
+    title: 'Btn (Styles, Sizes & Icons)',
+    subtitle: 'Primary, Secondary, Ghost, and Danger buttons in Standard (36px) and Small (30px) sizes.',
+    category: 'Basic Input',
     icon: LucideIcons.mousePointerClick,
     contract: 'IntoChat.OS.Modules.Flutter.Button.IButton',
-    signal: 'ButtonChanged',
-    csharpCode: '''new Row([
-    new Button("Approve & Deploy", new ActionCall("deploy"), Style: ButtonStyle.Primary, Icon: "rocket"),
-    new Button("Inspect Logs", new ActionCall("inspect"), Style: ButtonStyle.Secondary),
-    new Button("Rollback", new ActionCall("rollback"), Tone: ButtonTone.Danger, Style: ButtonStyle.Danger),
-])''',
-    flutterCode: '''Row(
-  children: [
-    Btn(label: 'Approve & Deploy', primary: true, icon: LucideIcons.rocket, onTap: () {}),
-    const SizedBox(width: 8),
-    Btn(label: 'Inspect Logs', onTap: () {}),
-    const SizedBox(width: 8),
-    Btn(label: 'Rollback', danger: true, onTap: () {}),
-  ],
-)''',
+    signal: 'ButtonClickedSignal',
   ),
-  GallerySample(
+  GalleryComponentSpec(
     id: 'inputs',
-    title: 'Text Fields & Toggles',
-    subtitle:
-        'Desktop-first text inputs, search fields, and instant-save switches.',
-    category: 'Basic input',
+    title: 'Field & TextField',
+    subtitle: 'Desktop-first EditableText fields with neuron:// address validation and instant submit.',
+    category: 'Basic Input',
     icon: LucideIcons.textCursorInput,
     contract: 'IntoChat.OS.Modules.Flutter.TextField.ITextField',
     signal: 'TextFieldChanged',
-    csharpCode: '''new Column([
-    new TextField("display-name", Value: State.DisplayName, Placeholder: "Enter neuron:// address..."),
-    new Switch("Auto-improve background subscriptions", State.AutoImprove, new ActionCall("toggle-auto")),
-])''',
-    flutterCode: '''IcSwitch(
-  value: enabled,
-  onChanged: (v) => setState(() => enabled = v),
-)''',
   ),
-  GallerySample(
+  GalleryComponentSpec(
+    id: 'switch',
+    title: 'IcSwitch (with Lock State)',
+    subtitle: 'Instant-save toggle switch with policy lock indicator and keyboard focus ring.',
+    category: 'Basic Input',
+    icon: LucideIcons.toggleRight,
+    contract: 'IntoChat.OS.Modules.Flutter.Switch.ISwitch',
+    signal: 'SwitchToggledSignal',
+  ),
+  GalleryComponentSpec(
+    id: 'select',
+    title: 'Select & Dropdown',
+    subtitle: 'Single-choice segmented and dropdown selectors backed by DigitalBrain.UI.Select.',
+    category: 'Basic Input',
+    icon: LucideIcons.listFilter,
+    contract: 'IntoChat.OS.Modules.Flutter.Select.ISelect',
+    signal: 'SelectionChangedSignal',
+  ),
+  GalleryComponentSpec(
+    id: 'tag-pill',
+    title: 'TagPill & Status Badges',
+    subtitle: 'Semantic status pills (Neutral, Accent, Done, Working, Error) paired with vector glyphs.',
+    category: 'Basic Input',
+    icon: LucideIcons.tag,
+    contract: 'IntoChat.OS.Modules.Flutter.Badge.IBadge',
+    signal: 'StatusToneChanged',
+  ),
+  GalleryComponentSpec(
+    id: 'progress-infobar',
+    title: 'Progress & InfoBar',
+    subtitle: 'Determinate progress bars and contextual status banners with action buttons.',
+    category: 'Basic Input',
+    icon: LucideIcons.loader,
+    contract: 'IntoChat.OS.Modules.Flutter.InfoBar.IInfoBar',
+    signal: 'InfoBarUpdatedSignal',
+  ),
+  // 3. Layout & App Shell
+  GalleryComponentSpec(
+    id: 'app-shell',
+    title: 'Ui.AppShell (Sidebar + Toolbar + Inspector)',
+    subtitle: 'Ergonomic 30-line C# desktop layout builder with Ui.NavItem rail and split inspector.',
+    category: 'Layout & App Shell',
+    icon: LucideIcons.panelLeft,
+    contract: 'DigitalBrain.UI.AppShellNode',
+    signal: 'AppShellNavigatedSignal',
+  ),
+  GalleryComponentSpec(
+    id: 'tabs',
+    title: 'Tabs & Segmented Views',
+    subtitle: 'Multi-pane tab strips switching live DigitalBrain.UI view subtrees.',
+    category: 'Layout & App Shell',
+    icon: LucideIcons.folderKanban,
+    contract: 'IntoChat.OS.Modules.Flutter.Tabs.ITabs',
+    signal: 'ActiveTabChanged',
+  ),
+  GalleryComponentSpec(
+    id: 'surfaces',
+    title: 'IcAcrylicBox Surfaces',
+    subtitle: 'Acrylic, Elevated, and Recessed containers with adaptive border hairlines.',
+    category: 'Layout & App Shell',
+    icon: LucideIcons.squareStack,
+    contract: 'IntoChat.OS.Modules.Flutter.Surface.ISurface',
+    signal: 'SurfaceMutatedSignal',
+  ),
+  GalleryComponentSpec(
+    id: 'stat-card',
+    title: 'StatCard (Ui.StatCard)',
+    subtitle: 'Tabular KPI metric cards with semantic delta TagPill and vector icon.',
+    category: 'Layout & App Shell',
+    icon: LucideIcons.trendingUp,
+    contract: 'DigitalBrain.UI.StatCardNode',
+    signal: 'MetricRefreshedSignal',
+  ),
+  // 4. Data & 13 LFP Chat Cards
+  GalleryComponentSpec(
+    id: 'table-card',
+    title: 'TableCard (Live Sort & Filter)',
+    subtitle: 'Sortable tabular data grid with tnum numeric alignment and neuron:// source copy.',
+    category: 'Data & 13 LFP Chat Cards',
+    icon: LucideIcons.table,
+    contract: 'IntoChat.OS.Modules.Flutter.Table.ITable',
+    signal: 'TableSortedSignal',
+  ),
+  GalleryComponentSpec(
+    id: 'chart-card',
+    title: 'ChartCard (Line / Bar / Compare)',
+    subtitle: 'Comparative series chart with live Line/Columns toggle and 1-click table switch.',
+    category: 'Data & 13 LFP Chat Cards',
+    icon: LucideIcons.chartColumn,
+    contract: 'IntoChat.OS.Modules.Flutter.Chart.IChart',
+    signal: 'ChartSeriesUpdated',
+  ),
+  GalleryComponentSpec(
     id: 'approval-card',
-    title: 'ApprovalCard & ChoiceCard (Chat LFP)',
-    subtitle:
-        'Inline keyboard-first cards rendered directly inside Ino chat sessions.',
-    category: 'Chat & Applets',
+    title: 'ApprovalCard',
+    subtitle: 'Human-in-the-loop confirmation card with before/after diff and keyboard shortcut.',
+    category: 'Data & 13 LFP Chat Cards',
     icon: LucideIcons.checkCheck,
     contract: 'IntoChat.OS.Confirmation.IConfirmationInbox',
     signal: 'ConfirmationRequested',
-    csharpCode: '''new ApprovalCardNode(
-    Id: "card-1",
-    Verb: "Update",
-    Target: "Nordlys Q4 renewal close date -> 15 Nov",
-    Rows: [new ApprovalRowNode("Nordlys Q4 Enterprise", "480,000 NOK · 15 Nov 2026")],
-    SourceApp: "Salesforce",
-    SourceNeuronUri: "neuron://nordlys/salesforce.crm/opp-402",
-    ApproveAction: new ActionCall("approve-card", ["card-1"])
-)''',
-    flutterCode: '''ApprovalCard(
-  source: CardSource('Salesforce', Icon(LucideIcons.cloud, size: 14)),
-  data: ApprovalData(
-    title: 'Update close date on Nordlys Q4 renewal to 15 Nov?',
-    summary: 'Ino matched Kari\\'s email to your open Salesforce opportunity.',
-    valueLabel: 'Close date',
-    rows: [
-      ApprovalRow(label: 'Nordlys Q4 Enterprise', amount: '480,000 NOK', oldValue: '30 Oct 2026', newValue: '15 Nov 2026'),
-    ],
   ),
-  state: ApprovalState.pending,
-)''',
+  GalleryComponentSpec(
+    id: 'choice-card',
+    title: 'ChoiceCard',
+    subtitle: 'Numbered disambiguation options rendered inline in Ino sessions.',
+    category: 'Data & 13 LFP Chat Cards',
+    icon: LucideIcons.listChecks,
+    contract: 'IntoChat.OS.Assistant.IChoicePrompt',
+    signal: 'ChoiceSelectedSignal',
   ),
-  GallerySample(
-    id: 'data-cards',
-    title: 'TableCard & ChartCard',
-    subtitle:
-        'Tabular data grids and comparative series charts with 3:1 contrast guarantees.',
-    category: 'Collections',
-    icon: LucideIcons.chartColumn,
-    contract: 'IntoChat.OS.Modules.Flutter.Chart.IChart',
-    signal: 'ChartChanged',
-    csharpCode: '''new Chart(
-    Kind: "bar",
-    Title: "Active Neuron Signals per Minute",
-    Points: [new ChartPointNode("ino", "Ino", 48), new ChartPointNode("aspire", "Aspire", 64)],
-    SourceNeuronUri: "neuron://nordlys/microsoft.aspire/telemetry"
-)''',
-    flutterCode: '''ChartCard(
-  source: CardSource('Aspire Telemetry', Icon(LucideIcons.activity, size: 14)),
-  state: ChartState.ready,
-  data: const ChartData(
-    title: 'Compute Tokens by Module (7d)',
-    from: 'neuron://nordlys/os.identity/compute',
-    points: [
-      ChartPoint('Mon', 42),
-      ChartPoint('Tue', 58),
-      ChartPoint('Wed', 51),
-      ChartPoint('Thu', 74),
-      ChartPoint('Fri', 89),
-    ],
-    compare: [35, 40, 44, 49, 52],
-    seriesName: 'This week',
-    compareName: 'Last week',
+  GalleryComponentSpec(
+    id: 'draft-card',
+    title: 'DraftCard',
+    subtitle: 'Inline editable email/Slack/SMS draft with Send, Schedule, and Discard actions.',
+    category: 'Data & 13 LFP Chat Cards',
+    icon: LucideIcons.mail,
+    contract: 'IntoChat.OS.Assistant.IDraftCard',
+    signal: 'DraftDispatchedSignal',
   ),
-)''',
+  GalleryComponentSpec(
+    id: 'change-preview-card',
+    title: 'ChangePreviewCard',
+    subtitle: 'Field-by-field CRM mutation preview with inline click-to-correct values.',
+    category: 'Data & 13 LFP Chat Cards',
+    icon: LucideIcons.gitCompare,
+    contract: 'IntoChat.OS.Assistant.IChangePreview',
+    signal: 'ChangeAppliedSignal',
   ),
-  GallerySample(
+  GalleryComponentSpec(
+    id: 'app-install-card',
+    title: 'AppInstallCard',
+    subtitle: 'Verified Smart App manifest card with capability review and 1-click install.',
+    category: 'Data & 13 LFP Chat Cards',
+    icon: LucideIcons.packagePlus,
+    contract: 'IntoChat.OS.Apps.IAppInstaller',
+    signal: 'AppInstallReviewedSignal',
+  ),
+  GalleryComponentSpec(
+    id: 'record-card',
+    title: 'RecordCard',
+    subtitle: 'Two-column entity snapshot card with overdue warning indicators.',
+    category: 'Data & 13 LFP Chat Cards',
+    icon: LucideIcons.contact,
+    contract: 'IntoChat.OS.Apps.IRecordView',
+    signal: 'RecordLoadedSignal',
+  ),
+  GalleryComponentSpec(
+    id: 'secret-card',
+    title: 'SecretCard',
+    subtitle: 'Zero-leakage credential request card routing secrets directly to Vault.',
+    category: 'Data & 13 LFP Chat Cards',
+    icon: LucideIcons.keyRound,
+    contract: 'IntoChat.OS.Security.ISecretVault',
+    signal: 'SecretStoredSignal',
+  ),
+  GalleryComponentSpec(
+    id: 'job-card',
+    title: 'JobCard',
+    subtitle: 'Multi-step background workflow progress card with live step status.',
+    category: 'Data & 13 LFP Chat Cards',
+    icon: LucideIcons.workflow,
+    contract: 'IntoChat.OS.Runtime.IJobRunner',
+    signal: 'JobStepAdvancedSignal',
+  ),
+  GalleryComponentSpec(
+    id: 'remember-card',
+    title: 'RememberCard',
+    subtitle: 'Episodic memory confirmation card with click-to-edit memory text.',
+    category: 'Data & 13 LFP Chat Cards',
+    icon: LucideIcons.brain,
+    contract: 'DigitalBrain.Memory.IEpisodicMemory',
+    signal: 'MemoryCommittedSignal',
+  ),
+  GalleryComponentSpec(
+    id: 'file-cards',
+    title: 'FileCards (FileCard, FileChip & SaveToPicker)',
+    subtitle: 'Artifact write cards, hover path chips, and conflict/folder pickers.',
+    category: 'Data & 13 LFP Chat Cards',
+    icon: LucideIcons.fileCheck,
+    contract: 'IntoChat.OS.Storage.IFilesWorkspace',
+    signal: 'FileSavedSignal',
+  ),
+  GalleryComponentSpec(
+    id: 'error-line',
+    title: 'ErrorLine',
+    subtitle: 'Single-line actionable recovery bar for timeouts, rate limits, and auth grants.',
+    category: 'Data & 13 LFP Chat Cards',
+    icon: LucideIcons.triangleAlert,
+    contract: 'IntoChat.OS.Assistant.ISessionDiagnostics',
+    signal: 'RecoveryTriggeredSignal',
+  ),
+  // 5. 3D Brain & Neurons
+  GalleryComponentSpec(
     id: 'brain-3d',
-    title: '3D DigitalBrain & Synapse Scene',
-    subtitle:
-        'Interactive 3D orbital neural graph with live signal photon sparks and NeuronId HUD.',
+    title: 'BrainScene3D Playground',
+    subtitle: 'Interactive 3D orbital neural graph with node count, orbit speed, pulse trigger & 4 shader modes.',
     category: '3D Brain & Neurons',
     icon: LucideIcons.brainCircuit,
     contract: 'IntoChat.OS.Modules.Flame.Scene.IScene',
-    signal: 'SceneChanged',
-    csharpCode: '''new BrainSceneNode(
-    Nodes: [new BrainGraphNode("ino", "Ino Assistant", "IntoChat.OS.Apps", "neuron://nordlys/apps.ino/main", "working")],
-    Synapses: [new BrainGraphSynapse("ino", "memory")],
-    SelectedId: State.SelectedNodeId,
-    SelectAction: new ActionCall("inspect")
-)''',
-    flutterCode: '''BrainScene3D(
-  selectedId: selectedNeuronId,
-  onSelectNode: (node) => os.toast('Selected \${node.neuronUri}'),
-)''',
+    signal: 'SynapsePulseSignal',
   ),
-  GallerySample(
+  GalleryComponentSpec(
     id: 'neuron-paths',
     title: 'Distributed NeuronId Addressing',
-    subtitle:
-        'Canonical neuron:// URIs across Files, UI controls, and cross-brain Circle grants.',
+    subtitle: 'Canonical neuron:// URIs across Files, UI controls, and cross-brain Circle grants.',
     category: '3D Brain & Neurons',
     icon: LucideIcons.network,
     contract: 'DigitalBrain.NeuronId',
-    signal: 'SynapseRouted',
-    csharpCode: '''// Every file, control, and app in DigitalBrain has a canonical URI:
-// neuron://{brainId}/{module}.{neuron}/{key}
-new NeuronRef("table", "neuron://nordlys/apps/ino/table", Title: "Opportunities Table")''',
-    flutterCode: '''// Copy canonical Neuron ID or human virtual path:
-copyNeuronId(os, selectedFileNodes);
-// -> neuron://nordlys/storage.files/30-projects/nordlys-as/context.md''',
+    signal: 'SynapseRoutedSignal',
   ),
 ];
 
-/// WinUI 3 Gallery-inspired interactive component, LFP card, and theme showcase.
+const gallerySamples = galleryComponentSpecs;
+
+/// Single-Format Interactive WinUI 3 Component Studio for `intochat_os_ui`.
 final class UiGalleryScreen extends StatefulWidget {
   const UiGalleryScreen({
     super.key,
@@ -296,42 +338,74 @@ final class UiGalleryScreen extends StatefulWidget {
 }
 
 final class _UiGalleryScreenState extends State<UiGalleryScreen> {
-  String _nav = 'Home';
-  GallerySample? _activeSample;
-  GalleryEntry? _activeEntry;
-  bool _railCollapsed = false;
+  static const _categories = [
+    ('Home', LucideIcons.house),
+    ('Design & Identity', LucideIcons.palette),
+    ('Basic Input', LucideIcons.mousePointerClick),
+    ('Layout & App Shell', LucideIcons.panelLeft),
+    ('Data & 13 LFP Chat Cards', LucideIcons.table),
+    ('3D Brain & Neurons', LucideIcons.brainCircuit),
+  ];
 
-  late IcStylePreset _stylePreset =
-      widget.initialPreset ?? IcStylePreset.fluentAcrylic;
-  late BarLayout _barLayout =
-      widget.initialBarLayout ?? BarLayout.floatingGlass;
+  String _nav = 'Home';
+  GalleryComponentSpec? _activeSpec;
+  late IcStylePreset _stylePreset = widget.initialPreset ?? IcStylePreset.fluentAcrylic;
   bool _isDark = true;
+
+  // Interactive Property Knobs
+  UiKitButtonStyle _knobStyle = UiKitButtonStyle.primary;
+  TagTone _knobTone = TagTone.accent;
+  bool _knobSmall = false;
+  GalleryStateKnob _knobState = GalleryStateKnob.interactive;
+  GallerySurfaceKnob _knobSurface = GallerySurfaceKnob.acrylic;
+  GalleryChartKindKnob _knobChartKind = GalleryChartKindKnob.bar;
+
+  // Component-specific live interactive state
+  bool _switchVal = true;
+  bool _switchLocked = false;
+  String _selectedOption = 'claude-sonnet-4-5';
+  String _selectedIconAppId = 'ino';
+  String _shellNav = 'overview';
+  int _codeTab = 0;
+  int _signalPulseCount = 0;
+  int _brainNodeCount = 7;
+  double _brainOrbitSpeed = 1.0;
+  IcBrainShaderMode? _brainShaderOverride;
+  String _selectedBrainNode = 'ino';
+  ApprovalState _approvalState = ApprovalState.pending;
+  int? _choicePicked;
+  DraftState _draftState = DraftState.pending;
+  ChangeState _changeState = ChangeState.pending;
+  AppInstallState _installState = AppInstallState.pending;
+  SecretState _secretState = SecretState.pending;
+  RememberState _rememberState = RememberState.pending;
+  final FileCardState _fileCardState = FileCardState.saved;
 
   final _search = TextEditingController();
   final _searchFocus = FocusNode();
-  final _demoInput = TextEditingController(
-    text: 'neuron://nordlys/apps.ino/main',
-  );
+  final _demoInput = TextEditingController(text: 'neuron://nordlys/apps.ino/main');
   final _demoInputFocus = FocusNode();
-
-  // Interactive sample knobs
-  bool _knobEnabled = true;
-  bool _knobSmall = false;
-  bool _knobSwitch = true;
-  TagTone _knobTone = TagTone.accent;
-  UiKitButtonStyle _knobStyle = UiKitButtonStyle.primary;
-  int _codeTab = 0; // 0 = C# App<TState>, 1 = Flutter UI Kit, 2 = gRPC Contract & [Signal]
-  ApprovalState _approvalState = ApprovalState.pending;
-  String _selectedBrainNode = 'ino';
-
-  static const _categories = [
-    ('Home', LucideIcons.house),
-    ('Design', LucideIcons.palette),
-    ('Basic input', LucideIcons.mousePointerClick),
-    ('Collections', LucideIcons.table),
-    ('Chat & Applets', LucideIcons.sparkles),
-    ('3D Brain & Neurons', LucideIcons.brainCircuit),
-  ];
+  late final DraftData _draftData = DraftData(
+    channel: DraftChannel.email,
+    to: 'Kari Holm <kari@nordlys.no>',
+    subject: 'Nordlys Q4 Enterprise Renewal — 15 Nov confirmation',
+    body: 'Hi Kari,\nConfirmed: we updated the Q4 renewal close date to 15 Nov 2026 (480,000 NOK).',
+    from: 'jeff@intochat.os',
+    scheduleLabel: 'tomorrow 08:00',
+  );
+  late final ChangeData _changeData = ChangeData(
+    objectLabel: 'Opportunity',
+    name: 'Nordlys Q4 Enterprise',
+    systemName: 'Salesforce',
+    fields: [
+      ChangeField(label: 'Close date', oldValue: '30 Oct 2026', newValue: '15 Nov 2026'),
+      ChangeField(label: 'Amount', oldValue: '450,000 NOK', newValue: '480,000 NOK'),
+    ],
+  );
+  late final RememberData _rememberData = RememberData(
+    text: 'Always format Nordlys renewal amounts in NOK with tabular figures.',
+    kind: 'Nordlys AS',
+  );
 
   @override
   void dispose() {
@@ -345,19 +419,14 @@ final class _UiGalleryScreenState extends State<UiGalleryScreen> {
   void _setPreset(IcStylePreset preset) {
     setState(() {
       _stylePreset = preset;
-      _barLayout = preset.defaultBarLayout;
-      if (preset == IcStylePreset.warmPaper) {
+      if (preset == IcStylePreset.warmPaper || preset == IcStylePreset.fluentWarmMica) {
         _isDark = false;
-      } else if (!_isDark && preset != IcStylePreset.warmPaper) {
+      } else if (!_isDark) {
         _isDark = true;
       }
     });
     widget.onStylePresetChanged?.call(preset);
-  }
-
-  void _setBarLayout(BarLayout layout) {
-    setState(() => _barLayout = layout);
-    widget.onBarLayoutChanged?.call(layout);
+    widget.onBarLayoutChanged?.call(preset.defaultBarLayout);
   }
 
   void _setDark(bool dark) {
@@ -365,23 +434,116 @@ final class _UiGalleryScreenState extends State<UiGalleryScreen> {
     widget.onDarkModeChanged?.call(dark);
   }
 
-  void _toast(BuildContext context, String message) {
-    showKitToast(context, message);
+  String _dynamicCSharpCode(GalleryComponentSpec s) {
+    final styleName = switch (_knobStyle) {
+      UiKitButtonStyle.primary => 'ButtonStyle.Primary',
+      UiKitButtonStyle.secondary => 'ButtonStyle.Secondary',
+      UiKitButtonStyle.ghost || UiKitButtonStyle.link => 'ButtonStyle.Ghost',
+      UiKitButtonStyle.danger => 'ButtonStyle.Danger',
+    };
+    final toneName = switch (_knobTone) {
+      TagTone.neutral => 'BadgeTone.Neutral',
+      TagTone.accent => 'BadgeTone.Accent',
+      TagTone.done => 'BadgeTone.Success',
+      TagTone.working => 'BadgeTone.Warning',
+      TagTone.error => 'BadgeTone.Danger',
+    };
+    final enabledLiteral = _knobState != GalleryStateKnob.disabled ? 'true' : 'false';
+    return switch (s.id) {
+      'app-shell' => '''Ui.AppShell(
+    "studio-shell",
+    sidebar: new Column([
+        Ui.NavItem("nav-overview", "Overview", "layout-grid", "nav:overview", selected: $_shellNav == "overview"),
+        Ui.NavItem("nav-signals", "Signals", "radio", "nav:signals", badge: "${12 + _signalPulseCount}"),
+    ]),
+    toolbar: new Row([new Heading("${s.title}", Level: 2), new Badge("$_knobTone", Tone: $toneName)]),
+    body: Ui.StatCard("kpi-1", "Active Signals/min", "${142 + _signalPulseCount}", "+18.4%", $toneName, "zap")
+);''',
+      'stat-card' => '''Ui.StatCard(
+    "kpi-tokens",
+    "Compute Throughput",
+    "1,248,920 tok",
+    delta: "+14.2%",
+    tone: $toneName,
+    icon: "zap"
+);''',
+      'buttons' => '''new Button(
+    "Execute Action",
+    new ActionCall("${s.signal}"),
+    Style: $styleName,
+    Compact: $_knobSmall,
+    Enabled: $enabledLiteral,
+    Icon: "sparkles"
+);''',
+      'chart-card' => '''new Chart(
+    Kind: "${_knobChartKind.name}",
+    Title: "Active Neuron Signals per Minute",
+    Points: [new ChartPointNode("ino", "Ino", 48), new ChartPointNode("aspire", "Aspire", 64)],
+    SourceNeuronUri: "neuron://nordlys/microsoft.aspire/telemetry"
+);''',
+      _ => '''// ${s.contract} · [${s.signal}]
+// State: ${_knobState.name} · Surface: ${_knobSurface.name} · Size: ${_knobSmall ? 'Small (30px)' : 'Standard (36px)'}
+Ui.AppShell(
+    "${s.id}-view",
+    sidebar: Ui.NavItem("nav-${s.id}", "${s.title}", "sparkles", "open:${s.id}", selected: true),
+    body: new Surface(
+        SurfaceKind.${_knobSurface.name[0].toUpperCase()}${_knobSurface.name.substring(1)},
+        [
+            Ui.StatCard("stat-${s.id}", "${s.title}", "Ready", "${_knobTone.name}", $toneName),
+            new Button("Trigger ${s.signal}", new ActionCall("fire:${s.signal}"), Style: $styleName, Enabled: $enabledLiteral),
+        ]
+    )
+);''',
+    };
+  }
+
+  String _dynamicFlutterCode(GalleryComponentSpec s) {
+    final primaryBool = _knobStyle == UiKitButtonStyle.primary;
+    final dangerBool = _knobStyle == UiKitButtonStyle.danger;
+    final enabledExpr = _knobState == GalleryStateKnob.disabled ? 'null' : '() => fireSignal("${s.signal}")';
+    return switch (s.id) {
+      'iconography' => '''IcAppIcon(
+  appId: '$_selectedIconAppId',
+  size: ${_knobSmall ? 32 : 48},
+  accentHex: '${IcAppIcon.resolveSpec(_selectedIconAppId).accentHex}',
+)''',
+      'buttons' => '''Btn(
+  label: '${s.title}',
+  primary: $primaryBool,
+  danger: $dangerBool,
+  small: $_knobSmall,
+  icon: LucideIcons.sparkles,
+  onTap: $enabledExpr,
+)''',
+      'tag-pill' => '''TagPill(
+  label: 'Status · ${_knobTone.name.toUpperCase()}',
+  tone: TagTone.${_knobTone.name},
+  icon: LucideIcons.sparkles,
+)''',
+      'brain-3d' => '''BrainScene3D(
+  nodes: BrainScene3D.defaultCluster.take($_brainNodeCount).toList(),
+  orbitSpeed: ${_brainOrbitSpeed.toStringAsFixed(1)},
+  pulseEpoch: $_signalPulseCount,
+  shaderMode: ${_brainShaderOverride ?? _stylePreset.defaultShaderMode},
+)''',
+      _ => '''// Preset: ${_stylePreset.id} (${_isDark ? 'dark' : 'light'}) · Surface: ${_knobSurface.name}
+IcAcrylicBox(
+  radius: IcRadius.card,
+  padding: const EdgeInsets.all(${_knobSmall ? 14 : 20}),
+  child: Column(
+    children: [
+      TagPill(label: '${s.signal}', tone: TagTone.${_knobTone.name}),
+      Btn(label: 'Fire ${s.signal}', primary: $primaryBool, danger: $dangerBool, small: $_knobSmall, onTap: $enabledExpr),
+    ],
+  ),
+)''',
+    };
   }
 
   @override
   Widget build(BuildContext context) {
     final icColors = IcColors.forPreset(_stylePreset, dark: _isDark);
-    final presetName = switch (_stylePreset) {
-      IcStylePreset.fluentAcrylic => 'fluent-acrylic',
-      IcStylePreset.spatialGlass => 'spatial-glass',
-      IcStylePreset.cyberSynaptic => 'cyber-synaptic',
-      IcStylePreset.warmPaper => 'warm-paper',
-      IcStylePreset.linearCarbon => 'linear-carbon',
-    };
-    final themeData = _isDark
-        ? UiTheme.dark(presetName)
-        : UiTheme.light(presetName);
+    final themeData = _isDark ? UiTheme.dark(_stylePreset.id) : UiTheme.light(_stylePreset.id);
 
     return Theme(
       data: themeData,
@@ -392,66 +554,20 @@ final class _UiGalleryScreenState extends State<UiGalleryScreen> {
           color: icColors.surfacePage,
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final narrow = constraints.maxWidth < 720;
+              final narrow = constraints.maxWidth < 760;
               if (narrow) {
-                return (_activeSample != null || _activeEntry != null)
-                    ? _buildDetailArea(context, icColors, narrow: true)
-                    : _buildNavigationRail(context, icColors, fullWidth: true);
+                return _activeSpec != null
+                    ? _buildDetailView(context, icColors, _activeSpec!, narrow: true)
+                    : _buildSidebar(context, icColors, fullWidth: true);
               }
               return Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  if (!_railCollapsed)
-                    _buildNavigationRail(context, icColors)
-                  else
-                    Container(
-                      width: 48,
-                      decoration: BoxDecoration(
-                        color: icColors.surfaceSunk,
-                        border: Border(
-                          right: BorderSide(color: icColors.borderHairline),
-                        ),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      child: Column(
-                        children: [
-                          IconButton(
-                            tooltip: 'Expand navigation rail',
-                            icon: Icon(
-                              LucideIcons.panelLeftOpen,
-                              size: 16,
-                              color: icColors.textStrong,
-                            ),
-                            onPressed: () =>
-                                setState(() => _railCollapsed = false),
-                          ),
-                          const SizedBox(height: 8),
-                          for (final (cat, icon) in _categories)
-                            IconButton(
-                              tooltip: cat,
-                              icon: Icon(
-                                icon,
-                                size: 16,
-                                color:
-                                    _nav == cat &&
-                                        _activeSample == null &&
-                                        _activeEntry == null
-                                    ? icColors.accent
-                                    : icColors.textMuted,
-                              ),
-                              onPressed: () => setState(() {
-                                _nav = cat;
-                                _activeSample = null;
-                                _activeEntry = null;
-                              }),
-                            ),
-                        ],
-                      ),
-                    ),
+                  _buildSidebar(context, icColors),
                   Expanded(
-                    child: (_activeSample != null || _activeEntry != null)
-                        ? _buildDetailArea(context, icColors, narrow: false)
-                        : _buildHomeOrCategory(context, icColors),
+                    child: _activeSpec != null
+                        ? _buildDetailView(context, icColors, _activeSpec!, narrow: false)
+                        : _buildCatalogGrid(context, icColors),
                   ),
                 ],
               );
@@ -462,86 +578,40 @@ final class _UiGalleryScreenState extends State<UiGalleryScreen> {
     );
   }
 
-  Widget _buildNavigationRail(
-    BuildContext context,
-    IcColors c, {
-    bool fullWidth = false,
-  }) {
+  Widget _buildSidebar(BuildContext context, IcColors c, {bool fullWidth = false}) {
     final q = _search.text.trim().toLowerCase();
-    final matchingSamples = gallerySamples.where((s) {
+    final filtered = galleryComponentSpecs.where((s) {
+      if (_nav != 'Home' && s.category != _nav) return false;
       if (q.isEmpty) return true;
-      return s.title.toLowerCase().contains(q) ||
-          s.subtitle.toLowerCase().contains(q) ||
-          s.contract.toLowerCase().contains(q);
-    }).toList();
-
-    final matchingEntries = galleryEntries.where((e) {
-      if (_nav != 'Home' &&
-          !_categories.any((cat) => cat.$1 == _nav) &&
-          e.category != _nav) {
-        return false;
-      }
-      if (q.isEmpty) {
-        if (_nav != 'Home' && !_categories.any((cat) => cat.$1 == _nav)) {
-          return e.category == _nav;
-        }
-        return true;
-      }
-      return '${e.title} ${e.api} ${e.description} ${e.category}'
+      return '${s.id} ${s.title} ${s.subtitle} ${s.category} ${s.contract} ${s.signal}'
           .toLowerCase()
           .contains(q);
     }).toList();
 
-    final categoryOptions = <String>[
-      'Home',
-      for (final (cat, _) in _categories)
-        if (cat != 'Home') cat,
-      ...galleryEntries.map((e) => e.category).toSet(),
-    ];
-
     return Container(
-      width: fullWidth ? double.infinity : 244,
+      width: fullWidth ? double.infinity : 256,
       decoration: BoxDecoration(
         color: c.surfaceSunk,
-        border: fullWidth
-            ? null
-            : Border(right: BorderSide(color: c.borderHairline)),
+        border: fullWidth ? null : Border(right: BorderSide(color: c.borderHairline)),
       ),
-      padding: const EdgeInsets.fromLTRB(12, 14, 12, 14),
+      padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Top rail header + collapse button
           Row(
             children: [
-              Icon(LucideIcons.layoutGrid, size: 15, color: c.accent),
+              const IcAppIcon(appId: 'gallery', size: 24),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'INTOCHAT UI KIT',
-                  style: IcType.text(
-                    11,
-                    weight: FontWeight.w700,
-                    color: c.textMuted,
-                  ),
+                  'UI GALLERY STUDIO',
+                  style: IcType.text(11, weight: FontWeight.w700, color: c.textMuted),
                 ),
               ),
-              if (!fullWidth)
-                GestureDetector(
-                  onTap: () => setState(() => _railCollapsed = true),
-                  child: MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    child: Icon(
-                      LucideIcons.panelLeftClose,
-                      size: 15,
-                      color: c.textMuted,
-                    ),
-                  ),
-                ),
+              TagPill(label: '${galleryComponentSpecs.length}', tone: TagTone.accent),
             ],
           ),
           const SizedBox(height: 10),
-          // Search box
           SizedBox(
             height: 36,
             child: TextField(
@@ -551,33 +621,18 @@ final class _UiGalleryScreenState extends State<UiGalleryScreen> {
               style: IcType.text(13, color: c.textStrong),
               onChanged: (_) => setState(() {}),
               decoration: InputDecoration(
-                hintText: 'Search controls & samples…',
-                hintStyle: IcType.text(12.5, color: c.textMuted),
-                prefixIcon: Icon(
-                  LucideIcons.search,
-                  size: 15,
-                  color: c.textMuted,
-                ),
+                hintText: 'Search 5 categories & LFP cards…',
+                hintStyle: IcType.text(12, color: c.textMuted),
+                prefixIcon: Icon(LucideIcons.search, size: 14, color: c.textMuted),
                 isDense: true,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 8,
-                ),
-                suffixIcon: q.isEmpty
-                    ? null
-                    : IconButton(
-                        tooltip: 'Clear search',
-                        icon: Icon(LucideIcons.x, size: 14, color: c.textMuted),
-                        onPressed: () => setState(_search.clear),
-                      ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               ),
             ),
           ),
           const SizedBox(height: 8),
-          // Category filter dropdown (supports both WinUI 3 categories & neuron catalog categories)
           DropdownButtonFormField<String>(
             key: const Key('gallery_category'),
-            initialValue: categoryOptions.contains(_nav) ? _nav : 'Home',
+            initialValue: _nav,
             isExpanded: true,
             dropdownColor: c.surfaceCard,
             style: IcType.text(12.5, color: c.textStrong),
@@ -586,372 +641,187 @@ final class _UiGalleryScreenState extends State<UiGalleryScreen> {
               contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             ),
             items: [
-              for (final cat in categoryOptions)
-                DropdownMenuItem(
-                  value: cat,
-                  child: Text(
-                    cat,
-                    style: IcType.text(12.5, color: c.textStrong),
-                  ),
-                ),
+              for (final (cat, _) in _categories)
+                DropdownMenuItem(value: cat, child: Text(cat, style: IcType.text(12.5, color: c.textStrong))),
             ],
             onChanged: (value) {
               if (value == null) return;
               setState(() {
                 _nav = value;
-                _activeSample = null;
-                _activeEntry = null;
+                _activeSpec = null;
               });
             },
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           for (final (cat, icon) in _categories)
-            _NavRow(
+            _RailItem(
               label: cat,
               icon: icon,
-              selected:
-                  _nav == cat && _activeSample == null && _activeEntry == null,
+              selected: _nav == cat && _activeSpec == null,
               onTap: () => setState(() {
                 _nav = cat;
-                _activeSample = null;
-                _activeEntry = null;
+                _activeSpec = null;
               }),
             ),
-          const SizedBox(height: 10),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            child: Text(
-              'SAMPLES & NEURONS',
-              style: IcType.text(
-                11,
-                weight: FontWeight.w700,
-                color: c.textMuted,
-              ),
-            ),
-          ),
-          const SizedBox(height: 4),
+          const Divider(height: 14),
           Expanded(
-            child: (matchingSamples.isEmpty && matchingEntries.isEmpty)
-                ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            LucideIcons.searchX,
-                            size: 24,
-                            color: c.textMuted,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'No components found',
-                            style: IcType.text(
-                              13,
-                              weight: FontWeight.w600,
-                              color: c.textStrong,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                : ListView(
-                    children: [
-                      if (_categories.any((cat) => cat.$1 == _nav))
-                        for (final s in matchingSamples)
-                          _NavRow(
-                            key: Key('gallery_sample_${s.id}'),
-                            label: s.title,
-                            icon: s.icon,
-                            selected: _activeSample?.id == s.id,
-                            compact: true,
-                            onTap: () => setState(() {
-                              _activeSample = s;
-                              _activeEntry = null;
-                            }),
-                          ),
-                      for (final entry in matchingEntries)
-                        _NavRow(
-                          key: Key('gallery_entry_${entry.id}'),
-                          label: entry.title,
-                          icon: entry.icon,
-                          selected: _activeEntry?.id == entry.id,
-                          compact: true,
-                          onTap: () => setState(() {
-                            _activeEntry = entry;
-                            _activeSample = null;
-                          }),
-                        ),
-                    ],
+            child: filtered.isEmpty
+                ? Center(child: Text('No components found', style: IcType.text(13, color: c.textMuted)))
+                : ListView.builder(
+                    itemCount: filtered.length,
+                    itemBuilder: (context, index) {
+                      final s = filtered[index];
+                      return _RailItem(
+                        key: Key('gallery_sample_${s.id}'),
+                        label: s.title,
+                        icon: s.icon,
+                        compact: true,
+                        selected: _activeSpec?.id == s.id,
+                        onTap: () => setState(() => _activeSpec = s),
+                      );
+                    },
                   ),
-          ),
-          const SizedBox(height: 8),
-          // Active theme badge at bottom of rail
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: c.surfaceCard,
-              borderRadius: BorderRadius.circular(IcRadius.button),
-              border: Border.all(color: c.borderHairline),
-            ),
-            child: Row(
-              children: [
-                Icon(LucideIcons.sparkles, size: 15, color: c.accent),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    _stylePreset.label,
-                    style: IcType.text(
-                      12.5,
-                      weight: FontWeight.w600,
-                      color: c.textStrong,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                TagPill(
-                  label: c.isDark ? 'Dark' : 'Light',
-                  tone: TagTone.accent,
-                ),
-              ],
-            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildHomeOrCategory(BuildContext context, IcColors c) {
+  Widget _buildCatalogGrid(BuildContext context, IcColors c) {
     final q = _search.text.trim().toLowerCase();
-    final filteredSamples = gallerySamples.where((s) {
-      if (q.isNotEmpty) {
-        return s.title.toLowerCase().contains(q) ||
-            s.subtitle.toLowerCase().contains(q) ||
-            s.contract.toLowerCase().contains(q);
-      }
-      if (_nav == 'Home') return true;
-      return s.category == _nav;
-    }).toList();
-
-    final filteredEntries = galleryEntries.where((e) {
-      if (q.isNotEmpty) {
-        return '${e.title} ${e.api} ${e.description} ${e.category}'
-            .toLowerCase()
-            .contains(q);
-      }
-      if (_nav == 'Home') return true;
-      return e.category == _nav;
+    final filtered = galleryComponentSpecs.where((s) {
+      if (_nav != 'Home' && s.category != _nav) return false;
+      if (q.isEmpty) return true;
+      return '${s.id} ${s.title} ${s.subtitle} ${s.category} ${s.contract} ${s.signal}'
+          .toLowerCase()
+          .contains(q);
     }).toList();
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(32, 26, 32, 40),
+      padding: const EdgeInsets.fromLTRB(28, 22, 28, 36),
       children: [
-        if (_nav == 'Home' && q.isEmpty) ...[
-          // WinUI 3 Gallery Hero Banner
-          Container(
-            constraints: const BoxConstraints(minHeight: 216),
-            clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(IcRadius.card),
-              border: Border.all(
-                color: c.isGlass ? c.specularBorder : c.borderHairline,
-              ),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  c.accent.withValues(alpha: c.isDark ? 0.28 : 0.16),
-                  c.secondaryGlow.withValues(alpha: c.isDark ? 0.16 : 0.08),
-                  c.surfaceCard,
-                ],
-              ),
-            ),
-            child: Stack(
-              children: [
-                const Positioned(
-                  right: -40,
-                  top: -20,
-                  bottom: -20,
-                  width: 420,
-                  child: BrainScene3D(
-                    interactive: false,
-                    showHud: false,
-                    ambientOpacity: 0.85,
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const TagPill(
-                        label:
-                            'DigitalBrain UI Kit · gRPC Multiplexed · Flutter LFP',
-                        tone: TagTone.accent,
-                        icon: LucideIcons.layers,
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        'IntoChat UI Gallery',
-                        style: IcType.heading(
-                          30,
-                          weight: FontWeight.w800,
-                          color: c.textStrong,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 480),
-                        child: Text(
-                          'WinUI 3-inspired controls, live inline chat applets, switchable Acrylic & Glassmorphic identities, and 3D neural telemetry.',
-                          style: IcType.text(
-                            14,
-                            color: c.textBody,
-                            height: 1.45,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            for (final preset in IcStylePreset.values)
-                              Padding(
-                                padding: const EdgeInsets.only(right: 8),
-                                child: Btn(
-                                  label: preset.label,
-                                  small: true,
-                                  primary: _stylePreset == preset,
-                                  icon: _stylePreset == preset
-                                      ? LucideIcons.check
-                                      : LucideIcons.sparkles,
-                                  onTap: () => _setPreset(preset),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-          // Top WinUI 3 Quick Action Tiles
-          Row(
+        IcAcrylicBox(
+          radius: IcRadius.card,
+          padding: const EdgeInsets.all(20),
+          shadows: IcShadow.md(c),
+          child: Row(
             children: [
+              const IcAppIcon(appId: 'gallery', size: 44),
+              const SizedBox(width: 14),
               Expanded(
-                child: _HeroActionTile(
-                  icon: LucideIcons.palette,
-                  title: '5 Live UI Identities',
-                  subtitle: 'Switch colors, Acrylic blur & bar layout on the fly.',
-                  onTap: () => setState(() => _activeSample = gallerySamples[0]),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'IntoChat UI Gallery · Single-Format Component Studio',
+                      style: IcType.heading(22, color: c.textStrong),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '7 UI Identities · Squircle IcAppIcon · Ergonomic C# DigitalBrain.UI Builders · 13 Interactive LFP Chat Cards · 3D Neural Graph',
+                      style: IcType.text(13, color: c.textBody),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _HeroActionTile(
-                  icon: LucideIcons.brainCircuit,
-                  title: '3D Brain Visualizer',
-                  subtitle: 'Inspect live neurons, synapses & signal pulses.',
-                  onTap: () => setState(() => _activeSample = gallerySamples[8]),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _HeroActionTile(
-                  icon: LucideIcons.messagesSquare,
-                  title: 'Chat Applet Runtime',
-                  subtitle: 'Render interactive C# & Flutter LFP cards in chat.',
-                  onTap: () => setState(() => _activeSample = gallerySamples[6]),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _HeroActionTile(
-                  icon: LucideIcons.network,
-                  title: 'NeuronId Addressing',
-                  subtitle: 'Canonical neuron:// URIs across Files & OS.',
-                  onTap: () => setState(() => _activeSample = gallerySamples[9]),
-                ),
+              Btn(
+                label: c.isDark ? 'Light Mode' : 'Dark Mode',
+                small: true,
+                icon: c.isDark ? LucideIcons.sun : LucideIcons.moon,
+                onTap: () => _setDark(!c.isDark),
               ),
             ],
           ),
-          const SizedBox(height: 28),
-        ],
-        Wrap(
-          spacing: 10,
-          runSpacing: 8,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          alignment: WrapAlignment.spaceBetween,
-          children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Flexible(
-                  child: Text(
-                    _nav == 'Home' ? 'All controls & samples' : _nav,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: IcType.heading(20, color: c.textStrong),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                TagPill(
-                  label:
-                      '${filteredSamples.length + filteredEntries.length} items',
-                  tone: TagTone.neutral,
-                ),
-              ],
-            ),
-            Btn(
-              label: c.isDark ? 'Switch to Light' : 'Switch to Dark',
-              small: true,
-              icon: c.isDark ? LucideIcons.sun : LucideIcons.moon,
-              onTap: () => _setDark(!c.isDark),
-            ),
-          ],
         ),
         const SizedBox(height: 14),
-        if (filteredSamples.isEmpty && filteredEntries.isEmpty)
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              for (final preset in IcStylePreset.values)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Btn(
+                    label: preset.label,
+                    small: true,
+                    primary: _stylePreset == preset,
+                    icon: _stylePreset == preset ? LucideIcons.check : LucideIcons.sparkles,
+                    onTap: () => _setPreset(preset),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        if (filtered.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 48),
-            child: Center(
-              child: Text(
-                'No components found',
-                style: IcType.text(14, color: c.textMuted),
-              ),
-            ),
+            child: Center(child: Text('No components found', style: IcType.text(14, color: c.textMuted))),
           )
         else
           Wrap(
             spacing: 14,
             runSpacing: 14,
             children: [
-              for (final s in filteredSamples)
+              for (final s in filtered)
                 SizedBox(
-                  width: 310,
-                  child: _SampleCard(
-                    sample: s,
-                    onTap: () => setState(() {
-                      _activeSample = s;
-                      _activeEntry = null;
-                    }),
-                  ),
-                ),
-              for (final entry in filteredEntries)
-                SizedBox(
-                  width: 310,
-                  child: _EntryCard(
-                    entry: entry,
-                    onTap: () => setState(() {
-                      _activeEntry = entry;
-                      _activeSample = null;
-                    }),
+                  width: 308,
+                  child: GestureDetector(
+                    onTap: () => setState(() => _activeSpec = s),
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: Container(
+                        padding: const EdgeInsets.all(15),
+                        decoration: BoxDecoration(
+                          color: c.surfaceCard,
+                          borderRadius: BorderRadius.circular(IcRadius.card),
+                          border: Border.all(color: c.borderHairline),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 34,
+                                  height: 34,
+                                  decoration: BoxDecoration(
+                                    color: c.accentTint,
+                                    borderRadius: BorderRadius.circular(IcRadius.sm),
+                                  ),
+                                  child: Icon(s.icon, size: 17, color: c.accent),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    s.title,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: IcType.text(13.5, weight: FontWeight.w600, color: c.textStrong),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              s.subtitle,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: IcType.text(12, color: c.textMuted, height: 1.35),
+                            ),
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: 6,
+                              runSpacing: 4,
+                              children: [
+                                TagPill(label: s.category, tone: TagTone.neutral),
+                                TagPill(label: s.signal, tone: TagTone.accent, icon: LucideIcons.zap),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 ),
             ],
@@ -960,48 +830,31 @@ final class _UiGalleryScreenState extends State<UiGalleryScreen> {
     );
   }
 
-  Widget _buildDetailArea(
-    BuildContext context,
-    IcColors c, {
-    required bool narrow,
-  }) {
-    if (_activeEntry != null) {
-      return _buildEntryDetail(context, c, _activeEntry!, narrow: narrow);
-    }
-    return _buildSampleDetail(context, c, _activeSample!, narrow: narrow);
-  }
-
-  Widget _buildEntryDetail(
+  Widget _buildDetailView(
     BuildContext context,
     IcColors c,
-    GalleryEntry entry, {
+    GalleryComponentSpec s, {
     required bool narrow,
   }) {
-    final isNeuron = entry.id.startsWith('neuron:');
-    final kind = isNeuron ? entry.id.substring(7) : entry.id;
-    final contract = isNeuron ? NodeContracts.tryResolve(kind) : null;
-    final neuronUri = 'neuron://nordlys/flutter.$kind/sample-1';
-
     final code = switch (_codeTab) {
-      0 => '''[On]
-public View Render() => new(
-    "${entry.title}",
-    new NeuronRef("$kind", "$neuronUri", Title: "${entry.title}")
-);''',
-      1 => entry.api,
+      0 => _dynamicCSharpCode(s),
+      1 => _dynamicFlutterCode(s),
       _ =>
-        'Contract: ${contract?.contract ?? 'IntoChat.OS.Modules.Flutter.IView'}\nSignal:   ${contract?.changed ?? 'ViewChanged'}\nURI:      $neuronUri',
+        'Contract: ${s.contract}\nSignal:   [Signal] ${s.signal} (fired $_signalPulseCount times)\nPreset:   ${_stylePreset.id} (${_isDark ? "dark" : "light"}) · Shader: ${_stylePreset.defaultShaderMode.label}',
     };
 
-    return ListView(
-      key: ValueKey('gallery_detail_${entry.id}'),
-      padding: EdgeInsets.fromLTRB(
-        narrow ? 20 : 32,
-        24,
-        narrow ? 20 : 32,
-        40,
-      ),
-      children: [
+    final stageBg = switch (_knobSurface) {
+      GallerySurfaceKnob.acrylic => c.surfaceGlass,
+      GallerySurfaceKnob.elevated => c.surfaceElevated,
+      GallerySurfaceKnob.recessed => c.surfaceSunk,
+    };
+
+    return SingleChildScrollView(
+      key: ValueKey('gallery_detail_${s.id}'),
+      padding: EdgeInsets.fromLTRB(narrow ? 16 : 28, 20, narrow ? 16 : 28, 36),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
         Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -1012,804 +865,828 @@ public View Render() => new(
               label: 'Back to Gallery',
               small: true,
               icon: LucideIcons.arrowLeft,
-              onTap: () => setState(() => _activeEntry = null),
-            ),
-            TagPill(label: entry.category, tone: TagTone.neutral),
-            if (contract != null)
-              TagPill(
-                label: contract.contract,
-                tone: TagTone.accent,
-                icon: LucideIcons.cpu,
-              ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Text(
-          entry.title,
-          style: IcType.heading(28, weight: FontWeight.w800, color: c.textStrong),
-        ),
-        const SizedBox(height: 6),
-        Text(entry.description, style: IcType.text(14, color: c.textMuted)),
-        const SizedBox(height: 8),
-        Text(
-          isNeuron
-              ? (entry.category == 'Composable neurons'
-                    ? 'Composable neuron · dedicated renderer'
-                    : 'Neuron kind · fallback renderer')
-              : 'Presentation widget · not a neuron definition',
-          style: IcType.text(12, weight: FontWeight.w600, color: c.accent),
-        ),
-        const SizedBox(height: 20),
-        GalleryPreview(
-          key: ValueKey(entry.id),
-          entry: entry,
-          onButtonPressed: widget.onButtonPressed,
-        ),
-        const SizedBox(height: 20),
-        _buildCodeInspectorBox(context, c, code),
-      ],
-    );
-  }
-
-  Widget _buildSampleDetail(
-    BuildContext context,
-    IcColors c,
-    GallerySample s, {
-    required bool narrow,
-  }) {
-    final code = switch (_codeTab) {
-      0 => s.csharpCode,
-      1 => s.flutterCode,
-      _ =>
-        'Contract: ${s.contract}\nSignal:   ${s.signal}\nStream:   NeuronChannel.watch(brainId, [WatchSourceSpec("${s.contract}", key, ["${s.signal}"])])',
-    };
-
-    return ListView(
-      padding: EdgeInsets.fromLTRB(
-        narrow ? 20 : 32,
-        24,
-        narrow ? 20 : 32,
-        40,
-      ),
-      children: [
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            Btn(
-              key: const Key('gallery_back'),
-              label: 'Back to Gallery',
-              small: true,
-              icon: LucideIcons.arrowLeft,
-              onTap: () => setState(() => _activeSample = null),
+              onTap: () => setState(() => _activeSpec = null),
             ),
             TagPill(label: s.category, tone: TagTone.neutral),
+            TagPill(label: s.contract, tone: TagTone.accent, icon: LucideIcons.cpu),
             TagPill(
-              label: s.contract,
-              tone: TagTone.accent,
-              icon: LucideIcons.cpu,
-            ),
-            TagPill(
-              label: '[Signal] ${s.signal}',
+              label: '[Signal] ${s.signal} ($_signalPulseCount)',
               tone: TagTone.done,
               icon: LucideIcons.zap,
             ),
           ],
         ),
-        const SizedBox(height: 16),
-        Text(
-          s.title,
-          style: IcType.heading(
-            28,
-            weight: FontWeight.w800,
-            color: c.textStrong,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(s.subtitle, style: IcType.text(14, color: c.textMuted)),
-        const SizedBox(height: 20),
+        const SizedBox(height: 14),
+        Text(s.title, style: IcType.heading(26, weight: FontWeight.w800, color: c.textStrong)),
+        const SizedBox(height: 4),
+        Text(s.subtitle, style: IcType.text(13.5, color: c.textMuted)),
+        const SizedBox(height: 18),
 
-        // Interactive Playground + Right Property Knobs (WinUI 3 Pattern)
         Container(
           decoration: BoxDecoration(
-            color: c.surfaceCard,
+            color: stageBg,
             borderRadius: BorderRadius.circular(IcRadius.card),
-            border: Border.all(color: c.borderHairline),
+            border: Border.all(color: c.isGlass ? c.specularBorder : c.borderHairline),
+            boxShadow: _knobSurface == GallerySurfaceKnob.elevated ? IcShadow.lg(c) : null,
           ),
           child: narrow
               ? Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: _buildLivePreview(context, c, s),
-                    ),
+                    Padding(padding: const EdgeInsets.all(20), child: _buildStageWidget(context, c, s)),
                     _buildPropertyKnobsPanel(context, c),
                   ],
                 )
-              : IntrinsicHeight(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.all(24),
-                          child: _buildLivePreview(context, c, s),
-                        ),
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: _buildStageWidget(context, c, s),
                       ),
-                      _buildPropertyKnobsPanel(context, c),
-                    ],
-                  ),
+                    ),
+                    _buildPropertyKnobsPanel(context, c),
+                  ],
                 ),
         ),
-        const SizedBox(height: 20),
-        _buildCodeInspectorBox(context, c, code),
+        const SizedBox(height: 18),
+
+        Container(
+          key: const Key('gallery_code_inspector'),
+          decoration: BoxDecoration(
+            color: c.surfaceCard,
+            borderRadius: BorderRadius.circular(IcRadius.card),
+            border: Border.all(color: c.borderHairline),
+          ),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                alignment: WrapAlignment.spaceBetween,
+                children: [
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      Btn(
+                        key: const Key('gallery_tab_csharp'),
+                        label: 'C# DigitalBrain.UI',
+                        small: true,
+                        primary: _codeTab == 0,
+                        icon: LucideIcons.code,
+                        onTap: () => setState(() => _codeTab = 0),
+                      ),
+                      Btn(
+                        key: const Key('gallery_tab_flutter'),
+                        label: 'Flutter Ic*',
+                        small: true,
+                        primary: _codeTab == 1,
+                        icon: LucideIcons.layers,
+                        onTap: () => setState(() => _codeTab = 1),
+                      ),
+                      Btn(
+                        key: const Key('gallery_tab_contract'),
+                        label: 'Contract & [Signal]',
+                        small: true,
+                        primary: _codeTab == 2,
+                        icon: LucideIcons.radio,
+                        onTap: () => setState(() => _codeTab = 2),
+                      ),
+                    ],
+                  ),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      Btn(
+                        key: const Key('gallery_fire_signal'),
+                        label: 'Fire Test [Signal]',
+                        small: true,
+                        primary: true,
+                        icon: LucideIcons.zap,
+                        onTap: () {
+                          setState(() => _signalPulseCount++);
+                          showKitToast(context, 'Fired [Signal] ${s.signal} (#$_signalPulseCount)');
+                        },
+                      ),
+                      Btn(
+                        key: const Key('gallery_copy_code'),
+                        label: 'Copy snippet',
+                        small: true,
+                        icon: LucideIcons.copy,
+                        onTap: () {
+                          Clipboard.setData(ClipboardData(text: code));
+                          showKitToast(context, 'Copied snippet to clipboard.');
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: c.surfaceSunk,
+                  borderRadius: BorderRadius.circular(IcRadius.button),
+                  border: Border.all(color: c.borderHairline),
+                ),
+                child: SelectableText(
+                  code,
+                  style: IcType.code(12.5, color: c.textStrong),
+                ),
+              ),
+            ],
+          ),
+        ),
       ],
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildPropertyKnobsPanel(BuildContext context, IcColors c) {
+    Widget sectionLabel(String text) => Padding(
+      padding: const EdgeInsets.only(top: 10, bottom: 5),
+      child: Text(text, style: IcType.text(10.5, weight: FontWeight.w700, color: c.textMuted)),
+    );
+
     return Container(
-      width: 248,
-      padding: const EdgeInsets.all(18),
+      width: 268,
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: c.surfaceSunk,
         border: Border(left: BorderSide(color: c.borderHairline)),
-        borderRadius: const BorderRadius.horizontal(
-          right: Radius.circular(IcRadius.card),
-        ),
+        borderRadius: const BorderRadius.horizontal(right: Radius.circular(IcRadius.card)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'PROPERTIES & KNOBS',
-            style: IcType.text(
-              11,
-              weight: FontWeight.w700,
-              color: c.textMuted,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Enabled', style: IcType.text(13, color: c.textBody)),
-              IcSwitch(
-                value: _knobEnabled,
-                onChanged: (v) => setState(() => _knobEnabled = v),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Small / Compact', style: IcType.text(13, color: c.textBody)),
-              IcSwitch(
-                value: _knobSmall,
-                onChanged: (v) => setState(() => _knobSmall = v),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Dark mode', style: IcType.text(13, color: c.textBody)),
-              IcSwitch(value: c.isDark, onChanged: _setDark),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Text(
-            'TONE & STYLE',
-            style: IcType.text(
-              11,
-              weight: FontWeight.w700,
-              color: c.textMuted,
-            ),
-          ),
-          const SizedBox(height: 6),
+          Text('PROPERTY KNOBS', style: IcType.text(11, weight: FontWeight.w700, color: c.textStrong)),
+          sectionLabel('STYLE (Primary · Secondary · Ghost · Danger)'),
           Wrap(
             spacing: 4,
             runSpacing: 4,
             children: [
-              for (final tone in [
-                TagTone.accent,
-                TagTone.done,
-                TagTone.working,
-                TagTone.error,
-              ])
-                Btn(
-                  label: tone.name,
-                  small: true,
-                  primary: _knobTone == tone,
-                  onTap: () => setState(() => _knobTone = tone),
-                ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Wrap(
-            spacing: 4,
-            runSpacing: 4,
-            children: [
-              for (final style in [
+              for (final st in [
                 UiKitButtonStyle.primary,
                 UiKitButtonStyle.secondary,
                 UiKitButtonStyle.ghost,
                 UiKitButtonStyle.danger,
               ])
                 Btn(
-                  label: style.name,
+                  key: Key('knob_style_${st.name}'),
+                  label: st.name[0].toUpperCase() + st.name.substring(1),
                   small: true,
-                  primary: _knobStyle == style,
-                  onTap: () => setState(() => _knobStyle = style),
+                  primary: _knobStyle == st,
+                  onTap: () => setState(() => _knobStyle = st),
                 ),
             ],
           ),
-          const SizedBox(height: 14),
-          Text(
-            'APPROVAL STATE',
-            style: IcType.text(
-              11,
-              weight: FontWeight.w700,
-              color: c.textMuted,
-            ),
-          ),
-          const SizedBox(height: 6),
+          sectionLabel('TONE (Neutral · Accent · Done · Working · Error)'),
           Wrap(
             spacing: 4,
             runSpacing: 4,
             children: [
-              for (final st in [
-                ApprovalState.pending,
-                ApprovalState.approved,
-                ApprovalState.rejected,
-              ])
+              for (final t in TagTone.values)
                 Btn(
-                  label: st.name,
+                  key: Key('knob_tone_${t.name}'),
+                  label: t.name[0].toUpperCase() + t.name.substring(1),
                   small: true,
-                  primary: _approvalState == st,
-                  onTap: () => setState(() => _approvalState = st),
+                  primary: _knobTone == t,
+                  onTap: () => setState(() => _knobTone = t),
                 ),
             ],
           ),
-          const SizedBox(height: 14),
-          Text(
-            'IDENTITY PRESET',
-            style: IcType.text(
-              11,
-              weight: FontWeight.w700,
-              color: c.textMuted,
-            ),
-          ),
-          const SizedBox(height: 8),
-          for (final p in IcStylePreset.values)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Btn(
-                label: p.label,
+          sectionLabel('SIZE (Standard 36px · Small 30px)'),
+          Wrap(
+            spacing: 4,
+            children: [
+              Btn(
+                key: const Key('knob_size_standard'),
+                label: 'Standard (36px)',
                 small: true,
-                primary: _stylePreset == p,
-                onTap: () => _setPreset(p),
+                primary: !_knobSmall,
+                onTap: () => setState(() => _knobSmall = false),
               ),
-            ),
+              Btn(
+                key: const Key('knob_size_small'),
+                label: 'Small (30px)',
+                small: true,
+                primary: _knobSmall,
+                onTap: () => setState(() => _knobSmall = true),
+              ),
+            ],
+          ),
+          sectionLabel('STATE (Interactive · Loading · Disabled · Empty)'),
+          Wrap(
+            spacing: 4,
+            runSpacing: 4,
+            children: [
+              for (final st in GalleryStateKnob.values)
+                Btn(
+                  key: Key('knob_state_${st.name}'),
+                  label: st.name[0].toUpperCase() + st.name.substring(1),
+                  small: true,
+                  primary: _knobState == st,
+                  onTap: () => setState(() => _knobState = st),
+                ),
+            ],
+          ),
+          sectionLabel('SURFACE (Acrylic · Elevated · Recessed)'),
+          Wrap(
+            spacing: 4,
+            children: [
+              for (final sf in GallerySurfaceKnob.values)
+                Btn(
+                  key: Key('knob_surface_${sf.name}'),
+                  label: sf.name[0].toUpperCase() + sf.name.substring(1),
+                  small: true,
+                  primary: _knobSurface == sf,
+                  onTap: () => setState(() => _knobSurface = sf),
+                ),
+            ],
+          ),
+          sectionLabel('CHART KIND (Line · Bar · Sparkline)'),
+          Wrap(
+            spacing: 4,
+            children: [
+              for (final ck in GalleryChartKindKnob.values)
+                Btn(
+                  key: Key('knob_chart_${ck.name}'),
+                  label: ck.name[0].toUpperCase() + ck.name.substring(1),
+                  small: true,
+                  primary: _knobChartKind == ck,
+                  onTap: () => setState(() => _knobChartKind = ck),
+                ),
+            ],
+          ),
+          sectionLabel('THEME PRESET & DARK/LIGHT'),
+          Row(
+            children: [
+              Expanded(
+                child: DropdownButton<IcStylePreset>(
+                  value: _stylePreset,
+                  isExpanded: true,
+                  dropdownColor: c.surfaceCard,
+                  style: IcType.text(12, color: c.textStrong),
+                  items: [
+                    for (final p in IcStylePreset.values)
+                      DropdownMenuItem(value: p, child: Text(p.label)),
+                  ],
+                  onChanged: (p) {
+                    if (p != null) _setPreset(p);
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              IcSwitch(value: c.isDark, onChanged: _setDark),
+            ],
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildCodeInspectorBox(
-    BuildContext context,
-    IcColors c,
-    String code,
-  ) {
-    return Container(
-      decoration: BoxDecoration(
-        color: c.surfaceCard,
-        borderRadius: BorderRadius.circular(IcRadius.card),
-        border: Border.all(color: c.borderHairline),
+  Widget _buildStageWidget(BuildContext context, IcColors c, GalleryComponentSpec s) {
+    final enabled = _knobState != GalleryStateKnob.disabled;
+    if (_knobState == GalleryStateKnob.loading &&
+        s.id != 'table-card' &&
+        s.id != 'chart-card' &&
+        s.id != 'record-card') {
+      return Row(
+        children: [
+          const WorkingSpinner(size: 18),
+          const SizedBox(width: 10),
+          Text('Loading ${s.title}…', style: IcType.text(14, color: c.textBody)),
+        ],
+      );
+    }
+    if (_knobState == GalleryStateKnob.empty &&
+        s.id != 'table-card' &&
+        s.id != 'chart-card') {
+      return Text('Empty state for ${s.title}.', style: IcType.text(14, color: c.textMuted));
+    }
+
+    return switch (s.id) {
+      'themes' => Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          for (final p in IcStylePreset.values)
+            Btn(
+              label: '${p.label} (${p.defaultShaderMode.label})',
+              small: _knobSmall,
+              primary: _stylePreset == p,
+              icon: LucideIcons.palette,
+              onTap: enabled ? () => _setPreset(p) : null,
+            ),
+        ],
       ),
-      padding: const EdgeInsets.all(18),
-      child: Column(
+      'typography' => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('InterDisplay 32 · 1,492,048 tok', style: IcType.heading(32, weight: FontWeight.w800, color: c.textStrong)),
+          const SizedBox(height: 6),
+          Text('Inter Body 14 · Tabular numerals keep live telemetry aligned.', style: IcType.text(14, color: c.textBody)),
+          const SizedBox(height: 6),
+          Text('neuron://nordlys/apps.ino/main · 99.98% · 12.4ms', style: IcType.code(12.5, color: c.accent)),
+        ],
+      ),
+      'iconography' => Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        children: [
+          for (final appId in IcAppIcon.builtInSpecs.keys)
+            GestureDetector(
+              onTap: () => setState(() => _selectedIconAppId = appId),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IcAppIcon(appId: appId, size: _knobSmall ? 34 : 46),
+                  const SizedBox(height: 4),
+                  Text(appId, style: IcType.text(11, weight: _selectedIconAppId == appId ? FontWeight.w700 : FontWeight.w500, color: c.textStrong)),
+                ],
+              ),
+            ),
+        ],
+      ),
+      'acrylic' || 'surfaces' => IcAcrylicBox(
+        radius: IcRadius.card,
+        padding: const EdgeInsets.all(20),
+        shadows: IcShadow.lg(c),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Surface: ${_knobSurface.name.toUpperCase()} · Sigma ${c.blurSigma.toStringAsFixed(0)}px', style: IcType.heading(18, color: c.textStrong)),
+            const SizedBox(height: 6),
+            Text('1px specular border (${c.preset.label}) with theme-aware elevation.', style: IcType.text(13, color: c.textBody)),
+          ],
+        ),
+      ),
+      'buttons' => Wrap(
+        spacing: 10,
+        runSpacing: 10,
+        children: [
+          UiKitButton(
+            label: 'Active Knob (${_knobStyle.name})',
+            style: _knobStyle,
+            compact: _knobSmall,
+            icon: 'sparkles',
+            onPressed: enabled ? () => showKitToast(context, 'Triggered ${_knobStyle.name}') : null,
+          ),
+          Btn(label: 'Primary', primary: true, small: _knobSmall, icon: LucideIcons.rocket, onTap: enabled ? () {} : null),
+          Btn(label: 'Secondary', small: _knobSmall, icon: LucideIcons.slidersHorizontal, onTap: enabled ? () {} : null),
+          Btn(label: 'Danger', danger: true, small: _knobSmall, icon: LucideIcons.trash2, onTap: enabled ? () {} : null),
+        ],
+      ),
+      'inputs' => Container(
+        height: _knobSmall ? 30 : 36,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: c.surfaceSunk,
+          borderRadius: BorderRadius.circular(IcRadius.input),
+          border: Border.all(color: c.borderInput),
+        ),
+        alignment: Alignment.centerLeft,
+        child: Field(controller: _demoInput, focusNode: _demoInputFocus, placeholder: 'Enter neuron:// address…'),
+      ),
+      'switch' => Row(
+        children: [
+          IcSwitch(
+            value: _switchVal,
+            locked: _switchLocked,
+            onChanged: enabled ? (v) => setState(() => _switchVal = v) : null,
+          ),
+          const SizedBox(width: 12),
+          Text(_switchVal ? 'Live [Signal] stream active' : 'Stream paused', style: IcType.text(13.5, color: c.textStrong)),
+          const Spacer(),
+          Btn(
+            label: _switchLocked ? 'Unlock policy' : 'Lock policy',
+            small: true,
+            icon: LucideIcons.lock,
+            onTap: () => setState(() => _switchLocked = !_switchLocked),
+          ),
+        ],
+      ),
+      'select' => Wrap(
+        spacing: 8,
+        children: [
+          for (final model in ['claude-sonnet-4-5', 'gpt-5-thinking', 'gemini-2.5-pro'])
+            Btn(
+              label: model,
+              small: _knobSmall,
+              primary: _selectedOption == model,
+              icon: LucideIcons.cpu,
+              onTap: enabled ? () => setState(() => _selectedOption = model) : null,
+            ),
+        ],
+      ),
+      'tag-pill' => Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          for (final tone in TagTone.values)
+            TagPill(label: '${tone.name.toUpperCase()} BADGE', tone: tone, icon: LucideIcons.sparkles),
+        ],
+      ),
+      'progress-infobar' => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(IcRadius.pill),
+            child: LinearProgressIndicator(
+              value: 0.72,
+              minHeight: 8,
+              backgroundColor: c.surfaceSunk,
+              color: c.accent,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: c.accentTint,
+              borderRadius: BorderRadius.circular(IcRadius.button),
+              border: Border.all(color: c.accent),
+            ),
+            child: Row(
+              children: [
+                Icon(LucideIcons.info, size: 16, color: c.accent),
+                const SizedBox(width: 10),
+                Expanded(child: Text('Orleans grain pool synced 14/14 [Scenario] gates.', style: IcType.text(13, color: c.textStrong))),
+                TagPill(label: _knobTone.name, tone: _knobTone),
+              ],
+            ),
+          ),
+        ],
+      ),
+      'app-shell' || 'stat-card' => Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 168,
+            child: IcAcrylicBox(
+              padding: const EdgeInsets.all(10),
+              borderRadius: BorderRadius.circular(IcRadius.card),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Btn(
+                    label: 'Overview',
+                    small: true,
+                    primary: _shellNav == 'overview',
+                    icon: LucideIcons.layoutGrid,
+                    onTap: () => setState(() => _shellNav = 'overview'),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Btn(
+                          label: 'Signals',
+                          small: true,
+                          primary: _shellNav == 'signals',
+                          icon: LucideIcons.radio,
+                          onTap: () => setState(() => _shellNav = 'signals'),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      TagPill(label: '${14 + _signalPulseCount}', tone: TagTone.accent),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: IcAcrylicBox(
+              padding: const EdgeInsets.all(14),
+              borderRadius: BorderRadius.circular(IcRadius.card),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(LucideIcons.zap, size: 14, color: c.textMuted),
+                      const SizedBox(width: 6),
+                      Expanded(child: Text('Active Neuron Signals / min', style: IcType.text(12, weight: FontWeight.w500, color: c.textMuted))),
+                      TagPill(label: '+18.4%', tone: _knobTone),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text('${142 + _signalPulseCount}', style: IcType.text(22, weight: FontWeight.w700, color: c.textStrong, tnum: true)),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+      'tabs' => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 6,
+            children: [
+              for (final tab in ['overview', 'telemetry', 'contracts'])
+                Btn(
+                  label: tab.toUpperCase(),
+                  small: true,
+                  primary: _shellNav == tab,
+                  onTap: () => setState(() => _shellNav = tab),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text('Active tab pane: $_shellNav (tnum 1,024 signals/s)', style: IcType.text(13.5, color: c.textStrong, tnum: true)),
+        ],
+      ),
+      'table-card' => TableCard(
+        source: CardSource('Salesforce', Icon(LucideIcons.cloud, size: 14, color: c.accent)),
+        state: _knobState == GalleryStateKnob.loading
+            ? TableState.loading
+            : (_knobState == GalleryStateKnob.empty ? TableState.empty : TableState.ready),
+        data: const TableData(
+          title: 'Q4 Renewal Pipeline',
+          from: 'Salesforce',
+          sourceNeuronUri: 'neuron://nordlys/salesforce.crm/q4-pipeline',
+          columns: [
+            TableColumn('Account', flex: 4),
+            TableColumn('Close Date', date: true, flex: 3),
+            TableColumn('Amount (NOK)', numeric: true, flex: 3),
+          ],
+          rows: [
+            ['Nordlys Enterprise', '15 Nov', '480,000'],
+            ['Kystverket Cloud', '02 Dec', '920,000'],
+            ['Bergen Maritime', '19 Oct', '310,000'],
+          ],
+        ),
+      ),
+      'chart-card' => ChartCard(
+        source: CardSource('Aspire Telemetry', Icon(LucideIcons.activity, size: 14, color: c.accent)),
+        state: _knobState == GalleryStateKnob.loading
+            ? ChartState.loading
+            : (_knobState == GalleryStateKnob.empty ? ChartState.empty : ChartState.ready),
+        kind: _knobChartKind == GalleryChartKindKnob.bar ? ChartKind.columns : ChartKind.line,
+        onSwitchChartKind: (k) => setState(
+          () => _knobChartKind = k == ChartKind.columns ? GalleryChartKindKnob.bar : GalleryChartKindKnob.line,
+        ),
+        data: const ChartData(
+          title: 'Active Neuron Signals per Minute',
+          from: 'neuron://nordlys/microsoft.aspire/telemetry',
+          sourceNeuronUri: 'neuron://nordlys/microsoft.aspire/telemetry',
+          points: [
+            ChartPoint('Ino', 48),
+            ChartPoint('Aspire', 64),
+            ChartPoint('CRM', 31),
+            ChartPoint('Files', 52),
+          ],
+          compare: [36, 50, 28, 41],
+          seriesName: 'Now',
+          compareName: '1h avg',
+        ),
+      ),
+      'approval-card' => ApprovalCard(
+        source: CardSource('Salesforce', Icon(LucideIcons.cloud, size: 14, color: c.accent)),
+        state: _approvalState,
+        onApprove: () => setState(() => _approvalState = ApprovalState.approved),
+        onReject: () => setState(() => _approvalState = ApprovalState.rejected),
+        data: ApprovalData(
+          title: 'Update close date on Nordlys Q4 renewal to 15 Nov 2026?',
+          summary: 'Ino matched Kari Holm\'s email to your open Salesforce opportunity.',
+          valueLabel: 'Close date',
+          rows: [
+            ApprovalRow(
+              label: 'Nordlys Q4 Enterprise',
+              amount: '480,000 NOK',
+              oldValue: '30 Oct 2026',
+              newValue: '15 Nov 2026',
+            ),
+          ],
+        ),
+      ),
+      'choice-card' => ChoiceCard(
+        source: CardSource('Ino Coordinator', Icon(LucideIcons.sparkles, size: 14, color: c.accent)),
+        question: 'Which Nordlys workspace should receive the Q4 renewal brief?',
+        picked: _choicePicked,
+        onPick: (i) => setState(() => _choicePicked = i),
+        options: const [
+          ChoiceOption('Nordlys Enterprise (Primary)', detail: 'neuron://nordlys/circles/enterprise'),
+          ChoiceOption('Executive Board Circle', detail: 'neuron://nordlys/circles/board'),
+        ],
+      ),
+      'draft-card' => DraftCard(
+        source: CardSource('Gmail', Icon(LucideIcons.mail, size: 14, color: c.accent)),
+        data: _draftData,
+        state: _draftState,
+        onSend: () => setState(() => _draftState = DraftState.sent),
+        onSchedule: () => setState(() => _draftState = DraftState.scheduled),
+        onDiscard: () => setState(() => _draftState = DraftState.discarded),
+      ),
+      'change-preview-card' => ChangePreviewCard(
+        source: CardSource('Salesforce', Icon(LucideIcons.cloud, size: 14, color: c.accent)),
+        data: _changeData,
+        state: _changeState,
+        onApply: () => setState(() => _changeState = ChangeState.applied),
+        onCancel: () => setState(() => _changeState = ChangeState.cancelled),
+      ),
+      'app-install-card' => AppInstallCard(
+        source: CardSource('IntoChat Hub', Icon(LucideIcons.packagePlus, size: 14, color: c.accent)),
+        state: _installState,
+        onReview: () => setState(() => _installState = AppInstallState.installed),
+        onDismiss: () => setState(() => _installState = AppInstallState.dismissed),
+        data: const AppInstallData(
+          name: 'Tripletex Accounting Sync',
+          handle: 'nordlys/tripletex-sync',
+          publisher: 'Nordlys Digital',
+          version: 'v1.4.0',
+          summary: 'Synchronizes Norwegian Tripletex invoices with DigitalBrain Files & CRM.',
+          icon: IcAppIcon(appId: 'datavisualizer', size: 44),
+        ),
+      ),
+      'record-card' => RecordCard(
+        source: CardSource('Salesforce', Icon(LucideIcons.cloud, size: 14, color: c.accent)),
+        state: _knobState == GalleryStateKnob.loading ? RecordState.loading : RecordState.loaded,
+        data: const RecordData(
+          objectLabel: 'Opportunity',
+          name: 'Nordlys Q4 Enterprise Renewal',
+          subtitle: 'Kari Holm · Oslo, Norway',
+          fields: [
+            RecordField('Amount', '480,000 NOK'),
+            RecordField('Close Date', '15 Nov 2026'),
+            RecordField('Stage', 'Negotiation / Review'),
+            RecordField('Last Contact', '14 days ago', warn: true),
+          ],
+        ),
+      ),
+      'secret-card' => SecretCard(
+        source: CardSource('Security Vault', Icon(LucideIcons.keyRound, size: 14, color: c.accent)),
+        state: _secretState,
+        onEnter: () => setState(() => _secretState = SecretState.saved),
+        onSkip: () => setState(() => _secretState = SecretState.skipped),
+        data: const SecretRequestData(
+          name: 'Tripletex Session Token',
+          why: 'Required to verify Q4 invoice ledger balances in Tripletex.',
+        ),
+      ),
+      'job-card' => JobCard(
+        source: CardSource('C# Sandbox Runner', Icon(LucideIcons.workflow, size: 14, color: c.accent)),
+        state: JobState.running,
+        data: JobData(
+          title: 'Verifying BDD [Scenario] Gate & Deploying Smart App',
+          progress: 0.75,
+          steps: [
+            JobStep('Compile C# App<TState> grain', detail: '118ms', status: StepStatus.done),
+            JobStep('Execute [Scenario] BDD assertions', detail: '14/14 green', status: StepStatus.done),
+            JobStep('Publish neuron://local/apps/crm', detail: 'Streaming…', status: StepStatus.running),
+          ],
+        ),
+      ),
+      'remember-card' => RememberCard(
+        source: CardSource('Episodic Memory', Icon(LucideIcons.brain, size: 14, color: c.accent)),
+        data: _rememberData,
+        state: _rememberState,
+        onSave: () => setState(() => _rememberState = RememberState.saved),
+        onSkip: () => setState(() => _rememberState = RememberState.skipped),
+      ),
+      'file-cards' => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Wrap(
+            spacing: 8,
+            children: [
+              FileChip(
+                file: FileRef(
+                  name: 'context.md',
+                  path: 'neuron://nordlys/storage.files/30-projects/nordlys-as/context.md',
+                  icon: LucideIcons.fileText,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          FileCard(
+            source: CardSource('Files Vault', Icon(LucideIcons.folder, size: 14, color: c.accent)),
+            state: _fileCardState,
+            onOpen: () => showKitToast(context, 'Opened context.md'),
+            onReveal: () => showKitToast(context, 'Revealed in Files'),
+            data: const FileCardData(
+              file: FileRef(
+                name: 'nordlys-q4-renewal.md',
+                path: 'neuron://nordlys/storage.files/30-projects/nordlys-q4-renewal.md',
+                icon: LucideIcons.fileCheck,
+                size: '18 KB',
+                where: '30 Projects › Nordlys AS',
+              ),
+              note: 'Updated close date to 15 Nov 2026 and attached ledger table.',
+            ),
+          ),
+        ],
+      ),
+      'error-line' => ErrorLine(
+        error: inoErrors.first,
+        onAction: () => showKitToast(context, 'Retrying model request…'),
+      ),
+      'brain-3d' => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            alignment: WrapAlignment.spaceBetween,
             children: [
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  Btn(
-                    label: 'C# App<TState>',
-                    small: true,
-                    primary: _codeTab == 0,
-                    icon: LucideIcons.code,
-                    onTap: () => setState(() => _codeTab = 0),
-                  ),
-                  Btn(
-                    label: 'Flutter UI Kit',
-                    small: true,
-                    primary: _codeTab == 1,
-                    icon: LucideIcons.layers,
-                    onTap: () => setState(() => _codeTab = 1),
-                  ),
-                  Btn(
-                    label: 'gRPC Contract & [Signal]',
-                    small: true,
-                    primary: _codeTab == 2,
-                    icon: LucideIcons.radio,
-                    onTap: () => setState(() => _codeTab = 2),
-                  ),
-                ],
+              for (final mode in IcBrainShaderMode.values)
+                Btn(
+                  label: mode.label,
+                  small: true,
+                  primary: (_brainShaderOverride ?? c.preset.defaultShaderMode) == mode,
+                  onTap: () => setState(() => _brainShaderOverride = mode),
+                ),
+              Btn(
+                label: 'Nodes: $_brainNodeCount',
+                small: true,
+                icon: LucideIcons.circleDot,
+                onTap: () => setState(() => _brainNodeCount = _brainNodeCount >= 7 ? 4 : _brainNodeCount + 1),
               ),
               Btn(
-                label: 'Copy snippet',
+                label: 'Speed: ${_brainOrbitSpeed.toStringAsFixed(1)}x',
                 small: true,
-                icon: LucideIcons.copy,
-                onTap: () {
-                  Clipboard.setData(ClipboardData(text: code));
-                  _toast(context, 'Copied snippet to clipboard.');
-                },
+                icon: LucideIcons.gauge,
+                onTap: () => setState(() => _brainOrbitSpeed = _brainOrbitSpeed >= 2.0 ? 0.5 : _brainOrbitSpeed + 0.5),
+              ),
+              Btn(
+                label: 'Pulse Signal',
+                small: true,
+                primary: true,
+                icon: LucideIcons.zap,
+                onTap: () => setState(() => _signalPulseCount++),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: c.surfaceSunk,
+          SizedBox(
+            height: 280,
+            child: ClipRRect(
               borderRadius: BorderRadius.circular(IcRadius.button),
-              border: Border.all(color: c.borderHairline),
-            ),
-            child: SelectableText(
-              code,
-              style: IcType.text(
-                13,
-                color: c.textStrong,
-                tnum: true,
-                height: 1.5,
+              child: BrainScene3D(
+                nodes: BrainScene3D.defaultCluster.take(_brainNodeCount).toList(),
+                synapses: BrainScene3D.defaultSynapses,
+                selectedId: _selectedBrainNode,
+                orbitSpeed: _brainOrbitSpeed,
+                pulseEpoch: _signalPulseCount,
+                shaderMode: _brainShaderOverride,
+                onSelectNode: (n) => setState(() => _selectedBrainNode = n.id),
               ),
             ),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildLivePreview(
-    BuildContext context,
-    IcColors c,
-    GallerySample s,
-  ) {
-    switch (s.id) {
-      case 'themes':
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Live Identity & Bar Layout Presets',
-              style: IcType.heading(18, color: c.textStrong),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Active: ${_stylePreset.label} · Blur sigma: ${c.blurSigma.toStringAsFixed(0)}px · Bar layout: ${_barLayout.label}',
-              style: IcType.text(13, color: c.textMuted, tnum: true),
-            ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                for (final p in IcStylePreset.values)
-                  Btn(
-                    label: '${p.label} (${p.defaultBarLayout.label})',
-                    primary: _stylePreset == p,
-                    small: _knobSmall,
-                    icon: LucideIcons.sparkles,
-                    onTap: _knobEnabled ? () => _setPreset(p) : null,
-                  ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Override Bar & Dock Positioning:',
-              style: IcType.text(
-                12.5,
-                weight: FontWeight.w600,
-                color: c.textMuted,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final layout in BarLayout.values)
-                  Btn(
-                    label: layout.label,
-                    small: true,
-                    primary: _barLayout == layout,
-                    onTap: _knobEnabled ? () => _setBarLayout(layout) : null,
-                  ),
-              ],
-            ),
-          ],
-        );
-
-      case 'typography':
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Display 40 · 1,492,048 tokens',
-              style: IcType.heading(
-                36,
-                weight: FontWeight.w800,
-                color: c.textStrong,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Page Title 28 · Nordlys AS DigitalBrain',
-              style: IcType.heading(24, color: c.textStrong),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Card Title 16 · Q4 Renewal Opportunity',
-              style: IcType.text(
-                16,
-                weight: FontWeight.w600,
-                color: c.textStrong,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Body 14 · Every number in IntoChat OS uses FontFeature.tabularFigures() so live gRPC streams never jitter.',
-              style: IcType.text(14, color: c.textBody),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Tabular telemetry · 00:42.198 · neuron://nordlys/apps.ino/main · 99.98%',
-              style: IcType.text(12.5, color: c.textMuted, tnum: true),
-            ),
-          ],
-        );
-
-      case 'iconography':
-        return Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: [
-            TagPill(
-              label: 'Selected Tone (${_knobTone.name})',
-              tone: _knobTone,
-              icon: LucideIcons.sparkles,
-            ),
-            const TagPill(
-              label: 'Done / Connected',
-              tone: TagTone.done,
-              icon: LucideIcons.circleCheck,
-            ),
-            const TagPill(
-              label: 'Working / Syncing',
-              tone: TagTone.working,
-              icon: LucideIcons.loaderCircle,
-            ),
-            const TagPill(
-              label: 'Needs your approval',
-              tone: TagTone.accent,
-              icon: LucideIcons.hand,
-            ),
-            const TagPill(
-              label: 'Failed / Alert',
-              tone: TagTone.error,
-              icon: LucideIcons.triangleAlert,
-            ),
-            const TagPill(
-              label: 'Idle / Standby',
-              tone: TagTone.neutral,
-              icon: LucideIcons.clock,
-            ),
-          ],
-        );
-
-      case 'acrylic':
-        return SizedBox(
-          height: 160,
-          child: Stack(
-            children: [
-              const Positioned.fill(
-                child: BrainScene3D(interactive: false, showHud: false),
-              ),
-              Center(
-                child: IcAcrylicBox(
-                  radius: IcRadius.card,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 18,
-                  ),
-                  shadows: IcShadow.lg(c),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'WinUI 3 Acrylic & Glass Surface',
-                        style: IcType.heading(18, color: c.textStrong),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Real-time Gaussian blur (sigma ${c.blurSigma.toStringAsFixed(0)}) over the live 3D DigitalBrain.',
-                        style: IcType.text(13, color: c.textBody),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-
-      case 'buttons':
-        return Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: [
-            UiKitButton(
-              label: 'Configured (${_knobStyle.name})',
-              style: _knobStyle,
-              compact: _knobSmall,
-              icon: 'sparkles',
-              onPressed: _knobEnabled
-                  ? () => _toast(context, 'Configured button triggered.')
-                  : null,
-            ),
-            Btn(
-              label: 'Primary Action',
-              primary: true,
-              small: _knobSmall,
-              icon: LucideIcons.rocket,
-              onTap: _knobEnabled
-                  ? () => _toast(context, 'Primary action triggered.')
-                  : null,
-            ),
-            Btn(
-              label: 'Secondary Action',
-              small: _knobSmall,
-              icon: LucideIcons.slidersHorizontal,
-              onTap: _knobEnabled
-                  ? () => _toast(context, 'Secondary action triggered.')
-                  : null,
-            ),
-            Btn(
-              label: 'Destructive Action',
-              danger: true,
-              small: _knobSmall,
-              icon: LucideIcons.trash2,
-              onTap: _knobEnabled
-                  ? () => _toast(context, 'Destructive action triggered.')
-                  : null,
-            ),
-          ],
-        );
-
-      case 'inputs':
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              height: 36,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                color: c.surfaceSunk,
-                borderRadius: BorderRadius.circular(IcRadius.input),
-                border: Border.all(color: c.borderInput),
-              ),
-              alignment: Alignment.centerLeft,
-              child: Field(
-                controller: _demoInput,
-                focusNode: _demoInputFocus,
-                placeholder: 'Enter neuron:// address…',
-              ),
-            ),
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                IcSwitch(
-                  value: _knobSwitch,
-                  onChanged: _knobEnabled
-                      ? (v) => setState(() => _knobSwitch = v)
-                      : null,
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  _knobSwitch
-                      ? 'Live background [Signal] subscription enabled'
-                      : 'Subscription paused',
-                  style: IcType.text(13.5, color: c.textBody),
-                ),
-              ],
-            ),
-          ],
-        );
-
-      case 'approval-card':
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ApprovalCard(
-              source: CardSource(
-                'Salesforce · neuron://nordlys/salesforce.crm/opp-402',
-                Icon(LucideIcons.cloud, size: 14, color: c.accent),
-              ),
-              data: ApprovalData(
-                title:
-                    'Update close date on Nordlys Q4 renewal to 15 Nov 2026?',
-                summary:
-                    'Ino matched Kari Holm\'s email to your open Salesforce opportunity.',
-                valueLabel: 'Close date',
-                resultText: 'Close date updated in Salesforce',
-                rows: [
-                  ApprovalRow(
-                    label: 'Nordlys Q4 Enterprise Renewal',
-                    amount: '480,000 NOK',
-                    oldValue: '30 Oct 2026',
-                    newValue: '15 Nov 2026',
-                  ),
-                ],
-              ),
-              state: _approvalState,
-              onApprove: () =>
-                  setState(() => _approvalState = ApprovalState.approved),
-              onReject: () =>
-                  setState(() => _approvalState = ApprovalState.rejected),
-            ),
-            if (_approvalState != ApprovalState.pending) ...[
-              const SizedBox(height: 10),
-              Btn(
-                label: 'Reset Card State',
-                small: true,
-                icon: LucideIcons.rotateCcw,
-                onTap: () =>
-                    setState(() => _approvalState = ApprovalState.pending),
-              ),
-            ],
-          ],
-        );
-
-      case 'data-cards':
-        return ChartCard(
-          source: CardSource(
-            'Aspire · neuron://nordlys/microsoft.aspire/telemetry',
-            Icon(LucideIcons.activity, size: 14, color: c.accent),
-          ),
-          state: ChartState.ready,
-          data: const ChartData(
-            title: 'Active Neuron Signals per Minute',
-            from: 'Aspire OTLP collector · 27 gRPC neuron contracts',
-            points: [
-              ChartPoint('Ino', 48),
-              ChartPoint('Aspire', 64),
-              ChartPoint('CRM', 31),
-              ChartPoint('Gmail', 27),
-              ChartPoint('Memory', 24),
-            ],
-            compare: [36, 52, 28, 22, 18],
-            seriesName: 'Current (sig/min)',
-            compareName: '1h avg',
-          ),
-        );
-
-      case 'brain-3d':
-        return SizedBox(
-          height: 300,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(IcRadius.button),
-            child: BrainScene3D(
-              selectedId: _selectedBrainNode,
-              onSelectNode: (node) {
-                setState(() => _selectedBrainNode = node.id);
-                _toast(context, 'Inspecting ${node.neuronUri}');
-              },
-            ),
-          ),
-        );
-
-      case 'neuron-paths':
-        const samplePaths = [
-          (
-            'context.md',
+      'neuron-paths' => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final uri in [
             'neuron://nordlys/storage.files/30-projects/nordlys-as/context.md',
-          ),
-          (
-            'opportunities.table',
             'neuron://nordlys/apps/ino/table',
-          ),
-          (
-            'revenue-q4.chart',
-            'neuron://nordlys/apps/datavisualizer/views/main/chart',
-          ),
-        ];
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Live Nodes with Canonical NeuronId Addressing',
-              style: IcType.text(
-                14,
-                weight: FontWeight.w600,
-                color: c.textStrong,
-              ),
-            ),
-            const SizedBox(height: 10),
-            for (final (name, uri) in samplePaths)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: c.surfaceSunk,
-                    borderRadius: BorderRadius.circular(IcRadius.button),
-                    border: Border.all(color: c.borderHairline),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(LucideIcons.fileCode, size: 16, color: c.accent),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              name,
-                              style: IcType.text(
-                                13,
-                                weight: FontWeight.w600,
-                                color: c.textStrong,
-                              ),
-                            ),
-                            Text(
-                              uri,
-                              style: IcType.text(
-                                12,
-                                color: c.textMuted,
-                                tnum: true,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Btn(
-                        label: 'Copy Neuron ID',
-                        small: true,
-                        icon: LucideIcons.cpu,
-                        onTap: () {
-                          Clipboard.setData(ClipboardData(text: uri));
-                          _toast(context, 'Copied $uri');
-                        },
-                      ),
-                    ],
-                  ),
+            'neuron://nordlys/runtime/sandbox/csharp',
+          ])
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                decoration: BoxDecoration(
+                  color: c.surfaceSunk,
+                  borderRadius: BorderRadius.circular(IcRadius.button),
+                  border: Border.all(color: c.borderHairline),
+                ),
+                child: Row(
+                  children: [
+                    Icon(LucideIcons.network, size: 15, color: c.accent),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text(uri, style: IcType.code(12, color: c.textStrong))),
+                    Btn(
+                      label: 'Copy URI',
+                      small: true,
+                      icon: LucideIcons.copy,
+                      onTap: () {
+                        Clipboard.setData(ClipboardData(text: uri));
+                        showKitToast(context, 'Copied $uri');
+                      },
+                    ),
+                  ],
                 ),
               ),
-          ],
-        );
-
-      default:
-        return const SizedBox.shrink();
-    }
+            ),
+        ],
+      ),
+      _ => const SizedBox.shrink(),
+    };
   }
 }
 
-class _NavRow extends StatefulWidget {
-  const _NavRow({
+class _RailItem extends StatelessWidget {
+  const _RailItem({
     super.key,
     required this.label,
     required this.icon,
@@ -1825,303 +1702,34 @@ class _NavRow extends StatefulWidget {
   final bool compact;
 
   @override
-  State<_NavRow> createState() => _NavRowState();
-}
-
-class _NavRowState extends State<_NavRow> {
-  bool _hover = false;
-
-  @override
   Widget build(BuildContext context) {
     final c = IcTheme.of(context);
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
+    return GestureDetector(
+      onTap: onTap,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
         child: Container(
-          height: widget.compact ? 30 : 34,
+          height: compact ? 30 : 34,
           margin: const EdgeInsets.only(bottom: 2),
           padding: const EdgeInsets.symmetric(horizontal: 10),
           decoration: BoxDecoration(
-            color: widget.selected
-                ? c.accentTint
-                : (_hover ? c.surfaceCard : const Color(0x00000000)),
+            color: selected ? c.accentTint : const Color(0x00000000),
             borderRadius: BorderRadius.circular(IcRadius.sm),
           ),
           child: Row(
             children: [
-              if (widget.selected)
-                Container(
-                  width: 3,
-                  height: 16,
-                  margin: const EdgeInsets.only(right: 7),
-                  decoration: BoxDecoration(
-                    color: c.accent,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              Icon(
-                widget.icon,
-                size: widget.compact ? 14 : 16,
-                color: widget.selected ? c.accent : c.textMuted,
-              ),
-              const SizedBox(width: 9),
+              Icon(icon, size: compact ? 14 : 15, color: selected ? c.accent : c.textMuted),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  widget.label,
+                  label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: IcType.text(
-                    widget.compact ? 12.5 : 13.5,
-                    weight: widget.selected ? FontWeight.w600 : FontWeight.w500,
-                    color: widget.selected ? c.textStrong : c.textBody,
+                    compact ? 12 : 13,
+                    weight: selected ? FontWeight.w600 : FontWeight.w500,
+                    color: selected ? c.textStrong : c.textBody,
                   ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _HeroActionTile extends StatefulWidget {
-  const _HeroActionTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  @override
-  State<_HeroActionTile> createState() => _HeroActionTileState();
-}
-
-class _HeroActionTileState extends State<_HeroActionTile> {
-  bool _hover = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = IcTheme.of(context);
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: IcMotion.fast,
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: _hover ? c.surfaceSunk : c.surfaceCard,
-            borderRadius: BorderRadius.circular(IcRadius.card),
-            border: Border.all(color: _hover ? c.accent : c.borderHairline),
-            boxShadow: _hover ? IcShadow.md(c) : IcShadow.sm(c),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  color: c.accentTint,
-                  borderRadius: BorderRadius.circular(IcRadius.sm),
-                ),
-                child: Icon(widget.icon, size: 18, color: c.accent),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                widget.title,
-                style: IcType.text(
-                  14,
-                  weight: FontWeight.w600,
-                  color: c.textStrong,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                widget.subtitle,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: IcType.text(12, color: c.textMuted, height: 1.35),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SampleCard extends StatefulWidget {
-  const _SampleCard({required this.sample, required this.onTap});
-
-  final GallerySample sample;
-  final VoidCallback onTap;
-
-  @override
-  State<_SampleCard> createState() => _SampleCardState();
-}
-
-class _SampleCardState extends State<_SampleCard> {
-  bool _hover = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = IcTheme.of(context);
-    final s = widget.sample;
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: IcMotion.fast,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: _hover ? c.surfaceSunk : c.surfaceCard,
-            borderRadius: BorderRadius.circular(IcRadius.card),
-            border: Border.all(
-              color: _hover ? c.borderInput : c.borderHairline,
-            ),
-            boxShadow: _hover ? IcShadow.md(c) : null,
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: c.accentTint,
-                  borderRadius: BorderRadius.circular(IcRadius.button),
-                ),
-                child: Icon(s.icon, size: 20, color: c.accent),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      s.title,
-                      style: IcType.text(
-                        14,
-                        weight: FontWeight.w600,
-                        color: c.textStrong,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      s.subtitle,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: IcType.text(
-                        12.5,
-                        color: c.textMuted,
-                        height: 1.35,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TagPill(
-                      label: s.signal,
-                      tone: TagTone.neutral,
-                      icon: LucideIcons.zap,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _EntryCard extends StatefulWidget {
-  const _EntryCard({required this.entry, required this.onTap});
-
-  final GalleryEntry entry;
-  final VoidCallback onTap;
-
-  @override
-  State<_EntryCard> createState() => _EntryCardState();
-}
-
-class _EntryCardState extends State<_EntryCard> {
-  bool _hover = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = IcTheme.of(context);
-    final e = widget.entry;
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: IcMotion.fast,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: _hover ? c.surfaceSunk : c.surfaceCard,
-            borderRadius: BorderRadius.circular(IcRadius.card),
-            border: Border.all(
-              color: _hover ? c.borderInput : c.borderHairline,
-            ),
-            boxShadow: _hover ? IcShadow.md(c) : null,
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: c.accentTint,
-                  borderRadius: BorderRadius.circular(IcRadius.button),
-                ),
-                child: Icon(e.icon, size: 20, color: c.accent),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      e.title,
-                      style: IcType.text(
-                        14,
-                        weight: FontWeight.w600,
-                        color: c.textStrong,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      e.description,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: IcType.text(
-                        12.5,
-                        color: c.textMuted,
-                        height: 1.35,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TagPill(label: e.category, tone: TagTone.neutral),
-                  ],
                 ),
               ),
             ],

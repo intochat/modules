@@ -3,7 +3,6 @@ import 'package:flutter_chat_core/flutter_chat_core.dart';
 import 'package:forui/forui.dart';
 import 'package:material_ui/material_ui.dart' as material;
 
-import '../lumen/lumen_palette.dart';
 import 'ui_colors.dart';
 import 'ui_tokens.dart';
 
@@ -327,23 +326,29 @@ abstract final class UiTheme {
     'fluent-acrylic',
     'spatial-glass',
     'cyber-synaptic',
+    'warm-paper',
+    'fluent-warm-mica',
     'linear-carbon',
+    'nordic-tactical',
   ];
 
   static String paletteName(String? stored) => switch (stored) {
     'dark' || 'midnight' => 'midnight',
     'light' || 'paper' => 'paper',
-    'warm-paper' || 'intochat' => 'intochat',
+    'intochat' => 'intochat',
+    'warm-paper' => 'warm-paper',
     'lumen' => 'lumen',
     'fluent-acrylic' => 'fluent-acrylic',
     'spatial-glass' => 'spatial-glass',
     'cyber-synaptic' => 'cyber-synaptic',
+    'fluent-warm-mica' => 'fluent-warm-mica',
     'linear-carbon' => 'linear-carbon',
+    'nordic-tactical' => 'nordic-tactical',
     _ => 'intochat',
   };
 
   static ThemeMode modeFor(String? stored) => switch (paletteName(stored)) {
-    'intochat' => ThemeMode.system,
+    'intochat' || 'warm-paper' => ThemeMode.system,
     'paper' => ThemeMode.light,
     _ => ThemeMode.dark,
   };
@@ -353,8 +358,11 @@ abstract final class UiTheme {
   static ThemeData light(String? stored) => switch (paletteName(stored)) {
     'fluent-acrylic' => fromColors(UiColors.fluentAcrylicLight),
     'spatial-glass' => fromColors(UiColors.spatialGlassLight),
-    'cyber-synaptic' => fromColors(UiColors.cyberSynapticDark),
-    'linear-carbon' => fromColors(UiColors.linearCarbonDark),
+    'cyber-synaptic' => fromColors(UiColors.cyberSynapticLight),
+    'warm-paper' => intochat(Brightness.light),
+    'fluent-warm-mica' => fromColors(UiColors.fluentWarmMicaLight),
+    'linear-carbon' => fromColors(UiColors.linearCarbonLight),
+    'nordic-tactical' => fromColors(UiColors.nordicTacticalLight),
     'lumen' => fromColors(UiColors.lumen),
     'midnight' => fromColors(UiColors.midnight),
     'paper' => fromColors(UiColors.paper),
@@ -367,7 +375,10 @@ abstract final class UiTheme {
     'fluent-acrylic' => fromColors(UiColors.fluentAcrylicDark),
     'spatial-glass' => fromColors(UiColors.spatialGlassDark),
     'cyber-synaptic' => fromColors(UiColors.cyberSynapticDark),
+    'warm-paper' => intochat(Brightness.dark),
+    'fluent-warm-mica' => fromColors(UiColors.fluentWarmMicaDark),
     'linear-carbon' => fromColors(UiColors.linearCarbonDark),
+    'nordic-tactical' => fromColors(UiColors.nordicTacticalDark),
     'lumen' => fromColors(UiColors.lumen),
     'midnight' => fromColors(UiColors.midnight),
     'paper' => fromColors(UiColors.paper),
@@ -623,19 +634,19 @@ abstract final class UiChatTheme {
   }
 
   static ChatTheme light() => ChatTheme(
-    colors: const ChatColors(
-      primary: LumenPalette.accent,
-      onPrimary: LumenPalette.surface,
-      surface: LumenPalette.background,
-      onSurface: LumenPalette.ink,
-      surfaceContainer: LumenPalette.surface,
-      surfaceContainerLow: LumenPalette.surfaceMuted,
-      surfaceContainerHigh: LumenPalette.accentSoft,
+    colors: ChatColors(
+      primary: UiColors.paper.accent,
+      onPrimary: UiColors.paper.surface,
+      surface: UiColors.paper.page,
+      onSurface: UiColors.paper.ink,
+      surfaceContainer: UiColors.paper.surface,
+      surfaceContainerLow: UiColors.paper.recessed,
+      surfaceContainerHigh: UiColors.paper.accentTint,
     ),
     typography: ChatTypography.standard(fontFamily: UiType.bodyFamily).copyWith(
-      bodyMedium: _body.copyWith(color: LumenPalette.ink),
-      bodySmall: _bodyMuted.copyWith(color: LumenPalette.muted),
-      labelSmall: _meta.copyWith(color: LumenPalette.muted),
+      bodyMedium: _body.copyWith(color: UiColors.paper.ink),
+      bodySmall: _bodyMuted.copyWith(color: UiColors.paper.muted),
+      labelSmall: _meta.copyWith(color: UiColors.paper.muted),
     ),
     shape: BorderRadius.circular(16),
   );

@@ -116,6 +116,186 @@ class _ImmutableView extends StatelessWidget {
         final size = (meta['size'] as num?)?.toDouble() ?? 12.0;
         return SizedBox(height: size, width: size);
 
+      case 'appshell':
+        final hasSidebar = meta['hasSidebar'] == true;
+        final hasToolbar = meta['hasToolbar'] == true;
+        final hasInspector = meta['hasInspector'] == true;
+        var idx = 0;
+        final sidebarWidget = hasSidebar && idx < widgets.length
+            ? widgets[idx++]
+            : null;
+        final toolbarWidget = hasToolbar && idx < widgets.length
+            ? widgets[idx++]
+            : null;
+        final bodyWidget = idx < widgets.length
+            ? widgets[idx++]
+            : const SizedBox.shrink();
+        final inspectorWidget = hasInspector && idx < widgets.length
+            ? widgets[idx++]
+            : null;
+
+        final mainColumn = Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (toolbarWidget != null) ...[
+              IcAcrylicBox(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+                borderRadius: BorderRadius.circular(IcRadius.card),
+                child: toolbarWidget,
+              ),
+              const SizedBox(height: 12),
+            ],
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: bodyWidget),
+                if (inspectorWidget != null) ...[
+                  const SizedBox(width: 14),
+                  SizedBox(
+                    width: 280,
+                    child: IcAcrylicBox(
+                      padding: const EdgeInsets.all(14),
+                      borderRadius: BorderRadius.circular(IcRadius.card),
+                      child: inspectorWidget,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ],
+        );
+
+        if (sidebarWidget == null) return mainColumn;
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            if (constraints.maxWidth < 680) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                spacing: 12,
+                children: [
+                  IcAcrylicBox(
+                    padding: const EdgeInsets.all(12),
+                    borderRadius: BorderRadius.circular(IcRadius.card),
+                    child: sidebarWidget,
+                  ),
+                  mainColumn,
+                ],
+              );
+            }
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 220,
+                  child: IcAcrylicBox(
+                    padding: const EdgeInsets.all(12),
+                    borderRadius: BorderRadius.circular(IcRadius.card),
+                    child: sidebarWidget,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(child: mainColumn),
+              ],
+            );
+          },
+        );
+
+      case 'navitem':
+        final label = meta['label'] as String? ?? text;
+        final iconSlug = meta['icon'] as String?;
+        final selected = meta['selected'] == true;
+        final badge = meta['badge'] as String?;
+        final actChild =
+            _findChildByKeySuffix(children, '.act') ??
+            (children.isNotEmpty ? children.first : null);
+        final onTap = actChild != null
+            ? _dispatchButton(context, actChild)
+            : null;
+        return Row(
+          children: [
+            Expanded(
+              child: Btn(
+                label: label,
+                primary: selected,
+                small: true,
+                icon: iconSlug != null ? uiIcon(iconSlug) : null,
+                onTap: onTap,
+              ),
+            ),
+            if (badge != null && badge.isNotEmpty) ...[
+              const SizedBox(width: 6),
+              TagPill(
+                label: badge,
+                tone: selected ? TagTone.accent : TagTone.neutral,
+              ),
+            ],
+          ],
+        );
+
+      case 'statcard':
+        final label = meta['label'] as String? ?? text;
+        final value = meta['value'] as String? ?? '0';
+        final delta = meta['delta'] as String?;
+        final toneStr = (meta['tone'] as String? ?? 'neutral').toLowerCase();
+        final iconSlug = meta['icon'] as String?;
+        final tagTone = switch (toneStr) {
+          'accent' => TagTone.accent,
+          'done' => TagTone.done,
+          'working' => TagTone.working,
+          'error' => TagTone.error,
+          _ => TagTone.neutral,
+        };
+        final ic = IcTheme.of(context);
+        return IcAcrylicBox(
+          padding: const EdgeInsets.all(14),
+          borderRadius: BorderRadius.circular(IcRadius.card),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  if (iconSlug != null && uiIcon(iconSlug) != null) ...[
+                    Icon(uiIcon(iconSlug), size: 14, color: ic.textMuted),
+                    const SizedBox(width: 6),
+                  ],
+                  Expanded(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: IcType.text(
+                        12,
+                        weight: FontWeight.w500,
+                        color: ic.textMuted,
+                      ),
+                    ),
+                  ),
+                  if (delta != null && delta.isNotEmpty)
+                    TagPill(label: delta, tone: tagTone),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: IcType.text(
+                  22,
+                  weight: FontWeight.w700,
+                  color: ic.textStrong,
+                  tnum: true,
+                ),
+              ),
+            ],
+          ),
+        );
+
       case 'grid':
         final cols = ((meta['columns'] as num?)?.toInt() ?? 2).clamp(1, 12);
         final gap = (meta['gap'] as num?)?.toDouble() ?? 12.0;
@@ -619,31 +799,63 @@ class _ImmutableView extends StatelessWidget {
           for (var i = 0; i < rawNodes.length; i++)
             () {
               final n = rawNodes[i];
-              final phase =
-                  (n['orbitPhase'] as num?)?.toDouble() ??
-                  (i * 2 * pi / max(1, rawNodes.length));
-              final tilt = (n['orbitTilt'] as num?)?.toDouble() ?? 0.2;
-              final orbitR =
-                  ((n['orbitRadius'] as num?)?.toDouble() ?? 140.0) / 260.0;
-              final pos = i == 0 && orbitR == 0
-                  ? (0.0, 0.0, 0.0)
-                  : (
-                      orbitR * cos(phase),
-                      orbitR * sin(tilt) * sin(phase),
-                      orbitR * sin(phase),
-                    );
+              final hasExplicitCoords =
+                  n['x'] is num || n['y'] is num || n['z'] is num;
+              (double, double, double) pos;
+              if (hasExplicitCoords) {
+                final rx = (n['x'] as num?)?.toDouble() ?? 0.0;
+                final ry = (n['y'] as num?)?.toDouble() ?? 0.0;
+                final rz = (n['z'] as num?)?.toDouble() ?? 0.0;
+                final scale =
+                    (rx.abs() > 1.5 || ry.abs() > 1.5 || rz.abs() > 1.5)
+                    ? 120.0
+                    : 1.0;
+                pos = (rx / scale, ry / scale, rz / scale);
+              } else {
+                final phase =
+                    (n['orbitPhase'] as num?)?.toDouble() ??
+                    (i * 2 * pi / max(1, rawNodes.length));
+                final tilt = (n['orbitTilt'] as num?)?.toDouble() ?? 0.2;
+                final orbitR =
+                    ((n['orbitRadius'] as num?)?.toDouble() ?? 140.0) / 260.0;
+                pos = i == 0 && orbitR == 0
+                    ? (0.0, 0.0, 0.0)
+                    : (
+                        orbitR * cos(phase),
+                        orbitR * sin(tilt) * sin(phase),
+                        orbitR * sin(phase),
+                      );
+              }
+              final nodeId = '${n['id'] ?? ''}';
+              final uriStr =
+                  '${n['uri'] ?? n['subtitle'] ?? 'neuron://owner/${n['category'] ?? 'os'}/$nodeId'}';
+              final sigs =
+                  (n['signalsPerMin'] as num?)?.toInt() ??
+                  switch (nodeId) {
+                    'creator' => 48,
+                    'aspire' => 96,
+                    'memory' => 32,
+                    'bdd' => 24,
+                    _ => 18 + i * 12,
+                  };
               return BrainNode3D(
-                id: '${n['id'] ?? ''}',
-                neuronUri:
-                    '${n['subtitle'] ?? 'neuron://owner/${n['category'] ?? 'os'}/${n['id'] ?? ''}'}',
+                id: nodeId,
+                uri: uriStr,
                 label: '${n['label'] ?? ''}',
-                module: '${n['category'] ?? 'DigitalBrain'}',
+                kind: BrainNodeKind.app,
+                moduleId: '${n['category'] ?? 'DigitalBrain'}',
+                subtitle: n['subtitle'] as String?,
+                signalsPerMin: sigs,
+                appId: nodeId.startsWith('app.')
+                    ? nodeId.substring(4)
+                    : nodeId,
                 position: pos,
                 status: switch ('${n['status'] ?? 'healthy'}'.toLowerCase()) {
                   'pulse' || 'working' => BrainNodeStatus.working,
-                  'attention' || 'warn' || 'warning' => BrainNodeStatus.warning,
+                  'attention' || 'warn' || 'warning' => BrainNodeStatus.needsYou,
                   'error' || 'danger' => BrainNodeStatus.error,
-                  _ => BrainNodeStatus.healthy,
+                  'done' || 'ok' => BrainNodeStatus.active,
+                  _ => BrainNodeStatus.idle,
                 },
               );
             }(),
@@ -652,33 +864,29 @@ class _ImmutableView extends StatelessWidget {
             .whereType<Map>()
             .map(
               (s) => BrainSynapse3D(
-                '${s['fromId'] ?? ''}',
-                '${s['toId'] ?? ''}',
+                fromId: '${s['fromId'] ?? ''}',
+                toId: '${s['toId'] ?? ''}',
+                signalLabel: s['signalType'] as String?,
+                active: s['active'] != false,
               ),
             )
             .toList();
         final nodeButtons = children.where((ch) => ch['kind'] == 1).toList();
-        return SizedBox(
+        final effectiveNodes = nodes3d.isEmpty ? defaultBrainNodes : nodes3d;
+        final effectiveSynapses =
+            synapses3d.isEmpty ? defaultBrainSynapses : synapses3d;
+        return _InteractiveBrainSceneBox(
           height: height,
-          width: double.infinity,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(tokens.card),
-            child: BrainScene3D(
-              nodes: nodes3d.isEmpty ? defaultBrainNodes : nodes3d,
-              synapses: synapses3d.isEmpty ? defaultBrainSynapses : synapses3d,
-              selectedId: selectedId,
-              interactive: interactive,
-              showHud: showHud,
-              onSelectNode: (selectedNode) {
-                final idx = nodes3d.indexWhere(
-                  (item) => item.id == selectedNode.id,
-                );
-                if (idx >= 0 && idx < nodeButtons.length) {
-                  _dispatchButton(context, nodeButtons[idx])?.call();
-                }
-              },
-            ),
-          ),
+          nodes: effectiveNodes,
+          synapses: effectiveSynapses,
+          initialSelectedId: selectedId,
+          interactive: interactive,
+          showHud: showHud,
+          onSelectNodeIndex: (idx) {
+            if (idx >= 0 && idx < nodeButtons.length) {
+              _dispatchButton(context, nodeButtons[idx])?.call();
+            }
+          },
         );
 
       case 'neuronRef':
@@ -1392,6 +1600,163 @@ class _ImmutableFieldBoxState extends State<_ImmutableFieldBox> {
       secret: widget.secret,
       enabled: widget.enabled,
       onSubmitted: widget.onSubmit != null ? (_) => widget.onSubmit!() : null,
+    );
+  }
+}
+
+class _InteractiveBrainSceneBox extends StatefulWidget {
+  const _InteractiveBrainSceneBox({
+    required this.height,
+    required this.nodes,
+    required this.synapses,
+    this.initialSelectedId,
+    required this.interactive,
+    required this.showHud,
+    required this.onSelectNodeIndex,
+  });
+
+  final double height;
+  final List<BrainNode3D> nodes;
+  final List<BrainSynapse3D> synapses;
+  final String? initialSelectedId;
+  final bool interactive;
+  final bool showHud;
+  final ValueChanged<int> onSelectNodeIndex;
+
+  @override
+  State<_InteractiveBrainSceneBox> createState() =>
+      _InteractiveBrainSceneBoxState();
+}
+
+class _InteractiveBrainSceneBoxState extends State<_InteractiveBrainSceneBox> {
+  late String? _selectedId =
+      widget.initialSelectedId ??
+      (widget.nodes.isNotEmpty ? widget.nodes.first.id : null);
+
+  @override
+  void didUpdateWidget(_InteractiveBrainSceneBox oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialSelectedId != widget.initialSelectedId &&
+        widget.initialSelectedId != null) {
+      _selectedId = widget.initialSelectedId;
+    }
+  }
+
+  void _selectNode(BrainNode3D node) {
+    setState(() => _selectedId = node.id);
+    final idx = widget.nodes.indexWhere((item) => item.id == node.id);
+    if (idx >= 0) {
+      widget.onSelectNodeIndex(idx);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = IcTheme.of(context);
+    final selectedNode = widget.nodes.firstWhere(
+      (n) => n.id == _selectedId,
+      orElse: () => widget.nodes.first,
+    );
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          height: widget.height,
+          width: double.infinity,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(IcRadius.card),
+            child: BrainScene3D(
+              nodes: widget.nodes,
+              synapses: widget.synapses,
+              selectedId: _selectedId,
+              interactive: widget.interactive,
+              showHud: widget.showHud,
+              onSelectNode: _selectNode,
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        IcAcrylicBox(
+          padding: const EdgeInsets.all(12),
+          borderRadius: BorderRadius.circular(IcRadius.card),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  IcAppIcon(
+                    appId: selectedNode.appId ?? selectedNode.id,
+                    size: 24,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          selectedNode.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: IcType.text(
+                            13.5,
+                            weight: FontWeight.w700,
+                            color: c.textStrong,
+                          ),
+                        ),
+                        Text(
+                          selectedNode.neuronUri,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: IcType.code(11.5, color: c.textMuted),
+                        ),
+                      ],
+                    ),
+                  ),
+                  TagPill(label: selectedNode.moduleId, tone: TagTone.neutral),
+                  const SizedBox(width: 6),
+                  TagPill(
+                    label: '${selectedNode.signalsPerMin} signals/min',
+                    tone: TagTone.accent,
+                    icon: LucideIcons.zap,
+                  ),
+                  const SizedBox(width: 6),
+                  Btn(
+                    key: ValueKey('brain3d-copy-uri-${selectedNode.id}'),
+                    label: 'Copy URI',
+                    small: true,
+                    icon: LucideIcons.copy,
+                    onTap: () {
+                      Clipboard.setData(
+                        ClipboardData(text: selectedNode.neuronUri),
+                      );
+                      showKitToast(context, 'Copied ${selectedNode.neuronUri}');
+                    },
+                  ),
+                ],
+              ),
+              if (widget.nodes.length > 1) ...[
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    for (final n in widget.nodes)
+                      Btn(
+                        key: ValueKey('brain3d-select-${n.id}'),
+                        label: n.label,
+                        small: true,
+                        primary: n.id == selectedNode.id,
+                        onTap: () => _selectNode(n),
+                      ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

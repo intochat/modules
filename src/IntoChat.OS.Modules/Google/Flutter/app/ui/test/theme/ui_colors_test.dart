@@ -82,8 +82,8 @@ void main() {
     expect(UiColors.lumen.accent, const Color(0xFF7CE0A8));
     expect(UiColors.paper, isNot(UiColors.lumen));
     expect(UiColors.midnight.error, const Color(0xFFFFB4AB));
-    expect(UiColors.paper.error, LumenPalette.error);
-    expect(UiColors.paper.surface, LumenPalette.surface);
+    expect(UiColors.paper.error, const Color(0xFFAD4F3F));
+    expect(UiColors.paper.surface, const Color(0xFFFFFFFF));
   });
 
   final all = {

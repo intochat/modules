@@ -29,9 +29,12 @@ class OsBar extends StatelessWidget {
     this.onToggleShowDesktop,
     this.onCycleStylePreset,
     this.onLaunchApp,
+    this.onSecondaryTapApp,
+    this.onHoverTooltip,
     this.onOpenSettings,
     this.onOpenNotifications,
     this.onOpenCompute,
+    this.onOpenClock,
   });
 
   final BarLayout barLayout;
@@ -49,9 +52,12 @@ class OsBar extends StatelessWidget {
   final VoidCallback? onToggleShowDesktop;
   final VoidCallback? onCycleStylePreset;
   final ValueChanged<String>? onLaunchApp;
+  final void Function(String appId, Offset globalPos)? onSecondaryTapApp;
+  final void Function(String? label, double anchorX)? onHoverTooltip;
   final VoidCallback? onOpenSettings;
   final VoidCallback? onOpenNotifications;
   final VoidCallback? onOpenCompute;
+  final VoidCallback? onOpenClock;
 
   @override
   Widget build(BuildContext context) {
@@ -117,11 +123,18 @@ class OsBar extends StatelessWidget {
             children: [
               for (final spec in apps)
                 _DockAppItem(
+                  key: ValueKey('dock-item-${spec.id}'),
                   spec: spec,
                   isOpen: openAppIds.contains(spec.id),
                   isWorking: workingAppIds.contains(spec.id),
                   isFocused: focusedAppId == spec.id,
                   onTap: () => onLaunchApp?.call(spec.id),
+                  onSecondaryTapDown: (d) =>
+                      onSecondaryTapApp?.call(spec.id, d.globalPosition),
+                  onHoverChange: (hover, globalX) => onHoverTooltip?.call(
+                    hover ? '${spec.name} (${spec.neuronUri})' : null,
+                    globalX,
+                  ),
                 ),
             ],
           ),
@@ -136,6 +149,7 @@ class OsBar extends StatelessWidget {
               onOpenNotifications: onOpenNotifications,
               onOpenCompute: onOpenCompute,
               onOpenSettings: onOpenSettings,
+              onOpenClock: onOpenClock,
             ),
           ),
         ],
@@ -194,11 +208,14 @@ class OsBar extends StatelessWidget {
 
 class _DockAppItem extends StatefulWidget {
   const _DockAppItem({
+    super.key,
     required this.spec,
     required this.isOpen,
     required this.isWorking,
     required this.isFocused,
     required this.onTap,
+    this.onSecondaryTapDown,
+    this.onHoverChange,
   });
 
   final SmartAppTileSpec spec;
@@ -206,6 +223,8 @@ class _DockAppItem extends StatefulWidget {
   final bool isWorking;
   final bool isFocused;
   final VoidCallback onTap;
+  final GestureTapDownCallback? onSecondaryTapDown;
+  final void Function(bool hover, double globalX)? onHoverChange;
 
   @override
   State<_DockAppItem> createState() => _DockAppItemState();
@@ -221,12 +240,19 @@ class _DockAppItemState extends State<_DockAppItem> {
       padding: const EdgeInsets.symmetric(horizontal: 2),
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
-        onEnter: (_) => setState(() => _hover = true),
-        onExit: (_) => setState(() => _hover = false),
+        onEnter: (e) {
+          setState(() => _hover = true);
+          widget.onHoverChange?.call(true, e.position.dx);
+        },
+        onExit: (e) {
+          setState(() => _hover = false);
+          widget.onHoverChange?.call(false, e.position.dx);
+        },
         child: Tooltip(
           message: '${widget.spec.name} (${widget.spec.neuronUri})',
           child: GestureDetector(
             onTap: widget.onTap,
+            onSecondaryTapDown: widget.onSecondaryTapDown,
             child: AnimatedContainer(
               duration: IcMotion.fast,
               width: 28,
@@ -248,11 +274,11 @@ class _DockAppItemState extends State<_DockAppItem> {
                     scale: _hover ? 1.15 : 1.0,
                     duration: IcMotion.fast,
                     curve: IcMotion.ease,
-                    child: AppTile(
-                      size: 18,
-                      style: AppTileStyle.brand,
-                      brandColor: widget.spec.color,
-                      glyph: widget.spec.icon,
+                    child: IcAppIcon(
+                      appId: widget.spec.id,
+                      icon: widget.spec.icon,
+                      accentHex: widget.spec.accentHex,
+                      size: 20,
                     ),
                   ),
                   if (widget.isWorking)
@@ -300,6 +326,7 @@ class _StatusTray extends StatelessWidget {
     this.onOpenNotifications,
     this.onOpenCompute,
     this.onOpenSettings,
+    this.onOpenClock,
   });
 
   final IcStylePreset stylePreset;
@@ -310,6 +337,7 @@ class _StatusTray extends StatelessWidget {
   final VoidCallback? onOpenNotifications;
   final VoidCallback? onOpenCompute;
   final VoidCallback? onOpenSettings;
+  final VoidCallback? onOpenClock;
 
   @override
   Widget build(BuildContext context) {
@@ -344,6 +372,7 @@ class _StatusTray extends StatelessWidget {
           const SizedBox(width: 4),
         ],
         _BarButton(
+          key: const ValueKey('os-bar-compute'),
           tooltip: 'Compute tokens used today',
           onTap: onOpenCompute ?? () {},
           child: Row(
@@ -383,6 +412,7 @@ class _StatusTray extends StatelessWidget {
         ),
         const SizedBox(width: 4),
         _BarButton(
+          key: const ValueKey('os-bar-notifications'),
           tooltip: 'Notifications',
           onTap: onOpenNotifications ?? () {},
           child: Row(
@@ -414,9 +444,11 @@ class _StatusTray extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(width: 6),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
+        const SizedBox(width: 4),
+        _BarButton(
+          key: const ValueKey('os-bar-clock'),
+          tooltip: 'Calendar & Schedule',
+          onTap: onOpenClock ?? () {},
           child: Text(
             clock,
             style: IcType.text(
@@ -434,6 +466,7 @@ class _StatusTray extends StatelessWidget {
 
 class _BarButton extends StatefulWidget {
   const _BarButton({
+    super.key,
     required this.child,
     required this.onTap,
     this.tooltip,

@@ -2,9 +2,11 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intochat_os_flutter/intochat_os_flutter.dart';
 import 'package:intochat_os_ui/intochat_os_ui.dart';
 
+import 'desktop_overlays.dart';
 import 'os_bar.dart';
 import 'smart_desktop.dart';
 import 'window_frame.dart';
@@ -97,9 +99,27 @@ class _LiveDesktopShellState extends State<LiveDesktopShell> {
   final List<String> _zOrder = [];
   bool _showDesktopOnly = false;
 
+  DesktopPopoverKind _popover = DesktopPopoverKind.none;
+  double _popoverAnchorX = 0;
+  String? _dockMenuAppId;
+  String? _barTooltipLabel;
+  double _barTooltipAnchorX = 0;
+  int _notificationsCount = 2;
+  final Set<String> _pinnedAppIds = {
+    'ino',
+    'files',
+    'creator',
+    'gallery',
+    'post',
+    'settings',
+  };
+  bool _switcherOpen = false;
+  int _switcherIndex = 0;
+
   @override
   void initState() {
     super.initState();
+    HardwareKeyboard.instance.addHandler(_onHardwareKey);
     _reload();
     _subscribe();
   }
@@ -119,12 +139,96 @@ class _LiveDesktopShellState extends State<LiveDesktopShell> {
 
   @override
   void dispose() {
+    HardwareKeyboard.instance.removeHandler(_onHardwareKey);
     _watchSub?.cancel();
     _resubscribeTimer?.cancel();
     for (final w in _windowStates.values) {
       w.dispose();
     }
     super.dispose();
+  }
+
+  List<_ParsedDesktopWindow> _currentMruWindows() {
+    final root = _data?['root'];
+    if (root is! Map) return const [];
+    final windows = _parseWindows(root);
+    final byId = {for (final w in windows) w.windowId: w};
+    final ordered = _zOrder
+        .map((id) => byId[id])
+        .whereType<_ParsedDesktopWindow>()
+        .toList();
+    return ordered.reversed.toList();
+  }
+
+  bool _onHardwareKey(KeyEvent e) {
+    if (!mounted) return false;
+    final kb = HardwareKeyboard.instance;
+
+    if (e is KeyUpEvent &&
+        (e.physicalKey == PhysicalKeyboardKey.altLeft ||
+            e.physicalKey == PhysicalKeyboardKey.altRight ||
+            e.logicalKey == LogicalKeyboardKey.altLeft ||
+            e.logicalKey == LogicalKeyboardKey.altRight)) {
+      if (_switcherOpen) {
+        final mru = _currentMruWindows();
+        if (mru.isNotEmpty) {
+          final target = mru[_switcherIndex.clamp(0, mru.length - 1)];
+          setState(() => _switcherOpen = false);
+          _focusWindow(target);
+        } else {
+          setState(() => _switcherOpen = false);
+        }
+        return true;
+      }
+      return false;
+    }
+
+    if (e is KeyUpEvent) return false;
+
+    if (kb.isAltPressed &&
+        (e.physicalKey == PhysicalKeyboardKey.backquote ||
+            e.logicalKey == LogicalKeyboardKey.backquote)) {
+      final mru = _currentMruWindows();
+      if (mru.isEmpty) return false;
+      setState(() {
+        _popover = DesktopPopoverKind.none;
+        if (!_switcherOpen) {
+          _switcherOpen = true;
+          _switcherIndex = mru.length > 1 ? 1 : 0;
+        } else {
+          final delta = kb.isShiftPressed ? -1 : 1;
+          _switcherIndex = (_switcherIndex + delta) % mru.length;
+          if (_switcherIndex < 0) _switcherIndex += mru.length;
+        }
+      });
+      return true;
+    }
+
+    if (e.logicalKey == LogicalKeyboardKey.escape && e is KeyDownEvent) {
+      if (_switcherOpen) {
+        setState(() => _switcherOpen = false);
+        return true;
+      }
+      if (_popover != DesktopPopoverKind.none) {
+        setState(() => _popover = DesktopPopoverKind.none);
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  void _togglePopover(DesktopPopoverKind kind, {double anchorX = 0, String? appId}) {
+    setState(() {
+      if (_popover == kind && (_dockMenuAppId == appId || kind != DesktopPopoverKind.dockMenu)) {
+        _popover = DesktopPopoverKind.none;
+        _dockMenuAppId = null;
+      } else {
+        _popover = kind;
+        _popoverAnchorX = anchorX;
+        _dockMenuAppId = appId;
+      }
+    });
   }
 
   void _subscribe() {
@@ -632,9 +736,16 @@ class _LiveDesktopShellState extends State<LiveDesktopShell> {
                   focusedAppId: topWindow?.appId,
                   paletteOpen: widget.paletteOpen,
                   showingDesktop: _showDesktopOnly || visibleWindows.isEmpty,
-                  onTogglePalette: widget.onTogglePalette,
+                  notifications: _notificationsCount,
+                  onTogglePalette: () {
+                    setState(() => _popover = DesktopPopoverKind.none);
+                    widget.onTogglePalette();
+                  },
                   onToggleShowDesktop: () {
-                    setState(() => _showDesktopOnly = !_showDesktopOnly);
+                    setState(() {
+                      _popover = DesktopPopoverKind.none;
+                      _showDesktopOnly = !_showDesktopOnly;
+                    });
                   },
                   onCycleStylePreset: () {
                     final nextIdx =
@@ -642,13 +753,160 @@ class _LiveDesktopShellState extends State<LiveDesktopShell> {
                         IcStylePreset.values.length;
                     widget.onSelectPreset(IcStylePreset.values[nextIdx]);
                   },
-                  onLaunchApp: (appId) =>
-                      _launchOrFocusApp(appId, windows, dockButtons),
-                  onOpenSettings: () =>
-                      _launchOrFocusApp('settings', windows, dockButtons),
-                  onOpenCompute: widget.onOpenCompute,
+                  onLaunchApp: (appId) {
+                    setState(() => _popover = DesktopPopoverKind.none);
+                    _launchOrFocusApp(appId, windows, dockButtons);
+                  },
+                  onSecondaryTapApp: (appId, globalPos) => _togglePopover(
+                    DesktopPopoverKind.dockMenu,
+                    anchorX: globalPos.dx,
+                    appId: appId,
+                  ),
+                  onHoverTooltip: (label, anchorX) {
+                    if (_barTooltipLabel != label || _barTooltipAnchorX != anchorX) {
+                      setState(() {
+                        _barTooltipLabel = label;
+                        _barTooltipAnchorX = anchorX;
+                      });
+                    }
+                  },
+                  onOpenSettings: () {
+                    setState(() => _popover = DesktopPopoverKind.none);
+                    _launchOrFocusApp('settings', windows, dockButtons);
+                  },
+                  onOpenCompute: () =>
+                      _togglePopover(DesktopPopoverKind.tokens),
+                  onOpenNotifications: () =>
+                      _togglePopover(DesktopPopoverKind.notifications),
+                  onOpenClock: () => _togglePopover(DesktopPopoverKind.clock),
                 ),
               ),
+
+              // 5. Unclipped Hover Tooltip Above OsBar
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: BarTooltip(
+                    screen: size,
+                    barLayout: widget.barLayout,
+                    label: _popover == DesktopPopoverKind.none
+                        ? _barTooltipLabel
+                        : null,
+                    anchorX: _barTooltipAnchorX,
+                  ),
+                ),
+              ),
+
+              // 6. OS Bar Popovers (Clock, Tokens & Compute, Notifications, Right-Click Dock Menu)
+              if (_popover != DesktopPopoverKind.none) ...[
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: 0,
+                  bottom: kOsBarHeight,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () =>
+                        setState(() => _popover = DesktopPopoverKind.none),
+                  ),
+                ),
+                DesktopBarPopover(
+                  kind: _popover,
+                  screen: size,
+                  barLayout: widget.barLayout,
+                  anchorX: _popoverAnchorX,
+                  dockAppId: _dockMenuAppId,
+                  notificationsCount: _notificationsCount,
+                  pinnedAppIds: _pinnedAppIds,
+                  windows: [
+                    for (final w in orderedWindows.reversed)
+                      DesktopWindowSummary(
+                        windowId: w.windowId,
+                        numericId: w.numericId,
+                        appId: w.appId,
+                        title: w.title,
+                        minimized:
+                            _windowStates[w.windowId]?.minimized ?? false,
+                        isPinned: _pinnedAppIds.contains(w.appId),
+                      ),
+                  ],
+                  onClose: () =>
+                      setState(() => _popover = DesktopPopoverKind.none),
+                  onOpenSettings: () =>
+                      _launchOrFocusApp('settings', windows, dockButtons),
+                  onOpenComputeSettings: () {
+                    if (widget.onOpenCompute != null) {
+                      widget.onOpenCompute!();
+                    } else {
+                      _launchOrFocusApp('settings', windows, dockButtons);
+                    }
+                  },
+                  onClearNotifications: () =>
+                      setState(() => _notificationsCount = 0),
+                  onFocusWindow: (winId) {
+                    final target = byId[winId];
+                    if (target != null) _focusWindow(target);
+                  },
+                  onNewWindowForApp: (appId) {
+                    final dockBtn = dockButtons['dock-$appId'];
+                    if (dockBtn != null) {
+                      _dispatchViewNode(dockBtn);
+                    } else {
+                      _launchOrFocusApp(appId, windows, dockButtons);
+                    }
+                  },
+                  onTogglePinApp: (appId) {
+                    setState(() {
+                      if (_pinnedAppIds.contains(appId)) {
+                        _pinnedAppIds.remove(appId);
+                      } else {
+                        _pinnedAppIds.add(appId);
+                      }
+                    });
+                    for (final w in windows) {
+                      if (w.appId == appId && w.pinNode != null) {
+                        _dispatchViewNode(w.pinNode);
+                        break;
+                      }
+                    }
+                  },
+                  onQuitApp: (appId) {
+                    for (final w in windows) {
+                      if (w.appId == appId && w.closeNode != null) {
+                        _dispatchViewNode(w.closeNode);
+                      }
+                    }
+                  },
+                ),
+              ],
+
+              // 7. Alt+` (⌥`) Visual MRU Window Switcher
+              if (_switcherOpen && orderedWindows.isNotEmpty)
+                Positioned.fill(
+                  child: AltBacktickWindowSwitcher(
+                    windows: [
+                      for (final w in orderedWindows.reversed)
+                        DesktopWindowSummary(
+                          windowId: w.windowId,
+                          numericId: w.numericId,
+                          appId: w.appId,
+                          title: w.title,
+                          minimized:
+                              _windowStates[w.windowId]?.minimized ?? false,
+                          isPinned: _pinnedAppIds.contains(w.appId),
+                        ),
+                    ],
+                    selectedIndex: _switcherIndex.clamp(
+                      0,
+                      orderedWindows.length - 1,
+                    ),
+                    onSelectWindow: (summary) {
+                      setState(() => _switcherOpen = false);
+                      final target = byId[summary.windowId];
+                      if (target != null) _focusWindow(target);
+                    },
+                    onCancel: () => setState(() => _switcherOpen = false),
+                  ),
+                ),
             ],
           ),
         );

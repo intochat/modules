@@ -35,8 +35,6 @@ export 'src/preferences/local_preferences.dart';
 export 'src/preferences/ui_preference_control.dart';
 export 'src/components/video/ui_video.dart';
 export 'src/gallery/ui_gallery_screen.dart';
-export 'src/lumen/lumen_controls.dart';
-export 'src/lumen/lumen_palette.dart';
 export 'src/lumen/neuron_icon.dart';
 export 'src/models/ui_part.dart';
 export 'src/theme/ui_colors.dart';

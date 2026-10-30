@@ -1,126 +1,121 @@
-import 'package:intochat_os_ui/intochat_os_ui.dart';
-import 'package:intochat_os_ui/src/gallery/neuron_gallery.dart';
-import 'package:intochat_os_ui/src/gallery/ui_gallery_preview.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intochat_os_ui/intochat_os_ui.dart';
 
 void main() {
-  test('catalog covers registry exactly and labels fallback honestly', () {
-    final neurons = galleryEntries.where(
-      (entry) => entry.id.startsWith('neuron:'),
-    );
+  test('single-format gallery catalog covers all 5 clean categories and 13 LFP cards', () {
+    final categories = galleryComponentSpecs.map((s) => s.category).toSet();
     expect(
-      neurons.map((entry) => entry.id.substring(7)).toSet(),
-      RendererRegistry.uiKinds.toSet(),
+      categories,
+      equals({
+        'Design & Identity',
+        'Basic Input',
+        'Layout & App Shell',
+        'Data & 13 LFP Chat Cards',
+        '3D Brain & Neurons',
+      }),
     );
-    expect(neurons.length, RendererRegistry.uiKinds.length);
-    for (final entry in neurons) {
-      final kind = entry.id.substring(7);
-      expect(
-        entry.category == 'Composable neurons',
-        !RendererRegistry.uiEntry(kind).isFallback,
-      );
-      if (!RendererRegistry.uiEntry(kind).isFallback) {
-        expect(neuronExample(kind), isNotEmpty);
-        expect(neuronDescriptions[kind], isNotNull);
-      }
-    }
+
+    final lfpSpecs = galleryComponentSpecs
+        .where((s) => s.category == 'Data & 13 LFP Chat Cards')
+        .map((s) => s.id)
+        .toList();
+    expect(lfpSpecs.length, 13);
+    expect(
+      lfpSpecs,
+      containsAll([
+        'table-card',
+        'chart-card',
+        'approval-card',
+        'choice-card',
+        'draft-card',
+        'change-preview-card',
+        'app-install-card',
+        'record-card',
+        'secret-card',
+        'job-card',
+        'remember-card',
+        'file-cards',
+        'error-line',
+      ]),
+    );
   });
 
-  testWidgets('immutable view preview renders its inline content and action', (
+  testWidgets('search, select component spec, mutate property knobs, and inspect dynamic code', (
     tester,
   ) async {
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: Scaffold(body: NeuronGalleryPreview(kind: 'view')),
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(find.text('Your reading space'), findsOneWidget);
-    await tester.tap(find.text('Add a book'));
-    await tester.pumpAndSettle();
-    expect(find.text('Local view action: add-book'), findsOneWidget);
-  });
-
-  testWidgets('search, select, and return on narrow settings panel', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(390, 800);
+    tester.view.physicalSize = const Size(1280, 900);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
+
     await tester.pumpWidget(
       const MaterialApp(home: Scaffold(body: UiGalleryScreen())),
     );
     await tester.pumpAndSettle();
+
     await tester.enterText(
       find.byKey(const Key('gallery_search')),
-      'textfield',
+      'buttons',
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('gallery_entry_neuron:textfield')));
+
+    await tester.tap(find.byKey(const Key('gallery_sample_buttons')));
     await tester.pumpAndSettle();
-    expect(find.text('Composable neuron · dedicated renderer'), findsOneWidget);
-    expect(find.widgetWithText(UiKitField, 'Book title'), findsOneWidget);
-    expect(tester.takeException(), isNull);
+
+    expect(find.byKey(const Key('gallery_code_inspector')), findsOneWidget);
+    expect(find.textContaining('ButtonStyle.Primary'), findsOneWidget);
+
+    // Click Danger style knob -> C# snippet dynamically updates to ButtonStyle.Danger
+    await tester.ensureVisible(find.byKey(const Key('knob_style_danger')));
+    await tester.tap(find.byKey(const Key('knob_style_danger')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('ButtonStyle.Danger'), findsOneWidget);
+
+    // Switch to Flutter Ic* code tab
+    await tester.ensureVisible(find.byKey(const Key('gallery_tab_flutter')));
+    await tester.tap(find.byKey(const Key('gallery_tab_flutter')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('danger: true'), findsOneWidget);
+
+    // Fire Test [Signal]
+    await tester.ensureVisible(find.byKey(const Key('gallery_fire_signal')));
+    await tester.tap(find.byKey(const Key('gallery_fire_signal')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('[Signal] ButtonClickedSignal (1)'), findsOneWidget);
+
+    // Return to gallery
+    await tester.ensureVisible(find.byKey(const Key('gallery_back')));
     await tester.tap(find.byKey(const Key('gallery_back')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('gallery_search')), findsOneWidget);
+
     await tester.enterText(
       find.byKey(const Key('gallery_search')),
       'no-such-component',
     );
     await tester.pumpAndSettle();
-    expect(find.text('No components found'), findsOneWidget);
+    expect(find.text('No components found'), findsWidgets);
   });
 
-  testWidgets('category filters presentation widgets from neurons', (
+  testWidgets('category dropdown filters specs by the 5 studio categories', (
     tester,
   ) async {
+    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     await tester.pumpWidget(
       const MaterialApp(home: Scaffold(body: UiGalleryScreen())),
     );
     await tester.pumpAndSettle();
+
     await tester.tap(find.byKey(const Key('gallery_category')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Foundations').last);
+    await tester.tap(find.text('3D Brain & Neurons').last);
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('gallery_entry_lumen')), findsOneWidget);
-    expect(find.byKey(const Key('gallery_entry_neuron:surface')), findsNothing);
-  });
 
-  for (final kind in RendererRegistry.uiKinds) {
-    testWidgets('$kind preview renders bounded at narrow width', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: SizedBox(width: 280, child: NeuronGalleryPreview(kind: kind)),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(tester.takeException(), isNull);
-      if (RendererRegistry.uiEntry(kind).isFallback) {
-        expect(find.text('Not supported yet: $kind'), findsOneWidget);
-      }
-    });
-  }
-
-  testWidgets('composed tabs switch their actual child view locally', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: Scaffold(body: NeuronGalleryPreview(kind: 'tabs')),
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(find.text('A Field Guide'), findsOneWidget);
-    await tester.tap(find.text('Summary'));
-    await tester.pumpAndSettle();
-    expect(find.text('Currently reading'), findsOneWidget);
-    expect(find.text('A Field Guide'), findsNothing);
+    expect(find.byKey(const Key('gallery_sample_brain-3d')), findsOneWidget);
+    expect(find.byKey(const Key('gallery_sample_buttons')), findsNothing);
   });
 }

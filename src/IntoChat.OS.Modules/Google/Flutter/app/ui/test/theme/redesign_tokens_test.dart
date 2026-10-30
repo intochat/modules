@@ -54,8 +54,8 @@ void main() {
       expect(c.focus.a, closeTo(0.35, 0.01));
       expect(c.focus.withValues(alpha: 1), c.accent);
     }
-    expect(UiColors.paper.page, LumenPalette.background);
-    expect(UiColors.paper.accent, LumenPalette.accent);
+    expect(UiColors.paper.page, const Color(0xFFF7F7F2));
+    expect(UiColors.paper.accent, const Color(0xFF397B63));
   });
 
   test('UiTokens radii and ease', () {

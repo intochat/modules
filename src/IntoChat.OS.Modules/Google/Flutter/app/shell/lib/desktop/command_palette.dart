@@ -13,6 +13,8 @@ class CommandPaletteEntry {
     required this.icon,
     required this.onRun,
     this.detail,
+    this.appId,
+    this.accentHex,
   });
 
   final String id;
@@ -21,6 +23,8 @@ class CommandPaletteEntry {
   final String? detail;
   final IconData icon;
   final VoidCallback onRun;
+  final String? appId;
+  final String? accentHex;
 }
 
 /// Keyboard-first Raycast-style Command Palette (`⌘K` / `/`) across apps,
@@ -71,9 +75,11 @@ class _CommandPaletteState extends State<CommandPalette> {
         CommandPaletteEntry(
           id: 'app:${spec.id}',
           label: 'Open ${spec.name}',
-          kind: 'App',
+          kind: spec.category,
           detail: spec.neuronUri,
           icon: spec.icon,
+          appId: spec.id,
+          accentHex: spec.accentHex,
           onRun: () {
             widget.onClose();
             widget.onLaunchApp?.call(spec.id);
@@ -124,6 +130,7 @@ class _CommandPaletteState extends State<CommandPalette> {
           kind: 'Ino Assistant',
           detail: 'neuron://local/apps/ino',
           icon: LucideIcons.sparkles,
+          appId: 'ino',
           onRun: () {
             final prompt = _text.text.trim();
             widget.onClose();
@@ -252,11 +259,19 @@ class _CommandPaletteState extends State<CommandPalette> {
                                 ),
                                 child: Row(
                                   children: [
-                                    Icon(
-                                      item.icon,
-                                      size: 15,
-                                      color: selected ? c.accent : c.textBody,
-                                    ),
+                                    if (item.appId != null)
+                                      IcAppIcon(
+                                        appId: item.appId!,
+                                        icon: item.icon,
+                                        accentHex: item.accentHex,
+                                        size: 20,
+                                      )
+                                    else
+                                      Icon(
+                                        item.icon,
+                                        size: 15,
+                                        color: selected ? c.accent : c.textBody,
+                                      ),
                                     const SizedBox(width: 10),
                                     Expanded(
                                       child: Text(
@@ -346,10 +361,10 @@ class WindowSwitcher extends StatelessWidget {
                 child: GestureDetector(
                   onTap: () => onSelect(windows[i]),
                   child: Container(
-                    width: 112,
+                    width: 120,
                     padding: const EdgeInsets.symmetric(
                       vertical: 12,
-                      horizontal: 8,
+                      horizontal: 10,
                     ),
                     decoration: BoxDecoration(
                       color: i == safeIdx ? c.accentTint : c.surfaceSunk,
@@ -361,12 +376,12 @@ class WindowSwitcher extends StatelessWidget {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
-                          LucideIcons.appWindow,
-                          size: 22,
-                          color: i == safeIdx ? c.accent : c.textBody,
+                        IcAppIcon(
+                          appId: windows[i].appId,
+                          accentHex: windows[i].accentHex,
+                          size: 36,
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 8),
                         Text(
                           windows[i].title,
                           maxLines: 1,
@@ -376,6 +391,13 @@ class WindowSwitcher extends StatelessWidget {
                             weight: FontWeight.w600,
                             color: c.textStrong,
                           ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          windows[i].neuronUri,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: IcType.text(10, color: c.textMuted, tnum: true),
                         ),
                       ],
                     ),

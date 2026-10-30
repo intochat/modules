@@ -14,6 +14,7 @@ class DesktopWindowState extends ChangeNotifier {
     this.bounds = const Rect.fromLTWH(80, 48, 860, 560),
     this.zoomed = false,
     this.minimized = false,
+    this.accentHex,
   });
 
   final int id;
@@ -23,6 +24,7 @@ class DesktopWindowState extends ChangeNotifier {
   Rect bounds;
   bool zoomed;
   bool minimized;
+  final String? accentHex;
 
   void moveBy(Offset delta, Size desk) {
     if (zoomed) return;
@@ -351,6 +353,12 @@ class _TitleBarState extends State<_TitleBar> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    IcAppIcon(
+                      appId: w.appId,
+                      accentHex: w.accentHex,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 7),
                     Flexible(
                       child: Text(
                         w.title,

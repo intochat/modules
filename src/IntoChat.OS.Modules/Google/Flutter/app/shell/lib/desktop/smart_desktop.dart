@@ -9,6 +9,8 @@ class SmartAppTileSpec {
     required this.icon,
     required this.color,
     required this.neuronUri,
+    this.accentHex,
+    this.category = 'App',
   });
 
   final String id;
@@ -16,6 +18,8 @@ class SmartAppTileSpec {
   final IconData icon;
   final Color color;
   final String neuronUri;
+  final String? accentHex;
+  final String category;
 }
 
 const defaultSmartAppSpecs = <SmartAppTileSpec>[
@@ -23,42 +27,63 @@ const defaultSmartAppSpecs = <SmartAppTileSpec>[
     id: 'ino',
     name: 'Ino',
     icon: LucideIcons.sparkles,
-    color: Color(0xFF4F8CFF),
+    color: Color(0xFF3D7EFF),
+    accentHex: '#3D7EFF',
+    category: 'Intelligence',
     neuronUri: 'neuron://local/apps/ino',
-  ),
-  SmartAppTileSpec(
-    id: 'gallery',
-    name: 'UI Gallery',
-    icon: LucideIcons.layoutTemplate,
-    color: Color(0xFF8B5CF6),
-    neuronUri: 'neuron://local/apps/gallery',
-  ),
-  SmartAppTileSpec(
-    id: 'creator',
-    name: 'Creator',
-    icon: LucideIcons.brainCircuit,
-    color: Color(0xFF22D3EE),
-    neuronUri: 'neuron://local/apps/creator',
   ),
   SmartAppTileSpec(
     id: 'files',
     name: 'Files',
     icon: LucideIcons.folder,
-    color: Color(0xFFF59E0B),
+    color: Color(0xFFF6B73C),
+    accentHex: '#F6B73C',
+    category: 'Workspace',
     neuronUri: 'neuron://local/apps/files',
+  ),
+  SmartAppTileSpec(
+    id: 'creator',
+    name: 'Creator',
+    icon: LucideIcons.wandSparkles,
+    color: Color(0xFFFF5D8F),
+    accentHex: '#FF5D8F',
+    category: 'Studio',
+    neuronUri: 'neuron://local/apps/creator',
+  ),
+  SmartAppTileSpec(
+    id: 'gallery',
+    name: 'UI Gallery',
+    icon: LucideIcons.palette,
+    color: Color(0xFF22C55E),
+    accentHex: '#22C55E',
+    category: 'Studio',
+    neuronUri: 'neuron://local/apps/gallery',
   ),
   SmartAppTileSpec(
     id: 'post',
     name: 'Post',
-    icon: LucideIcons.send,
-    color: Color(0xFF34D399),
+    icon: LucideIcons.megaphone,
+    color: Color(0xFFFB7185),
+    accentHex: '#FB7185',
+    category: 'Reach',
     neuronUri: 'neuron://local/apps/post',
+  ),
+  SmartAppTileSpec(
+    id: 'circles',
+    name: 'Circles',
+    icon: LucideIcons.circleDot,
+    color: Color(0xFFA855F7),
+    accentHex: '#A855F7',
+    category: 'Social',
+    neuronUri: 'neuron://local/apps/circles',
   ),
   SmartAppTileSpec(
     id: 'settings',
     name: 'Settings',
-    icon: LucideIcons.settings,
-    color: Color(0xFF94A3B8),
+    icon: LucideIcons.slidersHorizontal,
+    color: Color(0xFF64748B),
+    accentHex: '#64748B',
+    category: 'System',
     neuronUri: 'neuron://local/apps/settings',
   ),
 ];
@@ -150,10 +175,11 @@ class _SmartDesktopState extends State<SmartDesktop> {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(24, 24, 24, 56),
             child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final compact = constraints.maxWidth < 860;
-                  final leftCards = SizedBox(
-                    width: compact ? constraints.maxWidth : 360,
+              builder: (context, constraints) {
+                final compact = constraints.maxWidth < 860;
+                final leftCards = SizedBox(
+                  width: compact ? constraints.maxWidth : 360,
+                  child: SingleChildScrollView(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -163,9 +189,11 @@ class _SmartDesktopState extends State<SmartDesktop> {
                         _buildSignalApprovalCard(c),
                       ],
                     ),
-                  );
-                  final rightCards = SizedBox(
-                    width: compact ? constraints.maxWidth : 340,
+                  ),
+                );
+                final rightCards = SizedBox(
+                  width: compact ? constraints.maxWidth : 340,
+                  child: SingleChildScrollView(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -175,32 +203,33 @@ class _SmartDesktopState extends State<SmartDesktop> {
                         _buildSmartAppGridCard(c),
                       ],
                     ),
-                  );
+                  ),
+                );
 
-                  if (compact) {
-                    return SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          leftCards,
-                          const SizedBox(height: 14),
-                          rightCards,
-                        ],
-                      ),
-                    );
-                  }
-
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [leftCards, const Spacer(), rightCards],
+                if (compact) {
+                  return SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        leftCards,
+                        const SizedBox(height: 14),
+                        rightCards,
+                      ],
+                    ),
                   );
-                },
-              ),
+                }
+
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [leftCards, const Spacer(), rightCards],
+                );
+              },
             ),
           ),
-        ],
-      );
-    }
+        ),
+      ],
+    );
+  }
 
   Widget _buildLauncherCard(IcColors c) {
     return IcAcrylicBox(
@@ -212,15 +241,7 @@ class _SmartDesktopState extends State<SmartDesktop> {
         children: [
           Row(
             children: [
-              Container(
-                width: 30,
-                height: 30,
-                decoration: BoxDecoration(
-                  color: c.accent,
-                  borderRadius: BorderRadius.circular(IcRadius.sm),
-                ),
-                child: Icon(LucideIcons.sparkles, size: 16, color: c.onAccent),
-              ),
+              const IcAppIcon(appId: 'ino', size: 32),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -637,11 +658,11 @@ class _SmartAppTileState extends State<_SmartAppTile> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              AppTile(
-                size: 28,
-                style: AppTileStyle.brand,
-                brandColor: widget.spec.color,
-                glyph: widget.spec.icon,
+              IcAppIcon(
+                appId: widget.spec.id,
+                icon: widget.spec.icon,
+                accentHex: widget.spec.accentHex,
+                size: 30,
               ),
               const SizedBox(height: 6),
               Text(

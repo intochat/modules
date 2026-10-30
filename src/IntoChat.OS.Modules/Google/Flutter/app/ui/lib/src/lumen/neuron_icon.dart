@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import 'lumen_palette.dart';
+import '../theme/ui_colors.dart';
 
 enum NeuronIconKind {
   assistant,
@@ -74,7 +74,7 @@ final class NeuronIcon extends StatelessWidget {
         _ => Icons.hub_outlined,
       },
       size: size,
-      color: color ?? LumenPalette.accent,
+      color: color ?? UiColors.paper.accent,
       semanticLabel: semanticLabel,
     );
   }
