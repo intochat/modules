@@ -3,6 +3,7 @@ using System.Text.Json;
 using DigitalBrain.Contracts;
 using DigitalBrain.UI;
 using IntoChat.OS.Client;
+using IntoChat.OS.Modules.Flutter;
 using IntoChat.OS.Modules.Flutter.Views;
 
 namespace IntoChat.OS.Modules.Microsoft.CSharp.Sandbox;
