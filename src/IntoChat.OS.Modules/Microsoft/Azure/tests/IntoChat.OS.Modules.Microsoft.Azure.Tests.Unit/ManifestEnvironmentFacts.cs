@@ -1,5 +1,7 @@
 using IntoChat.OS.Contracts.Configuration;
+using IntoChat.OS.Framework.Modules;
 using IntoChat.OS.Framework.Modules.Configuration;
+using IntoChat.OS.Framework.Modules.Platform.Integrations;
 using IntoChat.OS.Modules.Microsoft.Azure.Install;
 using IntoChat.OS.ServiceDefaults;
 
@@ -101,5 +103,30 @@ public sealed class ManifestEnvironmentFacts
             Assert.Contains(ConfigurationKeyGrammar.EnvironmentName(IntoChatOSNames.CloudKeyVaultConfigurationKey), names);
         }
         finally { directory.Delete(true); }
+    }
+
+    [DigitalBrain.Module("github")]
+    public sealed class GitHubIntegrationModule : DigitalBrain.Module
+    {
+        public static DigitalBrain.ModuleManifest Manifest { get; } = new(Provides: [], Requires: [], Needs: [], Settings: [], Secrets: []);
+
+        public static IntegrationSchema Integration { get; } = IntegrationSchema
+            .For("github.app", "GitHub")
+            .RequiresSecret("ClientSecret")
+            .OffersSecret("WebhookSecret");
+    }
+
+    [Fact]
+    public void Integration_schemas_project_normalized_vault_secret_names_and_integration_env_variables()
+    {
+        var modules = new[] { OsModule.FromDigital(typeof(GitHubIntegrationModule)) };
+        var secrets = ManifestEnvironment.IntegrationSecretsOf(modules, "kv-intochat-test");
+
+        Assert.Equal(2, secrets.Count);
+        Assert.Equal("github-app-clientsecret", secrets[0].VaultSecret);
+        Assert.Equal("IntoChatOS__Integrations__github.app__ClientSecret", secrets[0].Variable);
+        Assert.Equal("kv-intochat-test", secrets[0].Vault);
+        Assert.Equal("github-app-webhooksecret", secrets[1].VaultSecret);
+        Assert.Equal("IntoChatOS__Integrations__github.app__WebhookSecret", secrets[1].Variable);
     }
 }

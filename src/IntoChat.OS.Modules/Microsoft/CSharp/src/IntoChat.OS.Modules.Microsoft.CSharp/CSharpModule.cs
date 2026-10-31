@@ -86,7 +86,7 @@ public sealed class CSharpModule : DigitalBrain.Module, IHttpModule
         services.TryAddSingleton<IWorkContinuation, RuntimeWorkContinuation>();
         services.TryAddTransient<RuntimeEdge>();
         services.AddSingleton<IIncomingGrainCallFilter, BrainRunsGuard>();
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IntoChat.OS.Framework.Modules.Platform.Identity.ISignInHandler, RuntimeSignIn>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<DigitalBrain.Capabilities.Identity.ISignInHandler, RuntimeSignIn>());
         if (authoring)
         {
             services.TryAddScoped(provider => provider.GetRequiredService<CSharpToolService>().ForScope(BrainScope.CurrentId()));

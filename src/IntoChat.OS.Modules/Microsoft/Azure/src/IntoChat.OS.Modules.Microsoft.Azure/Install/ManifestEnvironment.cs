@@ -1,6 +1,7 @@
 using System.Reflection;
 using IntoChat.OS.Contracts.Configuration;
 using IntoChat.OS.Framework.Modules.Configuration;
+using IntoChat.OS.Framework.Modules.Platform.Integrations;
 
 namespace IntoChat.OS.Modules.Microsoft.Azure.Install;
 
@@ -27,6 +28,51 @@ public static class ManifestEnvironment
     // The variable the container app carries the secret under.
     public static string SecretVariable(string moduleId, string secret)
         => ConfigurationKeyGrammar.EnvironmentName(IntoChatOSConfiguration.ModuleSection(moduleId) + ":Secrets:" + secret);
+
+    // The vault secret of an integration schema's secret field (normalized to lowercase ASCII letters, digits, and dashes).
+    public static string IntegrationSecretName(string integrationId, string field)
+        => new([.. $"{integrationId}-{field}".ToLowerInvariant().Select(c => char.IsAsciiLetterOrDigit(c) ? c : '-')]);
+
+    // The variable the container app carries an integration secret under (IntoChatOS__Integrations__{id}__{field}).
+    public static string IntegrationSecretVariable(string integrationId, string field)
+        => ConfigurationKeyGrammar.EnvironmentName(IntegrationSchema.Key(integrationId, field));
+
+    // Every integration secret declared across composed modules' IntegrationSchemas.
+    public static IReadOnlyList<SecretRef> IntegrationSecretsOf(IEnumerable<IntoChat.OS.Framework.Modules.OsModule> modules, string vaultName)
+    {
+        ArgumentNullException.ThrowIfNull(modules);
+        ArgumentException.ThrowIfNullOrWhiteSpace(vaultName);
+        return [.. modules
+            .GroupBy(module => module.Type)
+            .Select(group => group.First().Type)
+            .SelectMany(SchemasOf)
+            .GroupBy(schema => schema.Id, StringComparer.Ordinal)
+            .Select(group => group.First())
+            .SelectMany(schema => schema.SecretFields.Concat(schema.OptionalSecretFields).Select(field =>
+            {
+                var name = IntegrationSecretName(schema.Id, field);
+                return new SecretRef
+                {
+                    Name = name,
+                    Vault = vaultName,
+                    VaultSecret = name,
+                    Variable = IntegrationSecretVariable(schema.Id, field),
+                };
+            }))];
+    }
+
+    private static IEnumerable<IntegrationSchema> SchemasOf(Type moduleType)
+    {
+        const BindingFlags Flags = BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy;
+        if (moduleType.GetProperty("Integration", Flags)?.GetValue(null) is IntegrationSchema single)
+        {
+            yield return single;
+        }
+        if (moduleType.GetProperty("Integrations", Flags)?.GetValue(null) is IEnumerable<IntegrationSchema> many)
+        {
+            foreach (var schema in many) { yield return schema; }
+        }
+    }
 
     public static (IReadOnlyDictionary<string, string> Variables, IReadOnlyList<SecretRef> Secrets) Render(
         InstallConfig config, IReadOnlyList<DigitalBrain.ModuleManifest> manifests)

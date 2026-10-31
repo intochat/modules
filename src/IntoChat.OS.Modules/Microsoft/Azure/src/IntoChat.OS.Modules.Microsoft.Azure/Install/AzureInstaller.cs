@@ -122,6 +122,30 @@ public static class AzureInstaller
                 }
                 secrets.Add(secret);
             }
+            // IntegrationSchema secrets (IntoChatOS__Integrations__{id}__{field}) are optional at install time: when present in
+            // --secrets-from or already stored in Key Vault, bind them to the container app so redeploys preserve every integration secret.
+            var validated = config.Validated();
+            foreach (var secret in ManifestEnvironment.IntegrationSecretsOf(modules, validated.VaultName))
+            {
+                if (secrets.Any(existing => string.Equals(existing.Variable, secret.Variable, StringComparison.Ordinal))) { continue; }
+                if (!dryRun && provided.TryGetValue(secret.VaultSecret, out var secretValue) && !string.IsNullOrEmpty(secretValue))
+                {
+                    await Ensure(new SecretSpec
+                    {
+                        Name = secret.VaultSecret,
+                        ResourceGroup = validated.ResourceGroup,
+                        Location = validated.Location,
+                        Vault = secret.Vault,
+                        Value = secretValue,
+                        Overwrite = true,
+                    }, ct);
+                    secrets.Add(secret);
+                }
+                else if (!dryRun && await arm.ReadSecret(secret.Vault, secret.VaultSecret, ct) is not null)
+                {
+                    secrets.Add(secret);
+                }
+            }
             var osApp = InstallPlan.OsApp(config, variables, secrets);
             await Ensure(osApp with { RegistryServer = foundation.RegistryServer }, ct);
             if (dryRun) { await output.WriteLineAsync(InstallPlan.Summary(planned), ct); }
