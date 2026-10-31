@@ -34,7 +34,10 @@ internal static class AppRunner
         // The operations the app is requested by are the manifest's; each one that is an [On] method is served,
         // alongside any background neuron [Signal] subscriptions declared via [On("sourceKey")].
         var snapshot = await app.Read().ConfigureAwait(false);
-        instance.AttachCapabilityResolver(capabilityType => ResolveCapability(brain, snapshot, capabilityType));
+        if (instance.GetType().GetMethod("AttachCapabilityResolver", [typeof(Func<Type, object?>)]) is { } attachResolver)
+        {
+            attachResolver.Invoke(instance, [new Func<Type, object?>(capabilityType => ResolveCapability(brain, snapshot, capabilityType))]);
+        }
         if (snapshot.GetType().GetProperty("RuntimeStateRevision")?.GetValue(snapshot) is long rev) { _stateRevision = rev; }
         if (snapshot.GetType().GetProperty("RuntimeStateJson")?.GetValue(snapshot) is string stateJson) { RestoreState(instance, stateJson); }
         RefreshViews(instance, presenter);
