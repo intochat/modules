@@ -39,8 +39,9 @@ jobs:
         run: |
           version="v$(tr -d '[:space:]' < VERSION)"
           mkdir -p ../nuget
-          gh release download "${version}" --repo intochat/digitalbrain -p "*.nupkg" -D ../nuget --clobber
-          gh release download "${version}" --repo intochat/modules -p "*.nupkg" -D ../nuget --clobber
+          gh release download "${version}" --repo intochat/digitalbrain -p "*.nupkg" -D ../nuget --clobber || gh release download --repo intochat/digitalbrain -p "*.nupkg" -D ../nuget --clobber
+          gh release download "${version}" --repo intochat/os -p "*.nupkg" -D ../nuget --clobber || gh release download --repo intochat/os -p "*.nupkg" -D ../nuget --clobber
+          gh release download "${version}" --repo intochat/modules -p "*.nupkg" -D ../nuget --clobber || gh release download --repo intochat/modules -p "*.nupkg" -D ../nuget --clobber
 
       - name: Restore dependencies
         run: dotnet restore IntoChat.Modules.slnx -v quiet
@@ -65,8 +66,9 @@ jobs:
         run: |
           version="v$(tr -d '[:space:]' < VERSION)"
           mkdir -p ../nuget
-          gh release download "${version}" --repo intochat/digitalbrain -p "*.nupkg" -D ../nuget --clobber
-          gh release download "${version}" --repo intochat/modules -p "*.nupkg" -D ../nuget --clobber
+          gh release download "${version}" --repo intochat/digitalbrain -p "*.nupkg" -D ../nuget --clobber || gh release download --repo intochat/digitalbrain -p "*.nupkg" -D ../nuget --clobber
+          gh release download "${version}" --repo intochat/os -p "*.nupkg" -D ../nuget --clobber || gh release download --repo intochat/os -p "*.nupkg" -D ../nuget --clobber
+          gh release download "${version}" --repo intochat/modules -p "*.nupkg" -D ../nuget --clobber || gh release download --repo intochat/modules -p "*.nupkg" -D ../nuget --clobber
 
       - name: Build solution
         run: dotnet build IntoChat.Modules.slnx -c Release -v quiet -p:CodeGraphRefresh=false
