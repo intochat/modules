@@ -6,7 +6,6 @@ using IntoChat.OS.Framework;
 using IntoChat.OS.Contracts.Compute;
 using IntoChat.OS.Framework.Compute;
 using IntoChat.OS.Connections.Platform.Connections;
-using IntoChat.OS.Integrations;
 using IntoChat.OS.Framework.Modules.Metering;
 using IntoChat.OS.Modules.Google.Auth;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,75 +19,13 @@ internal sealed class DriveState : ConnectionState;
 // Google documents are exported as plain text; other Google formats are not text. storage@1 lives in DriveStorage.cs (05-09).
 [DigitalBrain.Neuron(DriveScopes.Connector, State = "google-drive")]
 internal sealed partial class DriveNeuron()
-    : ConnectionNeuron<DriveState>, ILegacyStorage
+    : ConnectionNeuron<DriveState>
 {
     private const string Root = "root";
     private const string RootName = "My Drive";
     private const string FolderType = "application/vnd.google-apps.folder";
     private const string DocumentType = "application/vnd.google-apps.document";
     private const int MaxDepth = 32;
-
-    public Task<StorageEntry[]> Roots(CancellationToken cancellationToken = default) =>
-        Task.FromResult<StorageEntry[]>([new(Root, RootName, true)]);
-
-    // Every child, following nextPageToken (D-16: a folder over one page is listed whole).
-    public async Task<StorageEntry[]> List(string location, CancellationToken cancellationToken = default)
-    {
-        var folder = string.IsNullOrEmpty(location) ? Root : location;
-        var query = Uri.EscapeDataString($"'{folder.Replace("\\", "\\\\").Replace("'", "\\'")}' in parents and trashed = false");
-        var entries = new List<StorageEntry>();
-        string? token = null;
-        do
-        {
-            var page = token is null ? "" : $"&pageToken={Uri.EscapeDataString(token)}";
-            using var json = await GetJsonAsync($"files?q={query}&fields=nextPageToken,files(id,name,mimeType)&orderBy=folder,name&pageSize=1000{page}", GoogleDriveOperations.List, cancellationToken);
-            entries.AddRange(json.RootElement.GetProperty("files").EnumerateArray().Select(Entry));
-            token = json.RootElement.TryGetProperty("nextPageToken", out var next) ? next.GetString() : null;
-        }
-        while (!string.IsNullOrEmpty(token));
-        return [.. entries];
-    }
-
-    public async Task<string> Read(string location, CancellationToken cancellationToken = default)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(location);
-        using var metadata = await GetJsonAsync($"files/{Uri.EscapeDataString(location)}?fields=id,name,mimeType", GoogleDriveOperations.Metadata, cancellationToken);
-        var type = metadata.RootElement.GetProperty("mimeType").GetString();
-        var path = type switch
-        {
-            DocumentType => $"files/{Uri.EscapeDataString(location)}/export?mimeType=text%2Fplain",
-            FolderType => throw new InvalidOperationException("A Drive folder is not a text file."),
-            { } google when google.StartsWith("application/vnd.google-apps.", StringComparison.Ordinal)
-                => throw new InvalidOperationException("This Google file has no text form."),
-            _ => $"files/{Uri.EscapeDataString(location)}?alt=media",
-        };
-        return await SendAsync(path, type == DocumentType ? GoogleDriveOperations.Export : GoogleDriveOperations.Media,
-            cancellationToken, response => response.Content.ReadAsStringAsync(cancellationToken));
-    }
-
-    // Walks parents up to My Drive; a file shared with the user ends the chain at its topmost visible folder.
-    public async Task<StorageEntry[]> Ancestors(string location, CancellationToken cancellationToken = default)
-    {
-        if (string.IsNullOrEmpty(location)) { return []; }
-        var chain = new List<StorageEntry>();
-        var current = location;
-        for (var depth = 0; depth < MaxDepth && current != Root; depth++)
-        {
-            using var json = await GetJsonAsync($"files/{Uri.EscapeDataString(current)}?fields=id,name,mimeType,parents", GoogleDriveOperations.Metadata, cancellationToken);
-            var file = json.RootElement;
-            chain.Add(Entry(file));
-            // My Drive (Google names it so) and the topmost folder shared with the user have no visible parent.
-            if (!file.TryGetProperty("parents", out var parents) || parents.GetArrayLength() == 0)
-            {
-                chain.Reverse();
-                return [.. chain];
-            }
-            current = parents[0].GetString()!;
-        }
-        chain.Add(new(Root, RootName, true));
-        chain.Reverse();
-        return [.. chain];
-    }
 
     protected override async Task<OAuthGrant> AcceptGrantAsync(OAuthGrant grant)
     {
@@ -110,9 +47,6 @@ internal sealed partial class DriveNeuron()
             var status => ConnectionProbeResult.Failing($"Google answered the Drive check with HTTP {(int)status}."),
         };
     }
-
-    private static StorageEntry Entry(JsonElement file) =>
-        new(file.GetProperty("id").GetString()!, file.GetProperty("name").GetString() ?? "", file.GetProperty("mimeType").GetString() == FolderType);
 
     private async Task<JsonDocument> GetJsonAsync(string path, string operation, CancellationToken ct) =>
         await SendAsync(path, operation, ct, async response => await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(ct), cancellationToken: ct));

@@ -90,12 +90,13 @@ public sealed class LocalDiskNeuron : DigitalBrain.Neuron<LocalDiskState>, ILoca
         return Engine.Read(id, range, ct);
     }
 
-    public Task<OperationId> Write(WritePlan plan, CancellationToken ct = default)
+    public async Task<OperationId> Write(WritePlan plan, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(plan);
         if (plan.Source is { } source) { _ = PathConfinement.Resolve(Paths(), PathOf(source)); }
         if (plan.TargetFolder is { } folder) { _ = PathConfinement.Resolve(Paths(), PathOf(folder)); }
-        return Engine.Write(plan, ct);
+        await AuthorizeWrite(plan, ct).ConfigureAwait(false);
+        return await Engine.Write(plan, ct).ConfigureAwait(false);
     }
 
     public Task<Page<Item>> Search(SearchQuery query, CancellationToken ct = default)
@@ -119,12 +120,19 @@ public sealed class LocalDiskNeuron : DigitalBrain.Neuron<LocalDiskState>, ILoca
     }
 
     // Stages .{name}.intochat-partial beside the destination, then File.Move(overwrite: false).
-    public Task<StorageWriteStream> OpenWrite(WritePlan plan, CancellationToken ct = default)
+    public async Task<StorageWriteStream> OpenWrite(WritePlan plan, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(plan);
         var folder = plan.TargetFolder ?? throw new Unsupported(null);
         _ = PathConfinement.ResolveForCreate(Paths(), PathOf(folder), plan.Name ?? "file", PathConfinement.Current);
-        return Engine.OpenWrite(plan, ct);
+        await AuthorizeWrite(plan, ct).ConfigureAwait(false);
+        return await Engine.OpenWrite(plan, ct).ConfigureAwait(false);
+    }
+
+    private async Task AuthorizeWrite(WritePlan plan, CancellationToken ct)
+    {
+        if (await StorageConfirmationGate.Check(Context, this, plan, ct).ConfigureAwait(false) is not null)
+        { throw new Denied(plan.Source ?? plan.TargetFolder); }
     }
 
     private LocalRoot[] Current()

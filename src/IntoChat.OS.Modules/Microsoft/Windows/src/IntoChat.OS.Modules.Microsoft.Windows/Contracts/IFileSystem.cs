@@ -3,7 +3,7 @@ using System.ComponentModel;
 namespace IntoChat.OS.Modules.Microsoft.Windows;
 
 // Read and write files on one Windows PC, keyed {connectionKey}/files, confined to that machine's allowed roots.
-// Browsing goes through the storage capability (ILegacyStorage) on the connection itself.
+// Browsing goes through the storage capability (IStorage) on the connection itself.
 // A plain neuron (06-08).
 [DigitalBrain.Contracts.NeuronAlias("windows.files"), DigitalBrain.Contracts.DefaultNeuronType("windows.files")]
 public interface IFileSystem

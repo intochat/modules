@@ -12,6 +12,7 @@
     <PackageReference Include="DigitalBrain.UI" />
     <!-- What an [App] program is run against: its app's requests and the shell's view tree (contracts only). -->
     <PackageReference Include="IntoChat.OS.Modules.Apps.Contracts" />
+    <PackageReference Include="DigitalBrain.Capabilities.Storage" />
     <ProjectReference Include="../../../../Google/Flutter/Contracts/IntoChat.OS.Modules.Flutter.Contracts/IntoChat.OS.Modules.Flutter.Contracts.csproj" />
     <PackageReference Include="IntoChat.OS.Modules.Identity.Contracts" />
     <PackageReference Include="IntoChat.OS.Modules.Circles.Contracts" />

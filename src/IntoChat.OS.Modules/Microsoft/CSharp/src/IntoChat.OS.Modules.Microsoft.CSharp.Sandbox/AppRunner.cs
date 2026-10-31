@@ -34,11 +34,15 @@ internal static class AppRunner
         // The operations the app is requested by are the manifest's; each one that is an [On] method is served,
         // alongside any background neuron [Signal] subscriptions declared via [On("sourceKey")].
         var snapshot = await app.Read().ConfigureAwait(false);
+        instance.AttachCapabilityResolver(capabilityType => ResolveCapability(brain, snapshot, capabilityType));
+        _stateRevision = snapshot.RuntimeStateRevision;
+        RestoreState(instance, snapshot.RuntimeStateJson);
+        RefreshViews(instance, presenter);
         var turns = new SemaphoreSlim(1, 1);
         var operationLoops = snapshot.Manifest.Operations.Where(operation => definition.FindOperation(operation.Name) is not null)
             .Select(operation => Serve(brain, app, definition, instance, presenter, operation.Name, turns, stopping));
         var signalLoops = definition.SignalSubscriptions
-            .Select(sub => ServeSignalSubscription(brain, definition, instance, presenter, sub, turns, stopping));
+            .Select(sub => ServeSignalSubscription(brain, app, definition, instance, presenter, sub, turns, stopping));
         var loops = operationLoops.Concat(signalLoops).ToArray();
         try { await Task.WhenAll(loops).ConfigureAwait(false); }
         finally { await presenter.DrainAsync().ConfigureAwait(false); }
@@ -51,8 +55,41 @@ internal static class AppRunner
             .MakeGenericMethod(contractType)
             .Invoke(brain, [key])!;
 
+    internal static object ResolveCapability(IntoChatOSConnection brain, AppSnapshot snapshot, Type capabilityType)
+    {
+        var capabilityAttr = capabilityType.GetCustomAttribute<DigitalBrain.CapabilityAttribute>(false);
+        var capabilityName = capabilityAttr?.Name
+            ?? capabilityType.GetCustomAttribute<DigitalBrain.Contracts.NeuronAliasAttribute>(false)?.Alias
+            ?? capabilityType.GetCustomAttribute<DigitalBrain.Contracts.DefaultNeuronTypeAttribute>(false)?.Type
+            ?? capabilityType.Name.ToLowerInvariant();
+        var capabilityVersion = capabilityAttr?.Version ?? 1;
+        var capabilityId = new DigitalBrain.Capabilities.CapabilityId(capabilityName, capabilityVersion);
+
+        if (snapshot.Manifest.Requires is not null)
+        {
+            var declared = snapshot.Manifest.Requires.Capabilities ?? [];
+            var isConsented = declared.Any(id => DigitalBrain.Capabilities.CapabilityId.TryParse(id, out var parsed) && parsed.Satisfies(capabilityId));
+            if (!isConsented)
+            {
+                throw new UnauthorizedAccessException(
+                    $"Security Violation: App '{snapshot.Manifest.Title}' attempted to access capability '{capabilityId}' without declaring it in [AppManifest.Requires.Capabilities].");
+            }
+        }
+
+        if (capabilityType == typeof(DigitalBrain.Capabilities.Storage.IStorage))
+        {
+            var storageKey = brain.Setting("DefaultStorageConnection") ?? brain.Setting("StorageConnection");
+            return storageKey is not null
+                ? brain.Get<DigitalBrain.Capabilities.Storage.IStorage>(storageKey)
+                : brain.Neuron<DigitalBrain.Capabilities.Storage.IStorage>("local-disk/main");
+        }
+
+        return ResolveNeuron(brain, capabilityType, capabilityName);
+    }
+
     private static Task ServeSignalSubscription(
         IntoChatOSConnection brain,
+        IApp app,
         AppDefinition definition,
         App instance,
         IPresenter presenter,
@@ -62,10 +99,11 @@ internal static class AppRunner
         => (Task)typeof(AppRunner)
             .GetMethod(nameof(ServeSignalGeneric), BindingFlags.Static | BindingFlags.NonPublic)!
             .MakeGenericMethod(sub.SignalType)
-            .Invoke(null, [brain, definition, instance, presenter, sub, turns, stopping])!;
+            .Invoke(null, [brain, app, definition, instance, presenter, sub, turns, stopping])!;
 
     private static async Task ServeSignalGeneric<TSignal>(
         IntoChatOSConnection brain,
+        IApp app,
         AppDefinition definition,
         App instance,
         IPresenter presenter,
@@ -84,6 +122,8 @@ internal static class AppRunner
                 {
                     await definition.Invoke(instance, sub.OperationName, signal, Json, stopping).ConfigureAwait(false);
                     RefreshViews(instance, presenter);
+            await PersistStateAsync(app, instance).ConfigureAwait(false);
+                    await PersistStateAsync(app, instance).ConfigureAwait(false);
                 }
                 catch (Exception error) when (error is not OperationCanceledException)
                 {
@@ -105,7 +145,7 @@ internal static class AppRunner
             await foreach (var request in brain.On(app, operation, stopping).ConfigureAwait(false))
             {
                 await turns.WaitAsync(stopping).ConfigureAwait(false);
-                try { await Turn(definition, instance, presenter, operation, request, stopping).ConfigureAwait(false); }
+                try { await Turn(app, definition, instance, presenter, operation, request, stopping).ConfigureAwait(false); }
                 finally { turns.Release(); }
             }
         }
@@ -113,12 +153,13 @@ internal static class AppRunner
     }
 
     // An operation that throws has failed its request, not the app: the failure goes to the run log, and the next request is served.
-    private static async Task Turn(AppDefinition definition, App instance, IPresenter presenter, string operation, AppRequested request, CancellationToken stopping)
+    private static async Task Turn(IApp app, AppDefinition definition, App instance, IPresenter presenter, string operation, AppRequested request, CancellationToken stopping)
     {
         try
         {
             await definition.Invoke(instance, operation, Argument(definition.FindOperation(operation)!, request.Input), Json, stopping).ConfigureAwait(false);
             RefreshViews(instance, presenter);
+            await PersistStateAsync(app, instance).ConfigureAwait(false);
         }
         catch (Exception error) when (error is not OperationCanceledException)
         { AppLog.Log($"{definition.Manifest.Id}.{operation} failed for request {request.RequestId}: {error}"); }
@@ -165,4 +206,51 @@ internal static class AppRunner
         if (parameter is null || parameter.ParameterType == typeof(string)) { return string.IsNullOrEmpty(input) ? null : input; }
         return string.IsNullOrWhiteSpace(input) ? null : JsonSerializer.Deserialize(input, parameter.ParameterType, Json);
     }
-}
+
+    private static long _stateRevision;
+    private static string? _lastSavedState;
+
+    private static void RestoreState(App instance, string? stateJson)
+    {
+        if (string.IsNullOrWhiteSpace(stateJson)) { return; }
+        try
+        {
+            var type = instance.GetType();
+            var stateProp = type.GetProperty("State", BindingFlags.Public | BindingFlags.Instance);
+            if (stateProp is null) { return; }
+            var restored = JsonSerializer.Deserialize(stateJson, stateProp.PropertyType, Json);
+            if (restored is null) { return; }
+            var setMethod = type.GetMethod("Set", BindingFlags.NonPublic | BindingFlags.Instance, [stateProp.PropertyType]);
+            if (setMethod is not null)
+            {
+                setMethod.Invoke(instance, [restored]);
+                _lastSavedState = stateJson;
+            }
+        }
+        catch (Exception error)
+        {
+            AppLog.Log($"Failed to restore app state: {error.Message}");
+        }
+    }
+
+    private static async Task PersistStateAsync(IApp app, App instance)
+    {
+        try
+        {
+            var type = instance.GetType();
+            var stateProp = type.GetProperty("State", BindingFlags.Public | BindingFlags.Instance);
+            if (stateProp is null) { return; }
+            var current = stateProp.GetValue(instance);
+            if (current is null) { return; }
+            var json = JsonSerializer.Serialize(current, Json);
+            if (json == _lastSavedState) { return; }
+            var updated = await app.SaveRuntimeState(json, _stateRevision).ConfigureAwait(false);
+            _lastSavedState = json;
+            _stateRevision = updated.RuntimeStateRevision;
+        }
+        catch (Exception error)
+        {
+            AppLog.Log($"Failed to persist app state: {error.Message}");
+        }
+    }
+    }

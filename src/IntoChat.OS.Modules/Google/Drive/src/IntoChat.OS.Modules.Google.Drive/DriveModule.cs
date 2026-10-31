@@ -1,9 +1,9 @@
+using DigitalBrain.Capabilities.Storage;
 using IntoChat.OS.Connections.Platform.Connections;
 using IntoChat.OS.Connections.Platform.Integrations;
 using IntoChat.OS.Contracts.Compute;
 using IntoChat.OS.Framework.Modules.Configuration;
 using IntoChat.OS.Framework.Modules.Metering;
-using IntoChat.OS.Integrations;
 using IntoChat.OS.Modules.Google.Auth;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -28,7 +28,7 @@ public sealed class DriveModule : DigitalBrain.Module
     // The connector carries auth and neurons only; storage@1 is declared on the module's manifest (05-07, R4-01).
     public static ConnectorDefinition Connector { get; } = new(DriveScopes.Connector, "Google Drive", [GoogleAuth.Integration], [GoogleAuth.Integration])
     {
-        Neurons = [typeof(ILegacyStorage)],
+        Neurons = [typeof(IStorage)],
         // Verification of the restricted drive scope is still pending. Connections request drive.readonly.
         // Writes run only when the grant already includes DriveScopes.Write or DriveScopes.Files.
         OAuthMethods = [GoogleAuth.OAuth(GoogleAuth.Integration, [DriveScopes.Read])],

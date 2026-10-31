@@ -125,12 +125,12 @@
     <PackageVersion Include="Microsoft.Orleans.Core.Abstractions" Version="10.4.0" />
   </ItemGroup>
   <ItemGroup>
-    <PackageVersion Include="DigitalBrain" Version="0.10.0" />
+    <PackageVersion Include="DigitalBrain" Version="0.10.1" />
     <PackageVersion Include="DigitalBrain.Analyzers" Version="0.10.0" />
     <PackageVersion Include="DigitalBrain.Apps.Packaging" Version="0.10.0" />
     <PackageVersion Include="DigitalBrain.Capabilities.Identity" Version="0.10.0" />
     <PackageVersion Include="DigitalBrain.Capabilities.Secrets" Version="0.10.0" />
-    <PackageVersion Include="DigitalBrain.Capabilities.Storage" Version="0.10.0" />
+    <PackageVersion Include="DigitalBrain.Capabilities.Storage" Version="0.10.1" />
     <PackageVersion Include="DigitalBrain.Runtime.Http" Version="0.10.0" />
     <PackageVersion Include="DigitalBrain.Runtime.Orleans" Version="0.10.0" />
     <PackageVersion Include="DigitalBrain.Runtime.Orleans.Azure" Version="0.10.0" />
@@ -151,7 +151,7 @@
     <PackageVersion Include="IntoChat.Cloud.Mail.Contracts" Version="0.10.0" />
     <PackageVersion Include="IntoChat.Cloud.Organisations" Version="0.10.0" />
     <PackageVersion Include="IntoChat.Cloud.Organisations.Contracts" Version="0.10.0" />
-    <PackageVersion Include="IntoChat.OS" Version="0.10.0" />
+    <PackageVersion Include="IntoChat.OS" Version="0.10.1" />
     <PackageVersion Include="IntoChat.OS.Aspire.Client" Version="0.10.0" />
     <PackageVersion Include="IntoChat.OS.Aspire.Hosting" Version="0.10.0" />
     <PackageVersion Include="IntoChat.OS.Aspire.Server" Version="0.10.0" />
@@ -180,7 +180,7 @@
     <PackageVersion Include="IntoChat.OS.Modules.Google.Drive" Version="0.10.0" />
     <PackageVersion Include="IntoChat.OS.Modules.Google.Gmail" Version="0.10.0" />
     <PackageVersion Include="IntoChat.OS.Modules.Identity" Version="0.10.0" />
-    <PackageVersion Include="IntoChat.OS.Modules.Identity.Contracts" Version="0.10.0" />
+    <PackageVersion Include="IntoChat.OS.Modules.Identity.Contracts" Version="0.10.1" />
     <PackageVersion Include="IntoChat.OS.Modules.LocalDisk" Version="0.10.0" />
     <PackageVersion Include="IntoChat.OS.Modules.Mcp" Version="0.10.0" />
     <PackageVersion Include="IntoChat.OS.Modules.Mcp.Contracts" Version="0.10.0" />

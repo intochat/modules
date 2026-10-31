@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using System.Reflection;
 using System.Runtime.Versioning;
+using DigitalBrain.Capabilities.Storage;
 using IntoChat.OS.Contracts.Configuration;
 using IntoChat.OS.Framework.Machine;
 using IntoChat.OS.Framework.Modules;
@@ -8,7 +9,6 @@ using IntoChat.OS.Connections.Configuration;
 using IntoChat.OS.Framework.Modules.Configuration;
 using IntoChat.OS.Framework.Parts;
 using IntoChat.OS.Connections.Platform.Integrations;
-using IntoChat.OS.Integrations;
 using IntoChat.OS.Modules.Microsoft.Windows.Signals;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
@@ -31,7 +31,7 @@ public sealed class WindowsModule : DigitalBrain.Module, IHttpModule
 
     public static ConnectorDefinition Connector { get; } = new("windows", "Windows", ["device"], [])
     {
-        Neurons = [typeof(IWindows), typeof(ILegacyStorage), typeof(IFileSystem), typeof(IConsole)],
+        Neurons = [typeof(IWindows), typeof(IStorage), typeof(IFileSystem), typeof(IConsole)],
         Signals = [typeof(FileWritten)],
     };
 
