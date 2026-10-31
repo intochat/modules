@@ -40,7 +40,6 @@ jobs:
           version="v$(tr -d '[:space:]' < VERSION)"
           mkdir -p ../nuget
           gh release download "${version}" --repo intochat/digitalbrain -p "*.nupkg" -D ../nuget --clobber || gh release download --repo intochat/digitalbrain -p "*.nupkg" -D ../nuget --clobber
-          gh release download "${version}" --repo intochat/os -p "*.nupkg" -D ../nuget --clobber || gh release download --repo intochat/os -p "*.nupkg" -D ../nuget --clobber
           gh release download "${version}" --repo intochat/modules -p "*.nupkg" -D ../nuget --clobber || gh release download --repo intochat/modules -p "*.nupkg" -D ../nuget --clobber
 
       - name: Restore dependencies
@@ -67,7 +66,6 @@ jobs:
           version="v$(tr -d '[:space:]' < VERSION)"
           mkdir -p ../nuget
           gh release download "${version}" --repo intochat/digitalbrain -p "*.nupkg" -D ../nuget --clobber || gh release download --repo intochat/digitalbrain -p "*.nupkg" -D ../nuget --clobber
-          gh release download "${version}" --repo intochat/os -p "*.nupkg" -D ../nuget --clobber || gh release download --repo intochat/os -p "*.nupkg" -D ../nuget --clobber
           gh release download "${version}" --repo intochat/modules -p "*.nupkg" -D ../nuget --clobber || gh release download --repo intochat/modules -p "*.nupkg" -D ../nuget --clobber
 
       - name: Build solution

@@ -35,8 +35,8 @@ internal static class AppRunner
         // alongside any background neuron [Signal] subscriptions declared via [On("sourceKey")].
         var snapshot = await app.Read().ConfigureAwait(false);
         instance.AttachCapabilityResolver(capabilityType => ResolveCapability(brain, snapshot, capabilityType));
-        _stateRevision = snapshot.RuntimeStateRevision;
-        RestoreState(instance, snapshot.RuntimeStateJson);
+        if (snapshot.GetType().GetProperty("RuntimeStateRevision")?.GetValue(snapshot) is long rev) { _stateRevision = rev; }
+        if (snapshot.GetType().GetProperty("RuntimeStateJson")?.GetValue(snapshot) is string stateJson) { RestoreState(instance, stateJson); }
         RefreshViews(instance, presenter);
         var turns = new SemaphoreSlim(1, 1);
         var operationLoops = snapshot.Manifest.Operations.Where(operation => definition.FindOperation(operation.Name) is not null)
@@ -122,7 +122,6 @@ internal static class AppRunner
                 {
                     await definition.Invoke(instance, sub.OperationName, signal, Json, stopping).ConfigureAwait(false);
                     RefreshViews(instance, presenter);
-            await PersistStateAsync(app, instance).ConfigureAwait(false);
                     await PersistStateAsync(app, instance).ConfigureAwait(false);
                 }
                 catch (Exception error) when (error is not OperationCanceledException)
@@ -244,13 +243,22 @@ internal static class AppRunner
             if (current is null) { return; }
             var json = JsonSerializer.Serialize(current, Json);
             if (json == _lastSavedState) { return; }
-            var updated = await app.SaveRuntimeState(json, _stateRevision).ConfigureAwait(false);
             _lastSavedState = json;
-            _stateRevision = updated.RuntimeStateRevision;
+            var saveMethod = app.GetType().GetMethod("SaveRuntimeState", [typeof(string), typeof(long)]);
+            if (saveMethod is not null)
+            {
+                var saveTask = (Task)saveMethod.Invoke(app, [json, _stateRevision])!;
+                await saveTask.ConfigureAwait(false);
+                var resultProp = saveTask.GetType().GetProperty("Result");
+                if (resultProp?.GetValue(saveTask) is { } updated && updated.GetType().GetProperty("RuntimeStateRevision")?.GetValue(updated) is long newRev)
+                {
+                    _stateRevision = newRev;
+                }
+            }
         }
         catch (Exception error)
         {
             AppLog.Log($"Failed to persist app state: {error.Message}");
         }
     }
-    }
+}

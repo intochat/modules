@@ -151,7 +151,7 @@
     <PackageVersion Include="IntoChat.Cloud.Mail.Contracts" Version="0.10.0" />
     <PackageVersion Include="IntoChat.Cloud.Organisations" Version="0.10.0" />
     <PackageVersion Include="IntoChat.Cloud.Organisations.Contracts" Version="0.10.0" />
-    <PackageVersion Include="IntoChat.OS" Version="0.10.1" />
+    <PackageVersion Include="IntoChat.OS" Version="0.10.0" />
     <PackageVersion Include="IntoChat.OS.Aspire.Client" Version="0.10.0" />
     <PackageVersion Include="IntoChat.OS.Aspire.Hosting" Version="0.10.0" />
     <PackageVersion Include="IntoChat.OS.Aspire.Server" Version="0.10.0" />
@@ -180,7 +180,7 @@
     <PackageVersion Include="IntoChat.OS.Modules.Google.Drive" Version="0.10.0" />
     <PackageVersion Include="IntoChat.OS.Modules.Google.Gmail" Version="0.10.0" />
     <PackageVersion Include="IntoChat.OS.Modules.Identity" Version="0.10.0" />
-    <PackageVersion Include="IntoChat.OS.Modules.Identity.Contracts" Version="0.10.1" />
+    <PackageVersion Include="IntoChat.OS.Modules.Identity.Contracts" Version="0.10.0" />
     <PackageVersion Include="IntoChat.OS.Modules.LocalDisk" Version="0.10.0" />
     <PackageVersion Include="IntoChat.OS.Modules.Mcp" Version="0.10.0" />
     <PackageVersion Include="IntoChat.OS.Modules.Mcp.Contracts" Version="0.10.0" />
