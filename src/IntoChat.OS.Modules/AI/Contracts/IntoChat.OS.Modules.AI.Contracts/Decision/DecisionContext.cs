@@ -6,4 +6,5 @@ public sealed record DecisionContext(
     IReadOnlyDictionary<string, string>? Metadata = null,
     DecisionMode Mode = DecisionMode.Adaptive,
     double ConfidenceThreshold = 0.5,
-    int MaxSteps = 8);
+    int MaxSteps = 8,
+    IReadOnlyDictionary<string, string>? CandidateDescriptions = null);
