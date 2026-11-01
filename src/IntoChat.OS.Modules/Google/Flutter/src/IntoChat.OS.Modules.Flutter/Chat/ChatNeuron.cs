@@ -1,3 +1,4 @@
+using DigitalBrain.Capabilities;
 using System.Security.Cryptography;
 using System.Text.Json;
 using IntoChat.OS.Contracts.Configuration;

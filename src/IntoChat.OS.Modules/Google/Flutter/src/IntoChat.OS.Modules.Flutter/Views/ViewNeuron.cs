@@ -1,3 +1,4 @@
+using DigitalBrain.Capabilities;
 using DigitalBrain;
 using System.Buffers;
 using System.Text.Json;

@@ -1,3 +1,4 @@
+using DigitalBrain.Capabilities;
 using IntoChat.OS.Runtime;
 using DigitalBrain.Spi;
 using DigitalBrain;

@@ -1,3 +1,4 @@
+using DigitalBrain.Capabilities;
 using DigitalBrain.UI.Confirmation;
 using IntoChat.OS.Confirmation;
 using IntoChat.OS.Framework;

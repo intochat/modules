@@ -18,12 +18,6 @@
          runs prebuilt test modules from that tree. -->
     <UseArtifactsOutput>true</UseArtifactsOutput>
   </PropertyGroup>
-  <ItemGroup Condition="!$(MSBuildProjectName.Contains('Generator'))">
-    <Using Include="DigitalBrain.Capabilities.CallerKind" Alias="CallerKind" />
-    <Using Include="DigitalBrain.Capabilities.TrustedEdge" Alias="TrustedEdge" />
-    <Using Include="DigitalBrain.Capabilities.CapabilityCallers" Alias="CapabilityCallers" />
-    <Using Include="DigitalBrain.Capabilities.AppPrincipal" Alias="AppPrincipal" />
-  </ItemGroup>
   <!-- GitHub Actions sets CI=true. Keep solution builds portable (no -r on .slnx). -->
   <PropertyGroup Condition="'$(CI)' == 'true'">
     <RuntimeIdentifier></RuntimeIdentifier>
