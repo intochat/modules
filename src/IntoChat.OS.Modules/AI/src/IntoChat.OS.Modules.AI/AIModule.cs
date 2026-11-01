@@ -17,6 +17,9 @@ using IntoChat.OS.Connections.Contracts;
 using IntoChat.OS.Connections.Platform.Integrations;
 using IntoChat.OS.Framework.Modules.Platform.Integrations;
 using IntoChat.OS.Connections.Surface;
+using IntoChat.OS.Modules.AI.Context;
+using IntoChat.OS.Modules.AI.Decision;
+using IntoChat.OS.Modules.AI.Memory;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -72,6 +75,10 @@ public sealed class AIModule : DigitalBrain.Module, IHttpModule
         services.AddMediaNeurons();
         AIClients.AddImageGeneration(services, options);
         VoiceToTextHosting.Add(services, options);
+        services.TryAddSingleton<IExecutionContextProvider, ExecutionContextProvider>();
+        services.TryAddScoped<IExecutionContext>(sp => sp.GetRequiredService<IExecutionContextProvider>().Current);
+        services.TryAddSingleton<IDecisionMaker, DecisionMaker>();
+        services.TryAddSingleton<IKnowledgeStore, InMemoryKnowledgeStore>();
     }
 
     // The calling brain's model list for the shell's model picker; never endpoints or secrets. The
