@@ -12,7 +12,7 @@ namespace IntoChat.OS.Modules.Microsoft.CSharp.Runtime;
 internal sealed record ProgramAssignment(
     [property: Id(0)] string Owner,
     [property: Id(1)] string Hash,
-    [property: Id(2), LegacyShape] Dictionary<string, string>? LegacySettings,
+    [property: Id(2)] Dictionary<string, string>? LegacySettings,
     [property: Id(3)] CapabilityCaller? Principal,
     [property: Id(4)] BehaviorAssembly[] Behaviors,
     [property: Id(5)] StringEntry[] SettingEntries)
@@ -50,8 +50,8 @@ internal sealed record BrainRuntimeState
     [Id(0)] public ProgramAssignment[] Programs { get; init; } = [];
     [Id(1)] public Subscription[] Subscriptions { get; init; } = [];
     [Id(2)] public SessionRecord? Session { get; init; }
-    [Id(3), LegacyShape] public Dictionary<string, string>? LegacyInitialized { get; init; }
-    [Id(4), LegacyShape] public Dictionary<string, string>? LegacyAssignmentRevisions { get; init; }
+    [Id(3)] public Dictionary<string, string>? LegacyInitialized { get; init; }
+    [Id(4)] public Dictionary<string, string>? LegacyAssignmentRevisions { get; init; }
     [Id(5)] public StringEntry[] InitializedEntries { get; init; } = [];
     [Id(6)] public StringEntry[] AssignmentRevisionEntries { get; init; } = [];
 
