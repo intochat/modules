@@ -29,8 +29,8 @@ public sealed class ExecutionContext : IExecutionContext
         ExecutionId = string.IsNullOrWhiteSpace(executionId) ? Guid.NewGuid().ToString("N") : executionId;
         Caller = caller;
         Environment = environment != null
-            ? new Dictionary<string, string>(environment, StringComparer.Ordinal)
-            : new Dictionary<string, string>(StringComparer.Ordinal);
+            ? new Dictionary<string, string>(environment, StringComparer.OrdinalIgnoreCase)
+            : new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         _initialSlices = initialSlices != null
             ? [.. initialSlices]
             : ImmutableList<ContextSlice>.Empty;

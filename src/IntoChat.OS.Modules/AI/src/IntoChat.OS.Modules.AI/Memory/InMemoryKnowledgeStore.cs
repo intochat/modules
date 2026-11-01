@@ -110,12 +110,17 @@ public sealed class InMemoryKnowledgeStore : IKnowledgeStore
 
     public Task<KnowledgeGraphView> GetGraphViewAsync(string? rootId = null, int depth = 2, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(rootId) || !_nodes.ContainsKey(rootId))
+        if (string.IsNullOrWhiteSpace(rootId))
         {
             return Task.FromResult(new KnowledgeGraphView(_nodes.Values.ToList(), _edges.Values.ToList(), rootId));
         }
 
-        var maxDepth = Math.Clamp(depth, 1, 5);
+        if (!_nodes.ContainsKey(rootId))
+        {
+            return Task.FromResult(new KnowledgeGraphView([], [], rootId));
+        }
+
+        var maxDepth = Math.Clamp(depth, 0, 10);
         var visitedNodeIds = new HashSet<string>(StringComparer.Ordinal) { rootId };
         var traversedEdges = new List<KnowledgeEdge>();
         var currentLevel = new HashSet<string>(StringComparer.Ordinal) { rootId };
