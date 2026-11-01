@@ -17,6 +17,7 @@ public sealed class KnowledgeStoreNeuron : Neuron<KnowledgeStoreState>, IKnowled
     {
         ArgumentNullException.ThrowIfNull(node);
         ArgumentException.ThrowIfNullOrWhiteSpace(node.Id);
+        ct.ThrowIfCancellationRequested();
 
         var now = Context.Time.GetUtcNow();
         var record = new KnowledgeNodeRecord
@@ -43,6 +44,7 @@ public sealed class KnowledgeStoreNeuron : Neuron<KnowledgeStoreState>, IKnowled
 
     public Task<KnowledgeNode?> GetAsync(string id, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(id))
         {
             return Task.FromResult<KnowledgeNode?>(null);
@@ -59,6 +61,7 @@ public sealed class KnowledgeStoreNeuron : Neuron<KnowledgeStoreState>, IKnowled
 
     public async Task DeleteNodeAsync(string id, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(id))
         {
             return;
@@ -79,6 +82,7 @@ public sealed class KnowledgeStoreNeuron : Neuron<KnowledgeStoreState>, IKnowled
         ArgumentException.ThrowIfNullOrWhiteSpace(edge.SourceId);
         ArgumentException.ThrowIfNullOrWhiteSpace(edge.TargetId);
         ArgumentException.ThrowIfNullOrWhiteSpace(edge.Relation);
+        ct.ThrowIfCancellationRequested();
 
         var now = Context.Time.GetUtcNow();
         var record = new KnowledgeEdgeRecord
@@ -105,6 +109,7 @@ public sealed class KnowledgeStoreNeuron : Neuron<KnowledgeStoreState>, IKnowled
 
     public Task<IReadOnlyList<KnowledgeEdge>> QueryEdgesAsync(string nodeId, EdgeDirection direction = EdgeDirection.Both, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(nodeId))
         {
             return Task.FromResult<IReadOnlyList<KnowledgeEdge>>([]);
@@ -124,6 +129,7 @@ public sealed class KnowledgeStoreNeuron : Neuron<KnowledgeStoreState>, IKnowled
 
     public async Task DeleteEdgeAsync(string sourceId, string targetId, string relation, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(sourceId) || string.IsNullOrWhiteSpace(targetId) || string.IsNullOrWhiteSpace(relation))
         {
             return;
@@ -137,16 +143,25 @@ public sealed class KnowledgeStoreNeuron : Neuron<KnowledgeStoreState>, IKnowled
         await Save(next, new KnowledgeGraphChanged(next.Revision, next.Nodes.Length, next.Edges.Length, "delete-edge")).ConfigureAwait(false);
     }
 
+    public Task<KnowledgeGraphView> QueryGraphAsync(string rootId, int depth = 2, CancellationToken ct = default)
+        => GetGraphViewAsync(rootId, depth, ct);
+
     public Task<KnowledgeGraphView> GetGraphViewAsync(string? rootId = null, int depth = 2, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(rootId) || !State.Nodes.Any(n => string.Equals(n.Id, rootId, StringComparison.Ordinal)))
+        ct.ThrowIfCancellationRequested();
+        if (string.IsNullOrWhiteSpace(rootId))
         {
             var allNodes = State.Nodes.Select(ToModel).ToList();
             var allEdges = State.Edges.Select(ToModel).ToList();
             return Task.FromResult(new KnowledgeGraphView(allNodes, allEdges, rootId));
         }
 
-        var maxDepth = Math.Clamp(depth, 1, 5);
+        if (!State.Nodes.Any(n => string.Equals(n.Id, rootId, StringComparison.Ordinal)))
+        {
+            return Task.FromResult(new KnowledgeGraphView([], [], rootId));
+        }
+
+        var maxDepth = Math.Clamp(depth, 0, 10);
         var visitedNodeIds = new HashSet<string>(StringComparer.Ordinal) { rootId };
         var traversedEdges = new List<KnowledgeEdge>();
         var currentLevel = new HashSet<string>(StringComparer.Ordinal) { rootId };
@@ -196,6 +211,7 @@ public sealed class KnowledgeStoreNeuron : Neuron<KnowledgeStoreState>, IKnowled
 
     public Task<IReadOnlyList<KnowledgeRecallHit>> SemanticSearchAsync(string query, int limit = 10, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(query) || limit <= 0)
         {
             return Task.FromResult<IReadOnlyList<KnowledgeRecallHit>>([]);
@@ -215,10 +231,28 @@ public sealed class KnowledgeStoreNeuron : Neuron<KnowledgeStoreState>, IKnowled
             }
         }
 
-        // Pass 2: Spreading activation along connected edges (decay factor 0.5)
+        // Pass 2: Vector similarity + spreading activation along connected edges (decay factor 0.5)
         var activatedScores = new Dictionary<string, double>(nodeScores, StringComparer.Ordinal);
         foreach (var (sourceId, sourceScore) in nodeScores)
         {
+            var sourceRecord = State.Nodes.FirstOrDefault(n => string.Equals(n.Id, sourceId, StringComparison.Ordinal));
+            if (sourceRecord?.Vector is { Length: > 0 } sourceVec)
+            {
+                foreach (var candidate in State.Nodes)
+                {
+                    if (!string.Equals(candidate.Id, sourceId, StringComparison.Ordinal) &&
+                        candidate.Vector is { Length: > 0 } candidateVec &&
+                        candidateVec.Length == sourceVec.Length)
+                    {
+                        var sim = InMemoryKnowledgeStore.CosineSimilarity(sourceVec, candidateVec);
+                        if (sim > 0)
+                        {
+                            activatedScores[candidate.Id] = activatedScores.GetValueOrDefault(candidate.Id) + (sourceScore * sim * 0.5);
+                        }
+                    }
+                }
+            }
+
             foreach (var edge in State.Edges)
             {
                 if (string.Equals(edge.SourceId, sourceId, StringComparison.Ordinal))

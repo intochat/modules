@@ -16,6 +16,7 @@ public sealed class InMemoryKnowledgeStore : IKnowledgeStore
     {
         ArgumentNullException.ThrowIfNull(node);
         ArgumentException.ThrowIfNullOrWhiteSpace(node.Id);
+        ct.ThrowIfCancellationRequested();
 
         var now = DateTimeOffset.UtcNow;
         var updated = node with
@@ -30,6 +31,7 @@ public sealed class InMemoryKnowledgeStore : IKnowledgeStore
 
     public Task<KnowledgeNode?> GetAsync(string id, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(id))
         {
             return Task.FromResult<KnowledgeNode?>(null);
@@ -41,6 +43,7 @@ public sealed class InMemoryKnowledgeStore : IKnowledgeStore
 
     public Task DeleteNodeAsync(string id, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(id))
         {
             return Task.CompletedTask;
@@ -67,6 +70,7 @@ public sealed class InMemoryKnowledgeStore : IKnowledgeStore
         ArgumentException.ThrowIfNullOrWhiteSpace(edge.SourceId);
         ArgumentException.ThrowIfNullOrWhiteSpace(edge.TargetId);
         ArgumentException.ThrowIfNullOrWhiteSpace(edge.Relation);
+        ct.ThrowIfCancellationRequested();
 
         var key = EdgeKey(edge.SourceId, edge.TargetId, edge.Relation);
         var updated = edge with
@@ -80,6 +84,7 @@ public sealed class InMemoryKnowledgeStore : IKnowledgeStore
 
     public Task<IReadOnlyList<KnowledgeEdge>> QueryEdgesAsync(string nodeId, EdgeDirection direction = EdgeDirection.Both, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(nodeId))
         {
             return Task.FromResult<IReadOnlyList<KnowledgeEdge>>([]);
@@ -98,6 +103,7 @@ public sealed class InMemoryKnowledgeStore : IKnowledgeStore
 
     public Task DeleteEdgeAsync(string sourceId, string targetId, string relation, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(sourceId) || string.IsNullOrWhiteSpace(targetId) || string.IsNullOrWhiteSpace(relation))
         {
             return Task.CompletedTask;
@@ -108,8 +114,12 @@ public sealed class InMemoryKnowledgeStore : IKnowledgeStore
         return Task.CompletedTask;
     }
 
+    public Task<KnowledgeGraphView> QueryGraphAsync(string rootId, int depth = 2, CancellationToken ct = default)
+        => GetGraphViewAsync(rootId, depth, ct);
+
     public Task<KnowledgeGraphView> GetGraphViewAsync(string? rootId = null, int depth = 2, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(rootId))
         {
             return Task.FromResult(new KnowledgeGraphView(_nodes.Values.ToList(), _edges.Values.ToList(), rootId));
@@ -167,6 +177,7 @@ public sealed class InMemoryKnowledgeStore : IKnowledgeStore
 
     public Task<IReadOnlyList<KnowledgeRecallHit>> SemanticSearchAsync(string query, int limit = 10, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(query) || limit <= 0)
         {
             return Task.FromResult<IReadOnlyList<KnowledgeRecallHit>>([]);
@@ -185,10 +196,27 @@ public sealed class InMemoryKnowledgeStore : IKnowledgeStore
             }
         }
 
-        // Spreading activation along connected edges (decay 0.5)
+        // Vector similarity propagation & spreading activation along connected edges (decay 0.5)
         var activatedScores = new Dictionary<string, double>(nodeScores, StringComparer.Ordinal);
         foreach (var (sourceId, sourceScore) in nodeScores)
         {
+            if (_nodes.TryGetValue(sourceId, out var sourceNode) && sourceNode.Vector is { Length: > 0 } sourceVec)
+            {
+                foreach (var candidate in _nodes.Values)
+                {
+                    if (!string.Equals(candidate.Id, sourceId, StringComparison.Ordinal) &&
+                        candidate.Vector is { Length: > 0 } candidateVec &&
+                        candidateVec.Length == sourceVec.Length)
+                    {
+                        var sim = CosineSimilarity(sourceVec, candidateVec);
+                        if (sim > 0)
+                        {
+                            activatedScores[candidate.Id] = activatedScores.GetValueOrDefault(candidate.Id) + (sourceScore * sim * 0.5);
+                        }
+                    }
+                }
+            }
+
             foreach (var edge in _edges.Values)
             {
                 if (string.Equals(edge.SourceId, sourceId, StringComparison.Ordinal))
@@ -218,6 +246,20 @@ public sealed class InMemoryKnowledgeStore : IKnowledgeStore
         }
 
         return Task.FromResult<IReadOnlyList<KnowledgeRecallHit>>(hits);
+    }
+
+    internal static double CosineSimilarity(float[] a, float[] b)
+    {
+        double dot = 0, normA = 0, normB = 0;
+        for (var i = 0; i < a.Length; i++)
+        {
+            dot += (double)a[i] * b[i];
+            normA += (double)a[i] * a[i];
+            normB += (double)b[i] * b[i];
+        }
+
+        var denom = Math.Sqrt(normA) * Math.Sqrt(normB);
+        return denom <= 1e-12 ? 0.0 : dot / denom;
     }
 
     private static string EdgeKey(string source, string target, string relation)

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Reflection;
 using System.Threading;
 using DigitalBrain.Capabilities;
@@ -23,29 +24,57 @@ public interface IExecutionContextProvider
 
 public sealed class ExecutionContextProvider : IExecutionContextProvider
 {
-    private readonly AsyncLocal<IExecutionContext?> _current = new();
+    internal const string ExecutionIdRequestKey = "db.exec.id";
+    internal const string EnvironmentRequestKey = "db.exec.env";
+    internal const string SlicesRequestKey = "db.exec.slices";
+
+    private readonly AsyncLocal<IExecutionContext?> _explicit = new();
+    private readonly AsyncLocal<string?> _defaultExecutionId = new();
 
     public IExecutionContext Current
     {
         get
         {
-            if (_current.Value is { } explicitContext)
+            if (_explicit.Value is { } explicitContext)
             {
                 return explicitContext;
             }
 
-            var defaultContext = CreateDefault();
-            _current.Value = defaultContext;
-            return defaultContext;
+            var execId = _defaultExecutionId.Value;
+            if (string.IsNullOrWhiteSpace(execId))
+            {
+                execId = Orleans.Runtime.RequestContext.Get(ExecutionIdRequestKey) as string
+                    ?? Guid.NewGuid().ToString("N");
+                _defaultExecutionId.Value = execId;
+            }
+
+            return CreateDefault(execId);
         }
     }
 
     public IDisposable PushContext(IExecutionContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        var previous = _current.Value;
-        _current.Value = context;
-        return new Restore(() => _current.Value = previous);
+        var previous = _explicit.Value;
+        var prevId = Orleans.Runtime.RequestContext.Get(ExecutionIdRequestKey);
+        var prevEnv = Orleans.Runtime.RequestContext.Get(EnvironmentRequestKey);
+        var prevSlices = Orleans.Runtime.RequestContext.Get(SlicesRequestKey);
+
+        _explicit.Value = context;
+        Orleans.Runtime.RequestContext.Set(ExecutionIdRequestKey, context.ExecutionId);
+        Orleans.Runtime.RequestContext.Set(EnvironmentRequestKey, context.Environment);
+        if (context.Slices.Count > 0)
+        {
+            Orleans.Runtime.RequestContext.Set(SlicesRequestKey, ImmutableList.CreateRange(context.Slices));
+        }
+
+        return new Restore(() =>
+        {
+            _explicit.Value = previous;
+            RestoreOrRemove(ExecutionIdRequestKey, prevId);
+            RestoreOrRemove(EnvironmentRequestKey, prevEnv);
+            RestoreOrRemove(SlicesRequestKey, prevSlices);
+        });
     }
 
     public IExecutionContext Create(
@@ -61,7 +90,7 @@ public sealed class ExecutionContextProvider : IExecutionContextProvider
         return new ExecutionContext(executionId, resolvedCaller, environment, initialSlices, cancellationToken);
     }
 
-    private static IExecutionContext CreateDefault()
+    private static IExecutionContext CreateDefault(string execId)
     {
         // Bridge 1: Check Behavior Sandbox (AmbientSession)
         var (ambientSettings, ambientCt) = TryReadAmbientSession();
@@ -71,8 +100,16 @@ public sealed class ExecutionContextProvider : IExecutionContextProvider
             ? stamped
             : RuntimeCallerContext.Current;
 
-        // Bridge 3: Environment Settings
-        var env = new Dictionary<string, string>(StringComparer.Ordinal);
+        // Bridge 3: Environment Settings (Orleans RequestContext + AmbientSession)
+        var env = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (Orleans.Runtime.RequestContext.Get(EnvironmentRequestKey) is IReadOnlyDictionary<string, string> propagatedEnv)
+        {
+            foreach (var (k, v) in propagatedEnv)
+            {
+                env[k] = v;
+            }
+        }
+
         if (ambientSettings != null)
         {
             foreach (var (k, v) in ambientSettings)
@@ -81,10 +118,22 @@ public sealed class ExecutionContextProvider : IExecutionContextProvider
             }
         }
 
+        var slices = Orleans.Runtime.RequestContext.Get(SlicesRequestKey) as IEnumerable<ContextSlice>;
         var ct = ambientCt ?? CancellationToken.None;
-        var execId = Guid.NewGuid().ToString("N");
 
-        return new ExecutionContext(execId, caller, env, null, ct);
+        return new ExecutionContext(execId, caller, env, slices, ct);
+    }
+
+    private static void RestoreOrRemove(string key, object? value)
+    {
+        if (value is null)
+        {
+            Orleans.Runtime.RequestContext.Remove(key);
+        }
+        else
+        {
+            Orleans.Runtime.RequestContext.Set(key, value);
+        }
     }
 
     private static (Dictionary<string, string>? Settings, CancellationToken? Stopping) TryReadAmbientSession()

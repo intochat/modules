@@ -9,11 +9,11 @@ using Microsoft.Extensions.Logging;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Trace;
 
-namespace IntoChat.OS.ServiceDefaults;
+namespace IntoChat.OS.Modules.Microsoft.CSharp.Sandbox;
 
 // A process-local exporter barrier, enabled only by the test host's private capability.
 // Callers must establish domain completion first; this does not wait for running work.
-public static class TelemetryExportBarrier
+internal static class TelemetryExportBarrier
 {
     public const string CapabilityEnvironmentVariable = "INTOCHATOS_TEST_TELEMETRY_CAPABILITY";
     public const string CapabilityHeader = "X-IntoChatOS-Test-Telemetry";
@@ -69,4 +69,4 @@ public static class TelemetryExportBarrier
     }
 }
 
-public sealed record TelemetryExportReceipt(Guid Marker, DateTimeOffset CompletedAt);
+internal sealed record TelemetryExportReceipt(Guid Marker, DateTimeOffset CompletedAt);

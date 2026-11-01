@@ -20,9 +20,9 @@ public sealed class ExecutionContext : IExecutionContext
     public IReadOnlyList<ContextSlice> Slices => _scopedSlices.Value ?? _initialSlices;
 
     public ExecutionContext(
-        string? executionId,
-        CapabilityCaller? caller,
-        IReadOnlyDictionary<string, string>? environment = null,
+        string? executionId = null,
+        CapabilityCaller? caller = null,
+        IEnumerable<KeyValuePair<string, string>>? environment = null,
         IEnumerable<ContextSlice>? initialSlices = null,
         CancellationToken cancellationToken = default)
     {
@@ -43,7 +43,9 @@ public sealed class ExecutionContext : IExecutionContext
         ArgumentNullException.ThrowIfNull(action);
 
         var current = _scopedSlices.Value ?? _initialSlices;
-        _scopedSlices.Value = current.Add(slice);
+        var next = current.Add(slice);
+        _scopedSlices.Value = next;
+        Orleans.Runtime.RequestContext.Set(ExecutionContextProvider.SlicesRequestKey, next);
         try
         {
             return await action().ConfigureAwait(false);
@@ -51,6 +53,14 @@ public sealed class ExecutionContext : IExecutionContext
         finally
         {
             _scopedSlices.Value = current;
+            if (current.IsEmpty)
+            {
+                Orleans.Runtime.RequestContext.Remove(ExecutionContextProvider.SlicesRequestKey);
+            }
+            else
+            {
+                Orleans.Runtime.RequestContext.Set(ExecutionContextProvider.SlicesRequestKey, current);
+            }
         }
     }
 }

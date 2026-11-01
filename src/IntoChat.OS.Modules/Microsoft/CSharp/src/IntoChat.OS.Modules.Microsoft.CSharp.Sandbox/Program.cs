@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using IntoChat.OS.Client.Runtime.V1;
 using IntoChat.OS.Modules.Microsoft.CSharp.Sandbox;
-using IntoChat.OS.ServiceDefaults;
 using OpenTelemetry;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Trace;

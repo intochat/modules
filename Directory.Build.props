@@ -18,6 +18,12 @@
          runs prebuilt test modules from that tree. -->
     <UseArtifactsOutput>true</UseArtifactsOutput>
   </PropertyGroup>
+  <ItemGroup Condition="!$(MSBuildProjectName.Contains('Generator'))">
+    <Using Include="DigitalBrain.Capabilities.CallerKind" Alias="CallerKind" />
+    <Using Include="DigitalBrain.Capabilities.TrustedEdge" Alias="TrustedEdge" />
+    <Using Include="DigitalBrain.Capabilities.CapabilityCallers" Alias="CapabilityCallers" />
+    <Using Include="DigitalBrain.Capabilities.AppPrincipal" Alias="AppPrincipal" />
+  </ItemGroup>
   <!-- GitHub Actions sets CI=true. Keep solution builds portable (no -r on .slnx). -->
   <PropertyGroup Condition="'$(CI)' == 'true'">
     <RuntimeIdentifier></RuntimeIdentifier>
@@ -36,8 +42,8 @@
     <VersionPrefix>$(IntoChatOSVersion)</VersionPrefix>
     <Authors>Digital Brain Tech</Authors>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/intochat/os</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/intochat/os</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/intochat/modules</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/intochat/modules</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageIcon>icon.png</PackageIcon>
     <PackageTags>agents;orleans;aspire;durable;actors</PackageTags>

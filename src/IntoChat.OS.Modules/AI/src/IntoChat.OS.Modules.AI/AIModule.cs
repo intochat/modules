@@ -20,6 +20,8 @@ using IntoChat.OS.Connections.Surface;
 using IntoChat.OS.Modules.AI.Context;
 using IntoChat.OS.Modules.AI.Decision;
 using IntoChat.OS.Modules.AI.Memory;
+using IntoChat.OS.Modules.AI.Tasks;
+using IntoChat.OS.Modules.AI.Testing;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -79,6 +81,8 @@ public sealed class AIModule : DigitalBrain.Module, IHttpModule
         services.TryAddScoped<IExecutionContext>(sp => sp.GetRequiredService<IExecutionContextProvider>().Current);
         services.TryAddSingleton<IDecisionMaker, DecisionMaker>();
         services.TryAddSingleton<IKnowledgeStore, InMemoryKnowledgeStore>();
+        services.TryAddSingleton<ITaskEngine, TaskEngine>();
+        services.TryAddSingleton<ITestVerificationService, TestVerificationService>();
     }
 
     // The calling brain's model list for the shell's model picker; never endpoints or secrets. The

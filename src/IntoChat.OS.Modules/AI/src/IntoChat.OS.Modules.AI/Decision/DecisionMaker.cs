@@ -210,13 +210,20 @@ public sealed class DecisionMaker(
     {
         ArgumentNullException.ThrowIfNull(goal);
         var brainId = contextProvider.Current.Caller?.BrainId;
+        var directRouter = services.GetService<IRouter>();
 
-        if (BrainScope.IsValidId(brainId))
+        if (directRouter is not null || BrainScope.IsValidId(brainId))
         {
             try
             {
-                var router = SiloNeurons.Get<IRouter>(services, IRouter.Key(brainId));
-                var outcome = await router.Achieve(goal.Objective, goal.AvailableCapabilities, ct);
+                var router = directRouter ?? SiloNeurons.Get<IRouter>(services, IRouter.Key(brainId!));
+                // When routing via the distributed RouterNeuron, only pass AvailableCapabilities as a contract filter
+                // if they are full C# contract interface names; operation tags (e.g. "files", "photocraft") would
+                // filter out all contracts in RouterNeuron.Menu.
+                var allowedContracts = directRouter is not null
+                    ? goal.AvailableCapabilities
+                    : FilterContractNamesOrNull(goal.AvailableCapabilities);
+                var outcome = await router.Achieve(goal.Objective, allowedContracts, ct);
                 return new DeliberateDecision(outcome.Goal, outcome);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
@@ -227,6 +234,20 @@ public sealed class DecisionMaker(
 
         var emptyGoal = new GoalRun(goal.Objective, []);
         return new DeliberateDecision(goal.Objective, emptyGoal);
+    }
+
+    private static string[]? FilterContractNamesOrNull(string[]? capabilities)
+    {
+        if (capabilities is null || capabilities.Length == 0)
+        {
+            return null;
+        }
+
+        var contracts = capabilities
+            .Where(c => c.StartsWith("IntoChat.", StringComparison.Ordinal) ||
+                        c.StartsWith("DigitalBrain.", StringComparison.Ordinal))
+            .ToArray();
+        return contracts.Length > 0 ? contracts : null;
     }
 
     public static IReadOnlyDictionary<string, string> BuildCriteriaDescriptions(

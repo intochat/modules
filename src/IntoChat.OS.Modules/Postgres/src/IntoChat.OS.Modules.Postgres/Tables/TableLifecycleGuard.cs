@@ -33,7 +33,7 @@ internal sealed class TableLifecycleGuard : IIncomingGrainCallFilter
         if (call.Method == nameof(ITableIndex.ReadTables))
         {
             var caller = CallerContextStamper.Require();
-            if (!CallerContextStamper.IsTrusted(caller) || caller.Kind == IntoChat.OS.Framework.Modules.CallerKind.App)
+            if (!CallerContextStamper.IsTrusted(caller) || caller.Kind == CallerKind.App)
             { throw new UnauthorizedAccessException("Only trusted host code may read app storage."); }
             return;
         }
