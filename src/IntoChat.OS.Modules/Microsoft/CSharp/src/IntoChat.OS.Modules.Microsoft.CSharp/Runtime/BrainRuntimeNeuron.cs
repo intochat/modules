@@ -507,7 +507,10 @@ internal sealed class BrainRuntimeNeuron(
         if (neuron == PlainSources.Of(Id)) { throw new ArgumentException("A behavior cannot subscribe to its brain runtime.", nameof(neuron)); }
         ArgumentException.ThrowIfNullOrWhiteSpace(signal);
         _facts.Clear();
-        var existing = Snapshot.Subscriptions.FirstOrDefault(s => s.Behavior == behavior && s.Neuron == neuron && s.Signal == signal);
+        // An [App] program is one behavior serving several operations, each subscribed with its own selector: the selector is part
+        // of the subscription, or every operation but the last would be filtered out of the one shared row.
+        var existing = Snapshot.Subscriptions.FirstOrDefault(s => s.Behavior == behavior && s.Neuron == neuron && s.Signal == signal
+            && string.Equals(s.Selector, selector, StringComparison.Ordinal));
         if (existing is null)
         {
             // A new subscription starts at its source's current seq; what came before is the retained seed's to give.
@@ -531,12 +534,6 @@ internal sealed class BrainRuntimeNeuron(
         }
         else
         {
-            if (!string.Equals(existing.Selector, selector, StringComparison.Ordinal))
-            {
-                // The row stays the subscription: a second row would keep delivering what this selector now excludes.
-                existing = existing with { Selector = selector };
-                await Save(Snapshot with { Subscriptions = [.. Snapshot.Subscriptions.Select(item => item.Id == existing.Id ? existing : item)] }, Changed());
-            }
             // Persistence can succeed before source registration fails. A retry is ready only
             // after the source has accepted the current selection, including the saved addition.
             try { await PlainWatchAsync(neuron, required: existing); }
