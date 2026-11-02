@@ -14,6 +14,12 @@ public enum EdgeDirection
     Both = 2
 }
 
+/// <summary>Who wrote a fact or relation, stamped by the store from the runtime's caller context; callers cannot set it.</summary>
+/// <param name="Writer">The neuron that stored it.</param>
+/// <param name="Caller">The stamped caller principal, app or person, when one was present.</param>
+/// <param name="At">When it was stored.</param>
+public sealed record Provenance(string Writer, string? Caller, DateTimeOffset At);
+
 public sealed record KnowledgeNode(
     string Id,
     string Label,
@@ -22,7 +28,8 @@ public sealed record KnowledgeNode(
     float[]? Vector = null,
     double Importance = 1.0,
     DateTimeOffset CreatedAt = default,
-    DateTimeOffset UpdatedAt = default);
+    DateTimeOffset UpdatedAt = default,
+    Provenance? Source = null);
 
 public sealed record KnowledgeEdge(
     string SourceId,
@@ -30,7 +37,8 @@ public sealed record KnowledgeEdge(
     string Relation,
     double Weight = 1.0,
     IReadOnlyDictionary<string, string>? Metadata = null,
-    DateTimeOffset CreatedAt = default);
+    DateTimeOffset CreatedAt = default,
+    Provenance? Source = null);
 
 public sealed record KnowledgeGraphView(
     IReadOnlyList<KnowledgeNode> Nodes,

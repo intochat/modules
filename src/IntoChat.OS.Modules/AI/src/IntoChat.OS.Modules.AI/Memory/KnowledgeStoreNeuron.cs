@@ -31,7 +31,10 @@ public sealed class KnowledgeStoreNeuron : Neuron<KnowledgeStoreState>, IKnowled
             Vector = node.Vector,
             Importance = Math.Clamp(node.Importance, 0.1, 10.0),
             CreatedAt = node.CreatedAt == default ? now : node.CreatedAt,
-            UpdatedAt = now
+            UpdatedAt = now,
+            Writer = Id.ToString(),
+            Caller = StampedCaller(),
+            StampedAt = now
         };
 
         var existing = State.Nodes.Where(n => !string.Equals(n.Id, record.Id, StringComparison.Ordinal)).ToList();
@@ -94,7 +97,10 @@ public sealed class KnowledgeStoreNeuron : Neuron<KnowledgeStoreState>, IKnowled
             Metadata = (edge.Metadata ?? new Dictionary<string, string>(StringComparer.Ordinal))
                 .Select(m => new KnowledgePropertyRecord { Key = m.Key, Value = m.Value })
                 .ToArray(),
-            CreatedAt = edge.CreatedAt == default ? now : edge.CreatedAt
+            CreatedAt = edge.CreatedAt == default ? now : edge.CreatedAt,
+            Writer = Id.ToString(),
+            Caller = StampedCaller(),
+            StampedAt = now
         };
 
         var existing = State.Edges.Where(e => !(string.Equals(e.SourceId, record.SourceId, StringComparison.Ordinal)
@@ -209,81 +215,90 @@ public sealed class KnowledgeStoreNeuron : Neuron<KnowledgeStoreState>, IKnowled
         return Task.FromResult(new KnowledgeGraphView(resultNodes, distinctEdges, rootId));
     }
 
+    // Hybrid recall over this store's own graph: lexical and vector seeds, then personalized PageRank from the seeds along the
+    // relations, then the shortest path back to a seed as the explanation. Linear in nodes and edges; the snapshot is cached by revision.
     public Task<IReadOnlyList<KnowledgeRecallHit>> SemanticSearchAsync(string query, int limit = 10, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
-        if (string.IsNullOrWhiteSpace(query) || limit <= 0)
+        if (string.IsNullOrWhiteSpace(query) || limit <= 0 || State.Nodes.Length == 0)
         {
             return Task.FromResult<IReadOnlyList<KnowledgeRecallHit>>([]);
         }
 
         var terms = Tokenize(query);
-        var nodeScores = new Dictionary<string, double>(StringComparer.Ordinal);
-
-        // Pass 1: Direct lexical token matching
-        foreach (var node in State.Nodes)
+        var graph = Graph();
+        var seeds = new float[graph.NodeCount];
+        var seeded = new List<int>();
+        for (var i = 0; i < State.Nodes.Length; i++)
         {
+            var node = State.Nodes[i];
             var text = $"{node.Label} {node.Type} {string.Join(" ", node.Properties.Select(p => $"{p.Key} {p.Value}"))}";
-            var score = LexicalScore(text, terms, node.Importance);
-            if (score > 0)
-            {
-                nodeScores[node.Id] = score;
-            }
+            var score = (float)LexicalScore(text, terms, node.Importance);
+            if (score > 0) { seeds[i] = score; seeded.Add(i); }
         }
-
-        // Pass 2: Vector similarity + spreading activation along connected edges (decay factor 0.5)
-        var activatedScores = new Dictionary<string, double>(nodeScores, StringComparer.Ordinal);
-        foreach (var (sourceId, sourceScore) in nodeScores)
+        if (seeded.Count == 0)
         {
-            var sourceRecord = State.Nodes.FirstOrDefault(n => string.Equals(n.Id, sourceId, StringComparison.Ordinal));
-            if (sourceRecord?.Vector is { Length: > 0 } sourceVec)
+            return Task.FromResult<IReadOnlyList<KnowledgeRecallHit>>([]);
+        }
+        // Nodes that look like a seed (cosine over stored vectors) join the seed set at half weight.
+        foreach (var s in seeded.ToArray())
+        {
+            if (State.Nodes[s].Vector is not { Length: > 0 } seedVector) { continue; }
+            for (var i = 0; i < State.Nodes.Length; i++)
             {
-                foreach (var candidate in State.Nodes)
-                {
-                    if (!string.Equals(candidate.Id, sourceId, StringComparison.Ordinal) &&
-                        candidate.Vector is { Length: > 0 } candidateVec &&
-                        candidateVec.Length == sourceVec.Length)
-                    {
-                        var sim = InMemoryKnowledgeStore.CosineSimilarity(sourceVec, candidateVec);
-                        if (sim > 0)
-                        {
-                            activatedScores[candidate.Id] = activatedScores.GetValueOrDefault(candidate.Id) + (sourceScore * sim * 0.5);
-                        }
-                    }
-                }
-            }
-
-            foreach (var edge in State.Edges)
-            {
-                if (string.Equals(edge.SourceId, sourceId, StringComparison.Ordinal))
-                {
-                    var propagated = sourceScore * edge.Weight * 0.5;
-                    activatedScores[edge.TargetId] = activatedScores.GetValueOrDefault(edge.TargetId) + propagated;
-                }
-                else if (string.Equals(edge.TargetId, sourceId, StringComparison.Ordinal))
-                {
-                    var propagated = sourceScore * edge.Weight * 0.5;
-                    activatedScores[edge.SourceId] = activatedScores.GetValueOrDefault(edge.SourceId) + propagated;
-                }
+                if (i == s || seeds[i] > 0 || State.Nodes[i].Vector is not { Length: > 0 } candidate || candidate.Length != seedVector.Length) { continue; }
+                var similarity = InMemoryKnowledgeStore.CosineSimilarity(seedVector, candidate);
+                if (similarity > 0.5) { seeds[i] = (float)(seeds[s] * similarity * 0.5); }
             }
         }
 
+        var rank = DigitalBrain.Graph.GraphCompute.PageRank(graph, seeds);
+        var scored = new List<(int Index, double Score)>(graph.NodeCount);
+        for (var i = 0; i < graph.NodeCount; i++)
+        {
+            var spread = rank[i] * graph.NodeCount;
+            var score = (0.6 * seeds[i]) + (0.3 * spread) + (0.1 * State.Nodes[i].Importance / 10.0);
+            if (seeds[i] > 0 || spread > 1.0) { scored.Add((i, (double)score)); }
+        }
         var hits = new List<KnowledgeRecallHit>();
-        var ranked = activatedScores
-            .OrderByDescending(kv => kv.Value)
-            .Take(limit);
-
-        foreach (var (id, score) in ranked)
+        foreach (var (index, score) in scored.OrderByDescending(x => x.Score).ThenBy(x => State.Nodes[x.Index].Id, StringComparer.Ordinal).Take(limit))
         {
-            var nodeRecord = State.Nodes.FirstOrDefault(n => string.Equals(n.Id, id, StringComparison.Ordinal));
-            if (nodeRecord != null)
+            IReadOnlyList<string>? path = null;
+            if (seeds[index] <= 0)
             {
-                hits.Add(new KnowledgeRecallHit(ToModel(nodeRecord), score));
+                path = seeded
+                    .Select(s => DigitalBrain.Graph.GraphCompute.ShortestPath(graph, s, index, 3))
+                    .Where(p => p is not null)
+                    .MinBy(p => p!.Nodes.Length)?.Nodes;
             }
+            hits.Add(new KnowledgeRecallHit(ToModel(State.Nodes[index]), score, path));
         }
-
         return Task.FromResult<IReadOnlyList<KnowledgeRecallHit>>(hits);
     }
+
+    private DigitalBrain.Graph.GraphSnapshot? _graph;
+
+    // The store's own graph in compressed sparse row form: node i is State.Nodes[i]; relations are edges with their weight.
+    private DigitalBrain.Graph.GraphSnapshot Graph()
+    {
+        if (_graph is { } cached && cached.Revision == State.Revision) { return cached; }
+        var sink = new DigitalBrain.Graph.GraphSink();
+        foreach (var node in State.Nodes)
+        {
+            sink.Node(node.Id, string.Equals(node.Type, "entity", StringComparison.OrdinalIgnoreCase) ? DigitalBrain.Graph.GraphNodeKind.Entity : DigitalBrain.Graph.GraphNodeKind.Fact, node.Label);
+        }
+        foreach (var edge in State.Edges)
+        {
+            var from = sink.IndexOf(edge.SourceId);
+            var to = sink.IndexOf(edge.TargetId);
+            if (from >= 0 && to >= 0) { sink.Edge(from, to, DigitalBrain.Graph.GraphEdgeKind.Relates, (float)edge.Weight); }
+        }
+        _graph = DigitalBrain.Graph.GraphCompute.Build(sink, State.Revision);
+        return _graph;
+    }
+
+    private static string? StampedCaller()
+        => IntoChat.OS.Framework.CallerContextStamper.TryGet(out var caller) ? caller.PrincipalId : null;
 
     private static KnowledgeNode ToModel(KnowledgeNodeRecord r) => new(
         r.Id,
@@ -293,7 +308,8 @@ public sealed class KnowledgeStoreNeuron : Neuron<KnowledgeStoreState>, IKnowled
         r.Vector,
         r.Importance,
         r.CreatedAt,
-        r.UpdatedAt);
+        r.UpdatedAt,
+        r.Writer is { } writer ? new Provenance(writer, r.Caller, r.StampedAt) : null);
 
     private static KnowledgeEdge ToModel(KnowledgeEdgeRecord r) => new(
         r.SourceId,
@@ -301,7 +317,8 @@ public sealed class KnowledgeStoreNeuron : Neuron<KnowledgeStoreState>, IKnowled
         r.Relation,
         r.Weight,
         r.Metadata.ToDictionary(m => m.Key, m => m.Value, StringComparer.Ordinal),
-        r.CreatedAt);
+        r.CreatedAt,
+        r.Writer is { } writer ? new Provenance(writer, r.Caller, r.StampedAt) : null);
 
     private static string[] Tokenize(string text)
         => text.Split([' ', '\t', '\r', '\n', ',', '.', ';', ':', '!', '?', '"', '\'', '(', ')', '[', ']', '{', '}'],

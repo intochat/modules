@@ -35,6 +35,7 @@
     <ProjectReference Include="../../../Microsoft/GitHub/Contracts/IntoChat.OS.Modules.Microsoft.GitHub.Contracts/IntoChat.OS.Modules.Microsoft.GitHub.Contracts.csproj" />
     <PackageReference Include="IntoChat.OS.Modules.Apps.Contracts" />
     <PackageReference Include="IntoChat.OS.Framework" />
+    <PackageReference Include="DigitalBrain.Graph" />
   </ItemGroup>
 
   <ItemGroup>

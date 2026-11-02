@@ -131,6 +131,7 @@
     <PackageVersion Include="DigitalBrain.Capabilities.Identity" Version="0.11.0" />
     <PackageVersion Include="DigitalBrain.Capabilities.Secrets" Version="0.11.0" />
     <PackageVersion Include="DigitalBrain.Capabilities.Storage" Version="0.11.0" />
+    <PackageVersion Include="DigitalBrain.Graph" Version="0.11.0" />
     <PackageVersion Include="DigitalBrain.Runtime.Http" Version="0.11.0" />
     <PackageVersion Include="DigitalBrain.Runtime.Orleans" Version="0.11.0" />
     <PackageVersion Include="DigitalBrain.Runtime.Orleans.Azure" Version="0.11.0" />

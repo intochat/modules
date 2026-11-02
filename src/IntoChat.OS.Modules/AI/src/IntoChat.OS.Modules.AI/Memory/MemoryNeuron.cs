@@ -7,7 +7,8 @@ namespace IntoChat.OS.Modules.AI.Memory;
 public sealed record MemoryState(
     long Revision,
     MemoryEpisode[] Episodes,
-    MemoryFact[] Facts)
+    MemoryFact[] Facts,
+    bool Synced = false)
 {
     public MemoryState() : this(0, [], []) { }
 }
@@ -55,17 +56,52 @@ public sealed class MemoryNeuron : Neuron<MemoryState>, IMemory
             .Append(fact)
             .TakeLast(MaxFacts)
             .ToArray();
-        var next = new MemoryState(State.Revision + 1, State.Episodes, existing);
+        var next = new MemoryState(State.Revision + 1, State.Episodes, existing, State.Synced);
         await Save(next, new MemoryChanged(next.Revision, next.Episodes.Length, next.Facts.Length)).ConfigureAwait(false);
+        await SyncAsync().ConfigureAwait(false);
+        if (TryGetStore() is { } store)
+        {
+            await store.RecordNodeAsync(ToNode(fact)).ConfigureAwait(false);
+        }
         return fact;
     }
 
-    public Task<MemoryRecallHit[]> Recall(string query, int limit = 5)
+    // Facts also live in the knowledge store of this brain, where relations and the graph walk are. This state keeps its own
+    // copy for episodes and for hosts without the store; the copy is pushed once (Synced) and every new fact after that.
+    private IKnowledgeStore? TryGetStore()
+    {
+        try
+        {
+            return Get<IKnowledgeStore>(new NeuronId(Id.Brain, "ai.knowledge-store", KnowledgeGraphSource.StoreKey));
+        }
+        catch (InvalidOperationException)
+        {
+            return null;
+        }
+    }
+
+    private async Task SyncAsync()
+    {
+        if (State.Synced || TryGetStore() is not { } store) { return; }
+        foreach (var fact in State.Facts)
+        {
+            await store.RecordNodeAsync(ToNode(fact)).ConfigureAwait(false);
+        }
+        var next = State with { Revision = State.Revision + 1, Synced = true };
+        await Save(next, new MemoryChanged(next.Revision, next.Episodes.Length, next.Facts.Length)).ConfigureAwait(false);
+    }
+
+    private static KnowledgeNode ToNode(MemoryFact fact)
+        => new(fact.Id, $"{fact.Subject}: {fact.Text}", "fact",
+            new Dictionary<string, string>(StringComparer.Ordinal) { ["subject"] = fact.Subject }, null, fact.Importance, fact.RecordedAt);
+
+    public async Task<MemoryRecallHit[]> Recall(string query, int limit = 5)
     {
         if (string.IsNullOrWhiteSpace(query) || limit <= 0)
         {
-            return Task.FromResult<MemoryRecallHit[]>([]);
+            return [];
         }
+        await SyncAsync().ConfigureAwait(false);
 
         var terms = Tokenize(query);
         var hits = new List<MemoryRecallHit>();
@@ -88,12 +124,22 @@ public sealed class MemoryNeuron : Neuron<MemoryState>, IMemory
             }
         }
 
-        var ranked = hits
+        // Graph hits from the knowledge store replace the lexical hit for the same fact and add facts reached only by relations.
+        if (TryGetStore() is { } store)
+        {
+            foreach (var hit in await store.SemanticSearchAsync(query, limit).ConfigureAwait(false))
+            {
+                hits.RemoveAll(h => h.Id == hit.Node.Id);
+                var text = hit.AssociativePath is { Count: > 1 } path ? $"{hit.Node.Label} (via {string.Join(" → ", path)})" : hit.Node.Label;
+                hits.Add(new MemoryRecallHit(hit.Node.Id, "fact", text, hit.RelevanceScore));
+            }
+        }
+
+        return hits
             .OrderByDescending(h => h.Score)
             .ThenBy(h => h.Id, StringComparer.Ordinal)
             .Take(limit)
             .ToArray();
-        return Task.FromResult(ranked);
     }
 
     private static string[] Tokenize(string text)
