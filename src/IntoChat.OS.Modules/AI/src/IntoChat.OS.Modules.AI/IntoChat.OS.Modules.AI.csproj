@@ -32,6 +32,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../../Contracts/IntoChat.OS.Modules.AI.Contracts/IntoChat.OS.Modules.AI.Contracts.csproj" />
+    <ProjectReference Include="../../../Microsoft/GitHub/Contracts/IntoChat.OS.Modules.Microsoft.GitHub.Contracts/IntoChat.OS.Modules.Microsoft.GitHub.Contracts.csproj" />
     <PackageReference Include="IntoChat.OS.Modules.Apps.Contracts" />
     <PackageReference Include="IntoChat.OS.Framework" />
   </ItemGroup>

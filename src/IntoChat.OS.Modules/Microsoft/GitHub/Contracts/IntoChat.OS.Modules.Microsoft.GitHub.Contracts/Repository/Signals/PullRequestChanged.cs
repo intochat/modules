@@ -6,4 +6,8 @@ namespace IntoChat.OS.Modules.Microsoft.GitHub.Signals;
 public sealed record PullRequestChanged(
     int Number,
     string Version,
-    string SubjectKey) : DigitalBrain.Signal;
+    string SubjectKey,
+    string? CiStatus = null,
+    string? CommentAuthor = null,
+    string? CommentBody = null) : DigitalBrain.Signal;
+

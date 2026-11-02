@@ -130,4 +130,34 @@ public sealed class TaskEngine : ITaskEngine
         var neuron = GetTaskNeuron(taskId);
         return await neuron.VerifyStepAsync(stepIndex).ConfigureAwait(false);
     }
+
+    public async Task<AgentTask> ConfirmTaskStepAsync(string taskId, int stepIndex, string? confirmationToken = null, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(taskId);
+        ct.ThrowIfCancellationRequested();
+        var neuron = GetTaskNeuron(taskId);
+        return await neuron.ConfirmStepAsync(stepIndex, confirmationToken).ConfigureAwait(false);
+    }
+
+    public static CreateTaskRequest CreateDevPipelineRequest(string title, string description, string owner, string branch)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(title);
+        ArgumentException.ThrowIfNullOrWhiteSpace(description);
+        ArgumentException.ThrowIfNullOrWhiteSpace(owner);
+        ArgumentException.ThrowIfNullOrWhiteSpace(branch);
+
+        var steps = new TaskStepDefinition[]
+        {
+            new("Plan", $"Formulate execution plan for branch {branch}", "ai.plan", null, $"dev-plan-{branch}"),
+            new("Edit", $"Execute modifications via Roslyn on branch {branch}", "microsoft.roslyn.edit", null, $"dev-edit-{branch}"),
+            new("Test", $"Run test verification suite on branch {branch}", "test.verification", null, $"dev-test-{branch}"),
+            new("Candidate", $"Boot candidate app inside sandbox under Aspire for branch {branch}", "aspire.candidates", null, $"dev-cand-{branch}"),
+            new("Open PR", $"Push branch and create pull request for branch {branch}", "github.open-pr", null, $"dev-pr-{branch}"),
+            new("Await Review", $"Wait for CI checks and reviewer feedback for branch {branch}", "github.await-review", null, $"dev-review-{branch}"),
+            new("Merge [Confirm]", $"Merge pull request upon human confirmation for branch {branch}", "github.merge", null, $"dev-merge-{branch}"),
+            new("Roll Out [Confirm]", $"Deploy candidate to production cluster upon human confirmation for branch {branch}", "cluster.rollout", null, $"dev-rollout-{branch}"),
+        };
+
+        return new CreateTaskRequest(title, description, owner, steps);
+    }
 }

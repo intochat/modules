@@ -41,8 +41,8 @@ public interface ICandidate
     // The cluster's activation settles a Promoting candidate: Finish once the cluster runs its build, Abandon
     // when the restart never took. Both interleave (Promote may be what activated the cluster) and are no-ops
     // in any other stage.
-    [DigitalBrain.Interleaves] Task<CandidateSnapshot> Finish();
-    [DigitalBrain.Interleaves] Task<CandidateSnapshot> Abandon(string reason);
+    [DigitalBrain.OneWayCall] Task Finish();
+    [DigitalBrain.OneWayCall] Task Abandon(string reason);
     static string Key(string brainId, string sha) => $"{brainId}/{Relative(sha)}";
     // The id inside its brain.
     static string Relative(string sha) => $"aspire/candidate/{sha}";

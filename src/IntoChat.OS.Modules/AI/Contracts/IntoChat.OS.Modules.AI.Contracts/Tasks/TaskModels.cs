@@ -9,7 +9,8 @@ public enum TaskStatus
     Completed = 2,
     Failed = 3,
     RolledBack = 4,
-    Cancelled = 5
+    Cancelled = 5,
+    AwaitingConfirmation = 6
 }
 
 public enum TaskStepStatus
@@ -18,14 +19,16 @@ public enum TaskStepStatus
     Running = 1,
     Completed = 2,
     Failed = 3,
-    RolledBack = 4
+    RolledBack = 4,
+    AwaitingConfirmation = 5
 }
 
 public sealed record TaskStepDefinition(
     string Title,
     string Description,
     string Capability,
-    string? RollbackCapability = null);
+    string? RollbackCapability = null,
+    string? IdempotencyKey = null);
 
 public sealed record CreateTaskRequest(
     string Title,
@@ -42,7 +45,8 @@ public sealed record TaskStep(
     string? RollbackCapability = null,
     string? Output = null,
     DateTimeOffset? StartedAt = null,
-    DateTimeOffset? CompletedAt = null);
+    DateTimeOffset? CompletedAt = null,
+    string? IdempotencyKey = null);
 
 public sealed record AgentTask(
     string TaskId,
@@ -59,3 +63,20 @@ public sealed record TaskVerificationResult(
     bool Passed,
     string Summary,
     string[]? Violations = null);
+
+public static class BotIdentity
+{
+    public const string Login = "intochat-bot[bot]";
+
+    public static bool IsBot(string? author)
+    {
+        if (string.IsNullOrWhiteSpace(author))
+        {
+            return false;
+        }
+
+        return string.Equals(author, Login, StringComparison.OrdinalIgnoreCase)
+            || author.EndsWith("[bot]", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(author, "github-actions[bot]", StringComparison.OrdinalIgnoreCase);
+    }
+}

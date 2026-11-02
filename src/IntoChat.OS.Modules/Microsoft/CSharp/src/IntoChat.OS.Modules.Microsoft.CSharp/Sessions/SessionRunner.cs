@@ -48,16 +48,6 @@ internal sealed class SessionRunner(HttpClient http, IOptions<CSharpOptions> opt
         if (response.StatusCode is not (HttpStatusCode.NotFound or HttpStatusCode.BadRequest)) { response.EnsureSuccessStatusCode(); }
     }
 
-    public async Task<JudgeAnswer> Judge(string brain, JudgeRequest request, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(request);
-        using var response = await SendAsync(HttpMethod.Post, Url("sessions/" + Identifier(brain) + "/judge", brain),
-            JsonContent.Create(request, options: RuntimeProtocol.Json), cancellationToken).ConfigureAwait(false);
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<JudgeAnswer>(RuntimeProtocol.Json, cancellationToken).ConfigureAwait(false)
-            ?? throw new HttpRequestException("The sandbox answered a judgement with nothing.");
-    }
-
     // Pool identifiers allow a narrow character set, and brain ids should not leak into URLs.
     internal static string Identifier(string brain)
         => "b-" + Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(brain)))[..32];

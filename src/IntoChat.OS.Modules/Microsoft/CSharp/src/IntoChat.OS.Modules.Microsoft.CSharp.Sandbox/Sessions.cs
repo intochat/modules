@@ -2,6 +2,8 @@ using System.Collections.Concurrent;
 using System.Runtime.Loader;
 using IntoChat.OS.Client.Runtime;
 using IntoChat.OS.Client.Runtime.V1;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace IntoChat.OS.Modules.Microsoft.CSharp.Sandbox;
 
@@ -12,7 +14,7 @@ namespace IntoChat.OS.Modules.Microsoft.CSharp.Sandbox;
 // longer speaks for the brain. Ensuring a held session refreshes its token so a restarted brain can
 // restore credentials without replacing behaviors. A session that cannot connect is forgotten, so
 // the brain's next check finds it gone and starts it again.
-public sealed class Sessions(BehaviorLoader loader, ILoggerFactory loggers, HttpMessageHandler? edge = null)
+public sealed class Sessions(HttpClient http, IOptions<SandboxOptions> options, ILoggerFactory loggers, HttpMessageHandler? edge = null)
 {
     private readonly ConcurrentDictionary<string, Open> _open = new(StringComparer.Ordinal);
     private readonly SemaphoreSlim _gate = new(1, 1);
@@ -84,7 +86,7 @@ public sealed class Sessions(BehaviorLoader loader, ILoggerFactory loggers, Http
                 // An ensure can refresh credentials while the original handshake is in flight.
                 catch (Exception error) when (error is not OperationCanceledException && token != open.Token) { _logger.LogDebug(error, "Session handshake superseded by refreshed credentials; retrying"); }
             }
-            var session = new Session(connection, loader, loggers.CreateLogger("Session " + start.Brain));
+            var session = new Session(connection, http, options, loggers.CreateLogger("Session " + start.Brain));
             open.Attach(session);
             _logger.LogInformation("Session {Session} of brain {Brain} connected", start.Session, start.Brain);
             await session.RunAsync(open.Lifetime.Token).ConfigureAwait(false);

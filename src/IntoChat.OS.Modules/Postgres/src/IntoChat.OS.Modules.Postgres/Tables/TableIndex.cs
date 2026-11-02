@@ -21,5 +21,6 @@ public interface ITableIndex
 [DigitalBrain.Contracts.NeuronAlias("postgres.table-lifetime"), DigitalBrain.Contracts.DefaultNeuronType(TableNeuron.GrainType)]
 public interface ITableLifetime
 {
+    [DigitalBrain.OneWayCall]
     Task Retire(string owner);
 }

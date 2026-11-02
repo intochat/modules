@@ -19,12 +19,8 @@ internal static class SandboxEndpoints
         });
         endpoints.MapGet("/sessions/{identifier}", (string identifier, Sessions sessions)
             => sessions.Contains(identifier) ? Results.Ok() : Results.NotFound());
-        // Rules are judged only for a session this host holds.
-        endpoints.MapPost("/sessions/{identifier}/judge", async (string identifier, JudgeRequest request, Sessions sessions, RuleJudge judge, CancellationToken cancellationToken)
-            => sessions.Contains(identifier) ? Results.Ok(await judge.JudgeAsync(identifier, request, cancellationToken)) : Results.NotFound());
-        endpoints.MapPost("/sessions/{identifier}/stop", async (string identifier, Sessions sessions, RuleJudge judge) =>
+        endpoints.MapPost("/sessions/{identifier}/stop", async (string identifier, Sessions sessions) =>
         {
-            judge.Forget(identifier);
             return await sessions.StopAsync(identifier) ? Results.Ok() : Results.NotFound();
         });
     }

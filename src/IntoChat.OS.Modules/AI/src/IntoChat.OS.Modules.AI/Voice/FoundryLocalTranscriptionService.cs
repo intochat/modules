@@ -282,7 +282,7 @@ public sealed class FoundryLocalTranscriptionService :
             ?? throw new InvalidOperationException("Whisper model is not loaded.");
 
         using var session = new AudioSession(model);
-        using var request = new Microsoft.AI.Foundry.Local.Request();
+        using var request = new global::Microsoft.AI.Foundry.Local.Request();
         request.AddItem(new AudioItem(filePath));
         using var response = await session.ProcessRequestAsync(request, ct).ConfigureAwait(false);
 

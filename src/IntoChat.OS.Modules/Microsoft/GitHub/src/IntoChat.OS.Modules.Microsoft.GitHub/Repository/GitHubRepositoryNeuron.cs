@@ -186,6 +186,67 @@ internal sealed class GitHubRepositoryNeuron : ConnectionNeuron<GitHubRepository
         return _source.GetRequiredChecksAsync(Repository, null, cancellationToken);
     }
 
+    public async Task PushBranch(PushBranchRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        RequireAvailable();
+        await _source.PushBranchAsync(Repository, request, CancellationToken.None).ConfigureAwait(false);
+    }
+
+    public async Task<PullRequestView> CreatePullRequest(CreatePullRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        RequireAvailable();
+        return await _source.CreatePullRequestAsync(Repository, request, CancellationToken.None).ConfigureAwait(false);
+    }
+
+    public async Task ReplyToReviewComment(ReplyReviewComment request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        RequireAvailable();
+        await _source.ReplyToReviewCommentAsync(Repository, request, CancellationToken.None).ConfigureAwait(false);
+    }
+
+    public async Task MergePullRequest(MergePullRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        RequireAvailable();
+        RequireMergeProvenance();
+
+        var current = await _source.GetPullRequestAsync(Repository, request.PullRequestNumber, CancellationToken.None).ConfigureAwait(false);
+        if (!string.Equals(current.HeadSha, request.ExpectedHeadSha, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException($"Remote branch HEAD SHA '{current.HeadSha}' does not match expected HEAD SHA '{request.ExpectedHeadSha}'.");
+        }
+
+        await _source.MergePullRequestAsync(Repository, request, CancellationToken.None).ConfigureAwait(false);
+    }
+
+    private void RequireMergeProvenance()
+    {
+        if (!CallerContextStamper.TryGet(out var caller) || caller is null)
+        {
+            throw new UnauthorizedAccessException("Caller is not authenticated or stamped.");
+        }
+
+        if (caller.Kind is CallerKind.User or CallerKind.Platform)
+        {
+            return;
+        }
+
+        var isTaskNeuron = caller.PrincipalId?.Contains("tasks.task", StringComparison.OrdinalIgnoreCase) == true
+            || caller.AppId?.Contains("tasks.task", StringComparison.OrdinalIgnoreCase) == true
+            || (string.Equals(caller.BrainId, Key.Brain, StringComparison.OrdinalIgnoreCase)
+                && (caller.PrincipalId?.Contains("task", StringComparison.OrdinalIgnoreCase) == true || caller.AppId?.Contains("task", StringComparison.OrdinalIgnoreCase) == true));
+
+        if (isTaskNeuron)
+        {
+            return;
+        }
+
+        throw new UnauthorizedAccessException($"Caller of kind {caller.Kind} (Principal: {caller.PrincipalId}, App: {caller.AppId}) is not authorized to merge pull requests on github/{Key.Connection}.");
+    }
+
     // The index entry stays: Coordinates() and AcceptRepositoryEvent skip a connection that is not
     // Connected, and a probe that finds access restored brings its webhooks back with it.
     private Task RevokeAsync(string reason)

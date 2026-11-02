@@ -1,9 +1,11 @@
+using DigitalBrain.Access;
 using IntoChat.OS;
 
 namespace IntoChat.OS.Modules.Microsoft.GitHub;
 
 // The connection neuron's grain type is its connector id, "github".
 [DigitalBrain.Contracts.NeuronAlias("github.repository"), DigitalBrain.Contracts.DefaultNeuronType("github")]
+[Shareable]
 public interface IRepository
 {
     Task<RepositoryView> Refresh(RefreshRepository request);
@@ -22,4 +24,12 @@ public interface IRepository
 
     [DigitalBrain.ReadOnlyCall]
     Task<RequiredChecksRead> ReadRequiredChecks(CancellationToken cancellationToken = default);
+
+    Task PushBranch(PushBranchRequest request);
+
+    Task<PullRequestView> CreatePullRequest(CreatePullRequest request);
+
+    Task ReplyToReviewComment(ReplyReviewComment request);
+
+    Task MergePullRequest(MergePullRequest request);
 }

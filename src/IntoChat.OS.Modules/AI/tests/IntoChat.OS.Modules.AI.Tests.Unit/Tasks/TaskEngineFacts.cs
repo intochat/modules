@@ -18,7 +18,7 @@ public sealed class TaskEngineFacts
     {
         var os = TestOS.Local();
         os.Register<TaskNeuron>();
-        os.Register<TaskDirectoryGrain>();
+        os.Register<TaskDirectoryNeuron>();
 
         var engine = new TaskEngine(
             taskId => os.Get<ITaskNeuron>(new NeuronId(new BrainId("local"), "tasks.task", taskId)),

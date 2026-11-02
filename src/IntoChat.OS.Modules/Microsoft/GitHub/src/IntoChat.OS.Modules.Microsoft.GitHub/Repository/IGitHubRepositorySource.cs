@@ -6,4 +6,8 @@ internal interface IGitHubRepositorySource
     Task<IReadOnlyList<PullRequestSnapshot>> ListOpenPullRequestsAsync(GitHubRepository repository, CancellationToken cancellationToken);
     Task<GitHubReviewEvidence> GetReviewEvidenceAsync(GitHubRepository repository, PullRequestSnapshot snapshot, CancellationToken cancellationToken);
     Task<RequiredChecksRead> GetRequiredChecksAsync(GitHubRepository repository, string? branch, CancellationToken cancellationToken) => Task.FromResult(new RequiredChecksRead([], false, "Required CI checks have not been discovered for this source."));
+    Task PushBranchAsync(GitHubRepository repository, PushBranchRequest request, CancellationToken cancellationToken);
+    Task<PullRequestView> CreatePullRequestAsync(GitHubRepository repository, CreatePullRequest request, CancellationToken cancellationToken);
+    Task ReplyToReviewCommentAsync(GitHubRepository repository, ReplyReviewComment request, CancellationToken cancellationToken);
+    Task MergePullRequestAsync(GitHubRepository repository, MergePullRequest request, CancellationToken cancellationToken);
 }

@@ -7,7 +7,7 @@ using IntoChat.OS.Modules.AI.Tasks.Signals;
 namespace IntoChat.OS.Modules.AI.Tasks;
 
 [Neuron("tasks.directory", State = "tasks-dir")]
-public sealed class TaskDirectoryGrain : Neuron<TaskDirectoryState>, ITaskDirectoryNeuron
+public class TaskDirectoryNeuron : Neuron<TaskDirectoryState>, ITaskDirectoryNeuron
 {
     private const int MaxEntries = 1000;
 
@@ -96,4 +96,9 @@ public sealed class TaskDirectoryGrain : Neuron<TaskDirectoryState>, ITaskDirect
 
         return Task.FromResult(results);
     }
+}
+
+[Obsolete("Renamed to TaskDirectoryNeuron.")]
+public sealed class TaskDirectoryGrain : TaskDirectoryNeuron
+{
 }

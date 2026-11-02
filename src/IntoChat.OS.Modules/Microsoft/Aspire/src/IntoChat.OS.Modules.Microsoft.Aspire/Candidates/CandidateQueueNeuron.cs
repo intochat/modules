@@ -40,11 +40,14 @@ internal sealed class CandidateQueueNeuron(ICandidateHost host) : DigitalBrain.N
         {
             if (Ended((await Candidate(sha).Read()).Stage)) { await Ended(sha); }
         }
-        if (Snapshot.Live is not { } live) { return; }
-        var stage = (await Candidate(live).Read()).Stage;
-        if (Ended(stage)) { await Ended(live); }
-        // Begin is a no-op past Queued, so a Begin that did arrive and is still building is not repeated.
-        else if (stage is CandidateStage.Proposed or CandidateStage.Queued) { await Candidate(live).Begin(); }
+        if (Snapshot.Live is { } live)
+        {
+            var stage = (await Candidate(live).Read()).Stage;
+            if (Ended(stage)) { await Ended(live); }
+            // Begin is a no-op past Queued, so a Begin that did arrive and is still building is not repeated.
+            else if (stage is CandidateStage.Proposed or CandidateStage.Queued) { await Candidate(live).Begin(); }
+        }
+        await host.Orphans(await Known(), CancellationToken.None);
     }
 
     private static bool Ended(CandidateStage stage) => stage is CandidateStage.Promoted or CandidateStage.Discarded or CandidateStage.Failed;

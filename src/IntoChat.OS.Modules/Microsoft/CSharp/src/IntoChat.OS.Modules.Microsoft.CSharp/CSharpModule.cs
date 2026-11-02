@@ -14,6 +14,8 @@ using IntoChat.OS.Modules.Microsoft.CSharp.Catalog;
 using IntoChat.OS.Modules.Microsoft.CSharp.Edge;
 using IntoChat.OS.Modules.Microsoft.CSharp.Files;
 using IntoChat.OS.Modules.Microsoft.CSharp.Files.Signals;
+using IntoChat.OS.Modules.Microsoft.CSharp.Programs;
+using IntoChat.OS.Modules.Microsoft.CSharp.Programs.Signals;
 using IntoChat.OS.Modules.Microsoft.CSharp.Runtime;
 using IntoChat.OS.Modules.Microsoft.CSharp.Sessions;
 using Microsoft.AspNetCore.Routing;
@@ -63,6 +65,7 @@ public sealed class CSharpModule : DigitalBrain.Module, IHttpModule
         services.TryAddSingleton<IntoChat.OS.Modules.Apps.IScriptSandbox, CSharpScriptSandbox>();
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<SessionTokens>();
+        services.TryAddSingleton<EdgeSessionValidator>();
         services.AddSingleton<IIntegrationStartup>(services => services.GetRequiredService<SessionTokens>());
         services.TryAddSingleton<CSharpContractDiscovery>();
         services.TryAddSingleton(new BoundedCache<string, CompiledBehavior>(CSharpScriptCheck.CacheCapacity, StringComparer.Ordinal));

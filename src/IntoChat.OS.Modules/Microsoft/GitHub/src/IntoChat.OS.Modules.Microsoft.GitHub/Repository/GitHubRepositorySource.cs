@@ -191,6 +191,103 @@ internal sealed class GitHubRepositorySource : IGitHubRepositorySource, IDisposa
         }
     }
 
+    public async Task PushBranchAsync(GitHubRepository repository, PushBranchRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentException.ThrowIfNullOrWhiteSpace(request.Branch);
+        ArgumentException.ThrowIfNullOrWhiteSpace(request.CommitSha);
+        using var activity = Activities.StartActivity("github.push_branch");
+        activity?.SetTag("github.repository.id", repository.RepositoryId).SetTag("github.branch", request.Branch);
+
+        var connection = await ConnectionAsync(repository, false, cancellationToken).ConfigureAwait(false);
+        var client = new Octokit.GitHubClient(connection);
+        var branchName = request.Branch.StartsWith("refs/heads/", StringComparison.Ordinal)
+            ? request.Branch["refs/heads/".Length..]
+            : request.Branch;
+        var refName = $"heads/{branchName}";
+
+        try
+        {
+            await client.Git.Reference.Update(repository.RepositoryId, refName, new Octokit.ReferenceUpdate(request.CommitSha, request.Force)).WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (Octokit.NotFoundException)
+        {
+            await client.Git.Reference.Create(repository.RepositoryId, new Octokit.NewReference($"refs/{refName}", request.CommitSha)).WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    public async Task<PullRequestView> CreatePullRequestAsync(GitHubRepository repository, CreatePullRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentException.ThrowIfNullOrWhiteSpace(request.Title);
+        ArgumentException.ThrowIfNullOrWhiteSpace(request.HeadBranch);
+        using var activity = Activities.StartActivity("github.create_pull_request");
+        activity?.SetTag("github.repository.id", repository.RepositoryId).SetTag("github.pull_request.title", request.Title);
+
+        var connection = await ConnectionAsync(repository, false, cancellationToken).ConfigureAwait(false);
+        var client = new Octokit.GitHubClient(connection);
+        var newPr = new Octokit.NewPullRequest(request.Title, request.HeadBranch, request.BaseBranch)
+        {
+            Body = request.Body,
+            Draft = request.Draft
+        };
+
+        var pr = await client.PullRequest.Create(repository.RepositoryId, newPr).WaitAsync(cancellationToken).ConfigureAwait(false);
+        return new PullRequestView(
+            pr.Number,
+            pr.Title,
+            pr.HtmlUrl,
+            pr.Head.Sha,
+            pr.Base.Sha,
+            pr.State.Value == Octokit.ItemState.Open,
+            pr.Draft,
+            pr.MergeCommitSha);
+    }
+
+    public async Task ReplyToReviewCommentAsync(GitHubRepository repository, ReplyReviewComment request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentOutOfRangeException.ThrowIfLessThan(request.PullRequestNumber, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(request.CommentId, 1);
+        ArgumentException.ThrowIfNullOrWhiteSpace(request.Body);
+        using var activity = Activities.StartActivity("github.reply_review_comment");
+        activity?.SetTag("github.repository.id", repository.RepositoryId)
+            .SetTag("github.pull_request.number", request.PullRequestNumber)
+            .SetTag("github.comment.id", request.CommentId);
+
+        var connection = await ConnectionAsync(repository, false, cancellationToken).ConfigureAwait(false);
+        var client = new Octokit.GitHubClient(connection);
+        var reply = new Octokit.PullRequestReviewCommentReplyCreate(request.Body, request.CommentId);
+        await client.PullRequest.ReviewComment.CreateReply(repository.RepositoryId, request.PullRequestNumber, reply).WaitAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task MergePullRequestAsync(GitHubRepository repository, MergePullRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentOutOfRangeException.ThrowIfLessThan(request.PullRequestNumber, 1);
+        ArgumentException.ThrowIfNullOrWhiteSpace(request.ExpectedHeadSha);
+        using var activity = Activities.StartActivity("github.merge_pull_request");
+        activity?.SetTag("github.repository.id", repository.RepositoryId).SetTag("github.pull_request.number", request.PullRequestNumber);
+
+        var connection = await ConnectionAsync(repository, false, cancellationToken).ConfigureAwait(false);
+        var client = new Octokit.GitHubClient(connection);
+        var mergeMethod = request.MergeMethod?.ToLowerInvariant() switch
+        {
+            "merge" => Octokit.PullRequestMergeMethod.Merge,
+            "rebase" => Octokit.PullRequestMergeMethod.Rebase,
+            _ => Octokit.PullRequestMergeMethod.Squash
+        };
+        var octokitMerge = new Octokit.MergePullRequest
+        {
+            Sha = request.ExpectedHeadSha,
+            CommitTitle = request.CommitTitle,
+            CommitMessage = request.CommitMessage,
+            MergeMethod = mergeMethod
+        };
+
+        await client.PullRequest.Merge(repository.RepositoryId, request.PullRequestNumber, octokitMerge).WaitAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     public async Task<GitHubReviewEvidence> GetReviewEvidenceAsync(GitHubRepository repository, PullRequestSnapshot snapshot, CancellationToken cancellationToken)
     {
         if (snapshot.RepositoryId != repository.RepositoryId)

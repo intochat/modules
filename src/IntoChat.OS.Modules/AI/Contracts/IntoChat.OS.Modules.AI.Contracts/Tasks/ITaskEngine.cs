@@ -1,9 +1,11 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using DigitalBrain.Access;
 
 namespace IntoChat.OS.Modules.AI.Tasks;
 
+[Shareable]
 public interface ITaskEngine
 {
     Task<AgentTask> CreateTaskAsync(CreateTaskRequest request, CancellationToken ct = default);
@@ -13,4 +15,5 @@ public interface ITaskEngine
     Task<AgentTask> RollbackTaskAsync(string taskId, int toStepIndex, string reason, CancellationToken ct = default);
     Task<AgentTask> CancelTaskAsync(string taskId, string reason, CancellationToken ct = default);
     Task<TaskVerificationResult> VerifyTaskStepAsync(string taskId, int stepIndex, CancellationToken ct = default);
+    Task<AgentTask> ConfirmTaskStepAsync(string taskId, int stepIndex, string? confirmationToken = null, CancellationToken ct = default);
 }

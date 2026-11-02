@@ -44,7 +44,7 @@ internal static class VoiceToTextHosting
             case AiProvider.FoundryLocal:
                 services.TryAddSingleton(sp => new FoundryLocalTranscriptionService(
                     sp.GetRequiredService<IOptions<AIOptions>>(),
-                    sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<FoundryLocalTranscriptionService>>(),
+                    sp.GetRequiredService<global::Microsoft.Extensions.Logging.ILogger<FoundryLocalTranscriptionService>>(),
                     sp.GetRequiredService<IAudioConverter>()));
                 services.TryAddSingleton<IAudioTranscriptionService>(static sp =>
                     sp.GetRequiredService<FoundryLocalTranscriptionService>());

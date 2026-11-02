@@ -12,6 +12,8 @@ using DigitalBrain.Runtime.Orleans.Hosting;
 
 namespace IntoChat.OS.Modules.Flutter.WebBrowser;
 
+// Reentrancy is safe because all state updates and driver operations are sequenced using monotonic generation counters (_generation)
+// and idempotent connection status transitions, preventing race conditions or corruptions during concurrent turn interleaving.
 [Neuron(UIVocabulary.WebBrowserType), DigitalBrain.Reentrant]
 internal sealed class WebBrowserNeuron
     : UiNeuron<WebBrowserState>, IWebBrowser, IWebBrowserConnector

@@ -9,5 +9,6 @@
     <PackageReference Include="Microsoft.Extensions.AI.Abstractions" />
     <!-- Neuron interfaces and signals use the IntoChat.OS wire vocabulary; module runtime uses Framework. -->
     <PackageReference Include="IntoChat.OS" />
+    <PackageReference Include="DigitalBrain" />
   </ItemGroup>
 </Project>

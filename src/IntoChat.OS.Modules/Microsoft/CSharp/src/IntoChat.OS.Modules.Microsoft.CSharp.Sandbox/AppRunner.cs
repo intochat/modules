@@ -1,20 +1,59 @@
+using System.Collections.Concurrent;
 using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Runtime.Loader;
+using System.Security.Cryptography;
 using System.Text.Json;
 using DigitalBrain;
 using DigitalBrain.UI;
 using IntoChat.OS.Client;
+using IntoChat.OS.Client.Runtime;
+using IntoChat.OS.Client.Runtime.V1;
 using IntoChat.OS.Modules.Apps;
 using IntoChat.OS.Modules.Apps.Signals;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace IntoChat.OS.Modules.Microsoft.CSharp.Sandbox;
 
-// The generic entry of a program that is a framework [App] class instead of a script: it builds the app from the framework's own
-// AppDefinition (the rules TestOS applies) and maps each brain.On(app, operation) request onto the matching [On] method, one request at a
-// time, as turns. What the app presents goes to the app's view neurons through the client. A program is an [App] class when its assembly has
-// no entry point and declares exactly one.
-internal static class AppRunner
+// The lifecycle manager and execution runner of a program that is a framework [App] class:
+// it downloads, caches, loads the assembly in a collectible AssemblyLoadContext, and runs
+// the app's turn and signal loops against IntoChatOS.
+public sealed class AppRunner : IAsyncDisposable
 {
+    private static readonly TimeSpan StopGrace = TimeSpan.FromSeconds(10);
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
+    private static readonly ConcurrentDictionary<string, SemaphoreSlim> CacheGates = new(StringComparer.Ordinal);
+
+    private readonly CancellationTokenSource _stopping = new();
+    private readonly RunLog _log;
+    private readonly Type _appType;
+    private AssemblyLoadContext? _context;
+    private long _stateRevision;
+    private string? _lastSavedState;
+
+    internal AppRunner(AssignmentEvent assignment, AssemblyLoadContext context, Type appType, int logLines)
+    {
+        Assignment = assignment;
+        Id = assignment.Behavior;
+        Hash = assignment.Hash;
+        _context = context;
+        _appType = appType;
+        _log = new RunLog(logLines);
+        Completion = Task.FromResult(0);
+    }
+
+    public AssignmentEvent Assignment { get; }
+    public string Id { get; }
+    public string Hash { get; }
+    public Task<int> Completion { get; private set; }
+    public string? Error { get; private set; }
+    public AssemblyLoadContext? Context => _context;
+    public Type AppType => _appType;
+
+    public string Tail(int lines) => _log.Tail(lines);
+    public void Note(string line) => _log.Append(line);
+    public bool Draining { get; internal set; }
 
     public static Type? AppTypeIn(Assembly assembly)
     {
@@ -22,17 +61,141 @@ internal static class AppRunner
         return apps.Length == 1 ? apps[0] : null;
     }
 
+    public static async Task PrepareAsync(HttpClient http, IOptions<SandboxOptions> options, AssignmentEvent assignment, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(assignment);
+        await CachedAsync(http, options.Value.CacheRoot, assignment.Hash, assignment.Assembly, verify: true, cancellationToken).ConfigureAwait(false);
+        await CachedAsync(http, options.Value.CacheRoot, assignment.Hash + ".pdb", assignment.Symbols, verify: false, cancellationToken).ConfigureAwait(false);
+    }
+
+    public static async Task<AppRunner> LoadAsync(HttpClient http, IOptions<SandboxOptions> options, SessionConnection session, AssignmentEvent assignment, ILogger logger, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(assignment);
+        var assemblyBytes = await CachedAsync(http, options.Value.CacheRoot, assignment.Hash, assignment.Assembly, verify: true, cancellationToken).ConfigureAwait(false);
+        var symbolBytes = await CachedAsync(http, options.Value.CacheRoot, assignment.Hash + ".pdb", assignment.Symbols, verify: false, cancellationToken).ConfigureAwait(false);
+        return Start(session, assignment, assemblyBytes, symbolBytes, options.Value.LogLines, logger);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static AppRunner Start(SessionConnection session, AssignmentEvent assignment, byte[] assemblyBytes, byte[] symbolBytes, int logLines, ILogger logger)
+    {
+        var (context, assembly) = LoadAssembly(assignment, assemblyBytes, symbolBytes);
+        var appType = AppTypeIn(assembly) ?? throw new InvalidOperationException($"{assignment.Behavior} does not declare exactly one [App] class.");
+        var runner = new AppRunner(assignment, context, appType, logLines);
+        runner.Completion = Task.Run(() => runner.ExecuteAsync(session, assignment.Settings, logger));
+        return runner;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static (AssemblyLoadContext Context, Assembly Assembly) LoadAssembly(AssignmentEvent assignment, byte[] assemblyBytes, byte[] symbolBytes)
+    {
+        var context = new AppLoadContext(assignment.Behavior);
+        try
+        {
+            using var image = new MemoryStream(assemblyBytes);
+            using var pdb = new MemoryStream(symbolBytes);
+            var loaded = symbolBytes.Length == 0 ? context.LoadFromStream(image) : context.LoadFromStream(image, pdb);
+            return (context, loaded);
+        }
+        catch
+        {
+            context.Unload();
+            throw;
+        }
+    }
+
+    internal static async Task<byte[]> CachedAsync(HttpClient http, string cacheRoot, string name, Uri url, bool verify, CancellationToken cancellationToken)
+    {
+        var path = Path.Combine(cacheRoot, name);
+        if (File.Exists(path))
+        {
+            try
+            {
+                var cached = await File.ReadAllBytesAsync(path, cancellationToken).ConfigureAwait(false);
+                if (!verify || Matches(name, cached)) { return cached; }
+            }
+            catch (IOException)
+            {
+                // In-flight write/move collision in fast path; fall through to synchronized block.
+            }
+        }
+
+        var gate = CacheGates.GetOrAdd(name, _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            if (File.Exists(path))
+            {
+                var cached = await File.ReadAllBytesAsync(path, cancellationToken).ConfigureAwait(false);
+                if (!verify || Matches(name, cached)) { return cached; }
+            }
+
+            var bytes = await http.GetByteArrayAsync(url, cancellationToken).ConfigureAwait(false);
+            if (verify && !Matches(name, bytes)) { throw new InvalidDataException($"The assembly downloaded for {name} does not hash to its name; refusing to load it."); }
+            Directory.CreateDirectory(cacheRoot);
+            var tempFile = $"{path}.{Guid.NewGuid():N}.tmp";
+            try
+            {
+                await File.WriteAllBytesAsync(tempFile, bytes, cancellationToken).ConfigureAwait(false);
+                File.Move(tempFile, path, overwrite: true);
+            }
+            finally
+            {
+                if (File.Exists(tempFile))
+                {
+                    try { File.Delete(tempFile); } catch { /* best effort cleanup */ }
+                }
+            }
+
+            return bytes;
+        }
+        finally
+        {
+            gate.Release();
+        }
+    }
+
+    private static bool Matches(string hash, byte[] bytes) => Convert.ToHexStringLower(SHA256.HashData(bytes)) == hash;
+
+    private async Task<int> ExecuteAsync(SessionConnection session, Dictionary<string, string> settings, ILogger logger)
+    {
+        using var scope = logger.BeginScope(new Dictionary<string, object> { ["Behavior"] = Id, ["Hash"] = Hash });
+        using var ambient = AmbientSession.Enter(session, Id, settings, _stopping.Token, Hash, Assignment.Revision);
+        using var output = BehaviorConsole.Capture(line => { _log.Append(line); logger.LogInformation("{Behavior}: {Line}", Id, line); });
+        try
+        {
+            return await RunAsync(_stopping.Token).ConfigureAwait(false);
+        }
+        catch (Exception error) when (Unwrap(error) is OperationCanceledException && _stopping.IsCancellationRequested)
+        {
+            return 0;
+        }
+        catch (Exception error)
+        {
+            Error = Unwrap(error).ToString();
+            _log.Append(Error);
+            logger.LogWarning(Unwrap(error), "Behavior {Behavior} {Hash} failed", Id, Hash);
+            return 1;
+        }
+    }
+
+    private static Exception Unwrap(Exception error) => error is TargetInvocationException { InnerException: { } inner } ? inner : error;
+
     public static async Task<int> RunAsync(Type appType, CancellationToken stopping)
+    {
+        var runner = new AppRunner(new("direct", "", new Uri("about:blank"), new Uri("about:blank"), new Dictionary<string, string>()), AssemblyLoadContext.Default, appType, 100);
+        return await runner.RunAsync(stopping).ConfigureAwait(false);
+    }
+
+    public async Task<int> RunAsync(CancellationToken stopping)
     {
         await using var brain = await IntoChatOSClient.ConnectAsync([], stopping).ConfigureAwait(false);
         var appKey = brain.Setting("App") ?? throw new InvalidOperationException("An [App] program is assigned with the Setting \"App\": its app key.");
-        var definition = new AppDefinition(appType);
+        var definition = new AppDefinition(_appType);
         var presenter = new ViewPresenter(brain, appKey, long.Parse(brain.Setting("ProgramRevision") ?? "1", System.Globalization.CultureInfo.InvariantCulture));
         var instance = definition.Create(service => service == typeof(IPresenter) ? presenter : null);
         instance.AttachNeuronResolver((contractType, key) => ResolveNeuron(brain, contractType, key));
         var app = brain.Get<IApp>(appKey);
-        // The operations the app is requested by are the manifest's; each one that is an [On] method is served,
-        // alongside any background neuron [Signal] subscriptions declared via [On("sourceKey")].
         var snapshot = await app.Read().ConfigureAwait(false);
         if (instance.GetType().GetMethod("AttachCapabilityResolver", [typeof(Func<Type, object?>)]) is { } attachResolver)
         {
@@ -90,7 +253,7 @@ internal static class AppRunner
         return ResolveNeuron(brain, capabilityType, capabilityName);
     }
 
-    private static Task ServeSignalSubscription(
+    private Task ServeSignalSubscription(
         IntoChatOSConnection brain,
         IApp app,
         AppDefinition definition,
@@ -100,11 +263,11 @@ internal static class AppRunner
         SemaphoreSlim turns,
         CancellationToken stopping)
         => (Task)typeof(AppRunner)
-            .GetMethod(nameof(ServeSignalGeneric), BindingFlags.Static | BindingFlags.NonPublic)!
+            .GetMethod(nameof(ServeSignalGeneric), BindingFlags.Instance | BindingFlags.NonPublic)!
             .MakeGenericMethod(sub.SignalType)
-            .Invoke(null, [brain, app, definition, instance, presenter, sub, turns, stopping])!;
+            .Invoke(this, [brain, app, definition, instance, presenter, sub, turns, stopping])!;
 
-    private static async Task ServeSignalGeneric<TSignal>(
+    private async Task ServeSignalGeneric<TSignal>(
         IntoChatOSConnection brain,
         IApp app,
         AppDefinition definition,
@@ -140,7 +303,7 @@ internal static class AppRunner
         catch (OperationCanceledException) when (stopping.IsCancellationRequested) { }
     }
 
-    private static async Task Serve(IntoChatOSConnection brain, IApp app, AppDefinition definition, App instance, IPresenter presenter, string operation, SemaphoreSlim turns, CancellationToken stopping)
+    private async Task Serve(IntoChatOSConnection brain, IApp app, AppDefinition definition, App instance, IPresenter presenter, string operation, SemaphoreSlim turns, CancellationToken stopping)
     {
         try
         {
@@ -154,8 +317,7 @@ internal static class AppRunner
         catch (OperationCanceledException) when (stopping.IsCancellationRequested) { }
     }
 
-    // An operation that throws has failed its request, not the app: the failure goes to the run log, and the next request is served.
-    private static async Task Turn(IApp app, AppDefinition definition, App instance, IPresenter presenter, string operation, AppRequested request, CancellationToken stopping)
+    private async Task Turn(IApp app, AppDefinition definition, App instance, IPresenter presenter, string operation, AppRequested request, CancellationToken stopping)
     {
         try
         {
@@ -200,8 +362,6 @@ internal static class AppRunner
         return value as View ?? (value is Node node ? new View(fallbackTitle, node) : null);
     }
 
-    // A request's input is text. An operation that takes a string gets it as is; one that takes a signal or a value gets it read as JSON,
-    // an empty input being the empty value, as TestOS requests an operation without an argument.
     private static object? Argument(MethodInfo method, string input)
     {
         var parameter = method.GetParameters().FirstOrDefault(p => p.ParameterType != typeof(CancellationToken));
@@ -209,10 +369,7 @@ internal static class AppRunner
         return string.IsNullOrWhiteSpace(input) ? null : JsonSerializer.Deserialize(input, parameter.ParameterType, Json);
     }
 
-    private static long _stateRevision;
-    private static string? _lastSavedState;
-
-    private static void RestoreState(App instance, string? stateJson)
+    private void RestoreState(App instance, string? stateJson)
     {
         if (string.IsNullOrWhiteSpace(stateJson)) { return; }
         try
@@ -235,7 +392,7 @@ internal static class AppRunner
         }
     }
 
-    private static async Task PersistStateAsync(IApp app, App instance)
+    private async Task PersistStateAsync(IApp app, App instance)
     {
         try
         {
@@ -262,6 +419,33 @@ internal static class AppRunner
         catch (Exception error)
         {
             AppLog.Log($"Failed to persist app state: {error.Message}");
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        var context = Interlocked.Exchange(ref _context, null);
+        if (context is null) { return; }
+        try
+        {
+            await _stopping.CancelAsync().ConfigureAwait(false);
+            await Task.WhenAny(Completion, Task.Delay(StopGrace)).ConfigureAwait(false);
+        }
+        finally
+        {
+            context.Unload();
+            context = null;
+            _stopping.Dispose();
+        }
+    }
+
+    internal sealed class AppLoadContext(string behavior) : AssemblyLoadContext("app " + behavior, isCollectible: true)
+    {
+        protected override Assembly? Load(AssemblyName name)
+        {
+            if (Default.Assemblies.FirstOrDefault(loaded => AssemblyName.ReferenceMatchesDefinition(name, loaded.GetName())) is { } shared) { return shared; }
+            var candidate = Path.Combine(System.AppContext.BaseDirectory, name.Name + ".dll");
+            return File.Exists(candidate) ? Default.LoadFromAssemblyPath(candidate) : null;
         }
     }
 }

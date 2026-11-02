@@ -30,7 +30,8 @@ public sealed class TaskState
                 s.RollbackCapability,
                 s.Output,
                 s.StartedAt,
-                s.CompletedAt);
+                s.CompletedAt,
+                s.IdempotencyKey);
         }
 
         return new AgentTask(
@@ -58,6 +59,7 @@ public sealed class TaskStepState
     [Id(6)] public string? Output { get; set; }
     [Id(7)] public DateTimeOffset? StartedAt { get; set; }
     [Id(8)] public DateTimeOffset? CompletedAt { get; set; }
+    [Id(9)] public string? IdempotencyKey { get; set; }
 }
 
 [GenerateSerializer, Alias("tasks.directory-state")]

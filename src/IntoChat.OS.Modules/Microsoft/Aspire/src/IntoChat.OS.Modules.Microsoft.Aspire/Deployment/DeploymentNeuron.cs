@@ -11,7 +11,6 @@ namespace IntoChat.OS.Modules.Microsoft.Aspire.Deployment;
 [DigitalBrain.Neuron("aspire.deployment")]
 internal sealed class DeploymentNeuron(
     IClusterHost host,
-    ICandidateHost candidates,
     IntoChat.OS.Modules.Microsoft.Orleans.IClusterMembershipFeed membership,
     IOptions<AspireOptions> options,
     ILogger<DeploymentNeuron> log)
@@ -238,6 +237,8 @@ internal sealed class DeploymentNeuron(
         Drive();
     }
 
+    private ICandidate CandidatePeer(string sha) => Peer<ICandidate>(ICandidate.Relative(sha));
+
     private Task Complete() => Finish(Snapshot.Failure);
 
     private async Task Finish(string? failure)
@@ -246,7 +247,7 @@ internal sealed class DeploymentNeuron(
         var rolledForward = Snapshot.Stage == DeploymentStage.Rolling;
         await Save(new DeploymentState { CurrentSha = current, Failure = failure }, Changed(current, DeploymentStage.Steady));
         await StopReminder();
-        if (rolledForward) { await Guarded(() => Peer<ICandidate>(ICandidate.Relative(current)).Finish(), "finish the promoted candidate"); }
+        if (rolledForward) { await Guarded(() => CandidatePeer(current).Finish(), "finish the promoted candidate"); }
     }
 
     private async Task StopReminder()
@@ -282,13 +283,12 @@ internal sealed class DeploymentNeuron(
             await SaveQuietly(Snapshot with { CurrentSha = current });
         }
         // The candidate whose Promote was cut off by the restart ends here; its container is removed with it.
-        if (finished is not null) { await Guarded(() => Peer<ICandidate>(ICandidate.Relative(finished)).Finish(), "finish the promoted candidate"); }
+        if (finished is not null) { await Guarded(() => CandidatePeer(finished).Finish(), "finish the promoted candidate"); }
         if (abandoned is not null)
         {
-            await Guarded(() => Peer<ICandidate>(ICandidate.Relative(abandoned)).Abandon($"the cluster restarted onto {current}, not {abandoned}"), "fail the abandoned promotion");
+            await Guarded(() => CandidatePeer(abandoned).Abandon($"the cluster restarted onto {current}, not {abandoned}"), "fail the abandoned promotion");
         }
         await Guarded(() => Peer<ICandidates>(ICandidates.Relative).Heal(), "heal the candidate queue");
-        await Guarded(async () => await candidates.Orphans(await Peer<ICandidates>(ICandidates.Relative).Known(), ct), "sweep orphan candidate containers");
         var receiver = Get<IDeploymentDriver>(Id);
         membershipSubscription = membership.Subscribe(snapshot => receiver.MembershipChanged(activation, snapshot));
         try { await MembershipChanged(activation, membership.Current); }

@@ -14,15 +14,10 @@ public sealed record ScriptDiagnostic(string File, string Id, int Line, string M
 
 public sealed record CompiledBehavior(byte[] Assembly, byte[] Symbols, string Hash);
 
-public sealed record SharedLibrary(CompiledBehavior? Library, bool HasRules, IReadOnlyList<ScriptDiagnostic> Errors);
-
 public sealed record ScriptCompilation(bool Success, IReadOnlyList<ScriptDiagnostic> Errors, IReadOnlyDictionary<string, CompiledBehavior> Assemblies);
 
-// The single compiler: compiles each behavior in-process against what the sandbox carries and,
-// when every file is clean, emits one assembly per file named by its content hash. The sandbox only
-// loads what this emits. The implicit console usings plus the script client's namespaces are imported.
-// A file without top-level statements is shared: it is compiled into every synapse's assembly and
-// yields none itself. A synapse is a file with top-level statements; the split is purely syntactic.
+// The single compiler: compiles all application files in a bundle into a single dynamically-linked library (DLL)
+// assembly against what the sandbox carries. Enforces that exactly one class decorated with [App] is declared.
 public sealed class CSharpScriptCheck
 {
     private const string GlobalUsings = """
@@ -43,7 +38,7 @@ public sealed class CSharpScriptCheck
     private static readonly Lazy<string> ReferenceFingerprint = new(() => Hash(string.Join('\u0001', References.Value
         .Select(reference => reference.Display + "\u0000" + (reference is PortableExecutableReference { FilePath: { } path } ? new FileInfo(path).Length + ":" + File.GetLastWriteTimeUtc(path).Ticks : "")))));
     // Deterministic so one source always yields one hash: no PDB path, no timestamps.
-    private static readonly CSharpCompilationOptions Options = new(OutputKind.ConsoleApplication, deterministic: true, nullableContextOptions: NullableContextOptions.Enable);
+    private static readonly CSharpCompilationOptions Options = new(OutputKind.DynamicallyLinkedLibrary, deterministic: true, nullableContextOptions: NullableContextOptions.Enable);
     private static readonly EmitOptions Emit = new(debugInformationFormat: DebugInformationFormat.PortablePdb);
 
     public const int CacheCapacity = 1024;
@@ -69,85 +64,109 @@ public sealed class CSharpScriptCheck
 
     public long Emits => Interlocked.Read(ref _emits);
 
-    public static bool IsShared(string source)
-        => !CSharpSyntaxTree.ParseText(source ?? "", Parse).GetCompilationUnitRoot().Members.OfType<MicrosoftSdk.CodeAnalysis.CSharp.Syntax.GlobalStatementSyntax>().Any();
-
     public ScriptCompilation Compile(IReadOnlyDictionary<string, string> files)
     {
         ArgumentNullException.ThrowIfNull(files);
-        var libraries = files.Where(file => IsShared(file.Value)).OrderBy(file => file.Key, StringComparer.Ordinal).ToArray();
-        var programs = files.Where(file => !IsShared(file.Value)).OrderBy(file => file.Key, StringComparer.Ordinal).ToArray();
-        if (programs.Length == 0) { throw new ArgumentException("Pass at least one synapse (a file with top-level statements) to compile; files of only type declarations are shared, not programs.", nameof(files)); }
-        var errors = new List<ScriptDiagnostic>();
-        var assemblies = new Dictionary<string, CompiledBehavior>(StringComparer.Ordinal);
-        var shared = libraries.Select(library =>
+        if (files.Count == 0)
         {
-            ArgumentNullException.ThrowIfNull(library.Value, library.Key);
-            return CSharpSyntaxTree.ParseText(SourceText.From(library.Value, Encoding.UTF8), Parse, library.Key);
+            throw new ArgumentException("Pass at least one file to compile.", nameof(files));
+        }
+
+        var trees = files.OrderBy(file => file.Key, StringComparer.Ordinal).Select(file =>
+        {
+            ArgumentNullException.ThrowIfNull(file.Value, file.Key);
+            return CSharpSyntaxTree.ParseText(SourceText.From(file.Value, Encoding.UTF8), Parse, file.Key);
         }).Append(CSharpSyntaxTree.ParseText(SourceText.From(GlobalUsings, Encoding.UTF8), Parse, "GlobalUsings.cs")).ToArray();
-        var reportedLibraryErrors = false;
-        var libraryKey = Hash(_references + '\u0002' + string.Join('\u0001', libraries.Select(library => library.Key + "\u0000" + library.Value)));
-        foreach (var (path, source) in programs)
+
+        var bundleKey = Hash(_references + '\u0002' + string.Join('\u0001', files.OrderBy(f => f.Key, StringComparer.Ordinal).Select(f => f.Key + "\u0000" + f.Value)));
+
+        var compilation = CSharpCompilation.Create("app", trees, References.Value, Options);
+
+        var appAttribute = compilation.GetTypeByMetadataName("DigitalBrain.AppAttribute");
+        var appClasses = new List<INamedTypeSymbol>();
+        CollectAppClasses(compilation.GlobalNamespace, appClasses, appAttribute);
+
+        var errors = new List<ScriptDiagnostic>();
+        if (appClasses.Count == 0)
         {
-            ArgumentNullException.ThrowIfNull(source, path);
-            var key = Hash(libraryKey + "\u0001" + path + "\u0000" + source);
-            if (_emitted.TryGet(key, out var known)) { assemblies[path] = known; continue; }
-            var trees = shared.Prepend(CSharpSyntaxTree.ParseText(SourceText.From(source, Encoding.UTF8), Parse, path)).ToArray();
-            var compilation = CSharpCompilation.Create("behavior", trees, References.Value, Options);
-            using var assembly = new MemoryStream();
-            using var symbols = new MemoryStream();
-            Interlocked.Increment(ref _emits);
-            var emitted = compilation.Emit(assembly, symbols, options: Emit);
-            foreach (var diagnostic in emitted.Diagnostics.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error))
+            var file = files.Keys.OrderBy(k => k, StringComparer.Ordinal).FirstOrDefault() ?? "";
+            errors.Add(new ScriptDiagnostic(file, "DB0030", 1, "The application must declare exactly one class decorated with [App]."));
+        }
+        else if (appClasses.Count > 1)
+        {
+            var names = string.Join(", ", appClasses.Select(c => c.Name));
+            var second = appClasses[1];
+            var loc = second.Locations.FirstOrDefault();
+            var file = loc?.SourceTree?.FilePath ?? "";
+            var line = loc?.GetLineSpan().StartLinePosition.Line + 1 ?? 1;
+            errors.Add(new ScriptDiagnostic(file, "DB0030", line, $"The application must declare exactly one class decorated with [App], but found {appClasses.Count}: {names}."));
+        }
+        else
+        {
+            var appClass = appClasses[0];
+            if (appClass.IsAbstract || appClass.IsGenericType)
             {
-                var file = diagnostic.Location.SourceTree?.FilePath ?? path;
-                // A library error shows once, not once per program that includes it.
-                if (file != path) { if (reportedLibraryErrors) { continue; } }
-                errors.Add(new ScriptDiagnostic(file, diagnostic.Id, diagnostic.Location.GetLineSpan().StartLinePosition.Line + 1, diagnostic.GetMessage()));
-            }
-            reportedLibraryErrors = true;
-            if (emitted.Success)
-            {
-                var bytes = assembly.ToArray();
-                var behavior = new CompiledBehavior(bytes, symbols.ToArray(), Convert.ToHexStringLower(SHA256.HashData(bytes)));
-                assemblies[path] = behavior;
-                _emitted.Set(key, behavior);
+                var loc = appClass.Locations.FirstOrDefault();
+                var file = loc?.SourceTree?.FilePath ?? "";
+                var line = loc?.GetLineSpan().StartLinePosition.Line + 1 ?? 1;
+                errors.Add(new ScriptDiagnostic(file, "DB0030", line, "The [App] class cannot be abstract or generic."));
             }
         }
-        return new(errors.Count == 0, errors, errors.Count == 0 ? assemblies : new Dictionary<string, CompiledBehavior>());
+
+        var appFile = appClasses.Count > 0 ? (appClasses[0].Locations.FirstOrDefault()?.SourceTree?.FilePath ?? files.Keys.OrderBy(k => k, StringComparer.Ordinal).First()) : files.Keys.OrderBy(k => k, StringComparer.Ordinal).First();
+
+        if (errors.Count == 0 && _emitted.TryGet(bundleKey, out var known))
+        {
+            return new(true, [], new Dictionary<string, CompiledBehavior>(StringComparer.Ordinal) { [appFile] = known });
+        }
+
+        using var assembly = new MemoryStream();
+        using var symbols = new MemoryStream();
+        Interlocked.Increment(ref _emits);
+        var emitted = compilation.Emit(assembly, symbols, options: Emit);
+
+        foreach (var diagnostic in emitted.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error))
+        {
+            var file = diagnostic.Location.SourceTree?.FilePath ?? "";
+            errors.Add(new ScriptDiagnostic(file, diagnostic.Id, diagnostic.Location.GetLineSpan().StartLinePosition.Line + 1, diagnostic.GetMessage()));
+        }
+
+        if (errors.Count == 0 && emitted.Success)
+        {
+            var bytes = assembly.ToArray();
+            var behavior = new CompiledBehavior(bytes, symbols.ToArray(), Convert.ToHexStringLower(SHA256.HashData(bytes)));
+            _emitted.Set(bundleKey, behavior);
+            return new(true, [], new Dictionary<string, CompiledBehavior>(StringComparer.Ordinal) { [appFile] = behavior });
+        }
+
+        return new(false, errors, new Dictionary<string, CompiledBehavior>(StringComparer.Ordinal));
     }
+
+    private static void CollectAppClasses(INamespaceOrTypeSymbol container, List<INamedTypeSymbol> appClasses, INamedTypeSymbol? appAttribute)
+    {
+        foreach (var member in container.GetMembers())
+        {
+            if (member is INamespaceSymbol childNs)
+            {
+                CollectAppClasses(childNs, appClasses, appAttribute);
+            }
+            else if (member is INamedTypeSymbol type)
+            {
+                if (type.TypeKind == TypeKind.Class && HasAppAttribute(type, appAttribute))
+                {
+                    appClasses.Add(type);
+                }
+                CollectAppClasses(type, appClasses, appAttribute);
+            }
+        }
+    }
+
+    private static bool HasAppAttribute(INamedTypeSymbol type, INamedTypeSymbol? appAttribute)
+        => type.GetAttributes().Any(attr =>
+            (appAttribute is not null && SymbolEqualityComparer.Default.Equals(attr.AttributeClass, appAttribute))
+            || attr.AttributeClass?.Name is "AppAttribute" or "App");
 
     private static string Hash(string text) => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(text)));
-
-    // The bundle's shared classes alone, as one library: where its rules (ILogic<T>) live. HasRules says
-    // whether any class implements ILogic<>, so a bundle without rules never reaches the sandbox.
-    public SharedLibrary CompileShared(IReadOnlyDictionary<string, string> files)
-    {
-        ArgumentNullException.ThrowIfNull(files);
-        var libraries = files.Where(file => IsShared(file.Value)).OrderBy(file => file.Key, StringComparer.Ordinal).ToArray();
-        if (libraries.Length == 0) { return new(null, false, []); }
-        var trees = libraries.Select(library => CSharpSyntaxTree.ParseText(SourceText.From(library.Value, Encoding.UTF8), Parse, library.Key))
-            .Append(CSharpSyntaxTree.ParseText(SourceText.From(GlobalUsings, Encoding.UTF8), Parse, "GlobalUsings.cs"));
-        var compilation = CSharpCompilation.Create("rules", trees, References.Value, Options.WithOutputKind(OutputKind.DynamicallyLinkedLibrary));
-        using var assembly = new MemoryStream();
-        var emitted = compilation.Emit(assembly);
-        if (!emitted.Success)
-        {
-            return new(null, false, [.. emitted.Diagnostics.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
-                .Select(diagnostic => new ScriptDiagnostic(diagnostic.Location.SourceTree?.FilePath ?? "", diagnostic.Id, diagnostic.Location.GetLineSpan().StartLinePosition.Line + 1, diagnostic.GetMessage()))]);
-        }
-        var logic = compilation.GetTypeByMetadataName("IntoChat.OS.ILogic`1");
-        var hasRules = logic is not null && Types(compilation.Assembly.GlobalNamespace)
-            .Any(type => type.AllInterfaces.Any(contract => SymbolEqualityComparer.Default.Equals(contract.OriginalDefinition, logic)));
-        var bytes = assembly.ToArray();
-        return new(new(bytes, [], Convert.ToHexStringLower(SHA256.HashData(bytes))), hasRules, []);
-    }
-
-    private static IEnumerable<INamedTypeSymbol> Types(INamespaceSymbol space)
-        => space.GetTypeMembers().SelectMany(Nested).Concat(space.GetNamespaceMembers().SelectMany(Types));
-
-    private static IEnumerable<INamedTypeSymbol> Nested(INamedTypeSymbol type)
-        => type.GetTypeMembers().SelectMany(Nested).Prepend(type);
 
     // Exactly what the sandbox image carries: the .NET runtime, plus the vocabulary, the client and every
     // contract assembly with what they depend on. Nothing else this host loads (the framework ring, the

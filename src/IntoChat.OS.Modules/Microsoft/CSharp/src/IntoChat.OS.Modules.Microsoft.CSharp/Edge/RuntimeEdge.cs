@@ -12,6 +12,7 @@ using IntoChat.OS.Modules.Microsoft.CSharp.Sessions;
 using Microsoft.AspNetCore.Http;
 using DigitalBrain;
 using DigitalBrain.Access;
+using DigitalBrain.Capabilities;
 using DigitalBrain.Runtime.Orleans.Hosting;
 using Orleans;
 
@@ -22,8 +23,10 @@ namespace IntoChat.OS.Modules.Microsoft.CSharp.Edge;
 // assemblies are callable, and each call carries the behavior owner's caller context re-stamped as an
 // app behind the app proxy.
 internal sealed class RuntimeEdge(SessionTokens tokens, CompiledTypes types, IGrainFactory grains, SessionStreams streams, IKernel kernel, RuntimeDirectory directory,
-    IServiceProvider? plain = null)
+    EdgeSessionValidator? validator = null, IServiceProvider? plain = null)
 {
+    private readonly EdgeSessionValidator _validator = validator ?? new(tokens);
+
     public async Task<(SessionClaims Claims, IBrainRuntimeEdge Runtime)> AuthorizeAsync(string brainId, string? token)
     {
         var claims = ValidateToken(brainId, token);
@@ -36,15 +39,32 @@ internal sealed class RuntimeEdge(SessionTokens tokens, CompiledTypes types, IGr
     public async Task<JsonElement?> InvokeAsync(string brainId, string? token, RuntimeInvocation invocation, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(invocation);
-        var claims = ValidateToken(brainId, token);
-        var identity = await IdentityOf(brainId, claims.Session, invocation.Behavior).ConfigureAwait(false);
-        if (invocation.Contract == RuntimeProtocol.KernelContract) { return await AskKernelAsync(brainId, identity, invocation, cancellationToken).ConfigureAwait(false); }
+
+        CapabilityCaller caller;
+        if (tokens.ValidateAppToken(token) is { } appClaims)
+        {
+            var validated = _validator.Validate(brainId, token);
+            if (!string.IsNullOrEmpty(invocation.Behavior) && !string.Equals(validated.App, invocation.Behavior, StringComparison.Ordinal))
+            {
+                throw new UnauthorizedAccessException($"Session token for app '{validated.App}' cannot invoke as '{invocation.Behavior}'.");
+            }
+            caller = _validator.Stamp(validated);
+        }
+        else
+        {
+            var legacyClaims = ValidateToken(brainId, token);
+            var identity = await IdentityOf(brainId, legacyClaims.Session, invocation.Behavior).ConfigureAwait(false);
+            caller = identity.Caller ?? identity.Principal ?? CapabilityCallers.Of(brainId, brainId, brainId);
+            Stamp(identity);
+        }
+
+        if (invocation.Contract == RuntimeProtocol.KernelContract) { return await AskKernelAsync(brainId, caller, invocation, cancellationToken).ConfigureAwait(false); }
         var contract = Callable(invocation.Contract);
         var method = contract.GetMethods().Concat(contract.GetInterfaces().SelectMany(inherited => inherited.GetMethods()))
             .Where(candidate => candidate.Name == invocation.Method)
             .SingleOrDefault(candidate => candidate.GetParameters().Count(IsArgument) == invocation.Arguments.Length)
             ?? throw new ArgumentException($"{contract.Name} has no method {invocation.Method} taking {invocation.Arguments.Length} arguments.");
-        RequireTargetBrain(brainId, invocation.Key, invocation.Method, identity,
+        RequireTargetBrain(brainId, invocation.Key, invocation.Method, caller,
             method.GetCustomAttribute<AccessAttribute>() ?? contract.GetCustomAttribute<AccessAttribute>());
         var parameters = method.GetParameters();
         var values = new object?[parameters.Length];
@@ -56,7 +76,7 @@ internal sealed class RuntimeEdge(SessionTokens tokens, CompiledTypes types, IGr
         }
         // Transitional (06-07): a plain contract (06-03 seam) is called on its runtime host after the same access checks.
         var neuron = IntoChat.OS.Runtime.PlainNeuronContracts.Is(contract) ? SiloNeurons.Get(Plain, contract, invocation.Key) : grains.GetGrain(contract, invocation.Key);
-        Stamp(identity);
+        CallerContextStamper.Stamp(caller);
         object? returned;
         try { returned = method.Invoke(neuron, values); }
         catch (TargetInvocationException error) when (error.InnerException is not null) { throw error.InnerException; }
@@ -67,10 +87,10 @@ internal sealed class RuntimeEdge(SessionTokens tokens, CompiledTypes types, IGr
     }
 
     // The kernel answers as the behavior's owner, and only about the brain the session speaks for.
-    private async Task<JsonElement?> AskKernelAsync(string brainId, BehaviorIdentity identity, RuntimeInvocation invocation, CancellationToken cancellationToken)
+    private async Task<JsonElement?> AskKernelAsync(string brainId, CapabilityCaller caller, RuntimeInvocation invocation, CancellationToken cancellationToken)
     {
-        if (identity.Principal is null) { throw new UnauthorizedAccessException("A behavior without an owner cannot ask the kernel."); }
-        Stamp(identity);
+        if (string.IsNullOrEmpty(caller.PrincipalId)) { throw new UnauthorizedAccessException("A behavior without an owner cannot ask the kernel."); }
+        CallerContextStamper.Stamp(caller);
         if (BrainScope.CurrentId() != brainId) { throw new UnauthorizedAccessException("The kernel answers only about the session's own brain."); }
         string? Argument(int index) => invocation.Arguments.Length > index ? invocation.Arguments[index].Deserialize<string?>(RuntimeProtocol.Json) : null;
         object answer;
@@ -197,14 +217,17 @@ internal sealed class RuntimeEdge(SessionTokens tokens, CompiledTypes types, IGr
         return claims;
     }
 
-    private static void RequireTargetBrain(string brainId, string key, string operation, BehaviorIdentity identity, AccessAttribute? access)
+    private static void RequireTargetBrain(string brainId, string key, string operation, CapabilityCaller? caller, AccessAttribute? access)
     {
         // Recorded callers use the normal neuron policy, including explicitly bound connections.
         // A platform-assigned behavior has no caller; its session still cannot reach another brain.
-        if (identity.Caller is not null || BrainKey.BelongsTo(key, brainId)) { return; }
+        if (caller is not null || BrainKey.BelongsTo(key, brainId)) { return; }
         if (BrainKey.ScopeOf(key) is not null || access is not (PublicAttribute or SharedAttribute))
         { throw new UnauthorizedAccessException($"The session cannot address a neuron in another brain (operation {operation})."); }
     }
+
+    private static void RequireTargetBrain(string brainId, string key, string operation, BehaviorIdentity identity, AccessAttribute? access)
+        => RequireTargetBrain(brainId, key, operation, identity.Caller, access);
 
     // A behavior started without a caller (tests, the platform) calls without a stamp, as grain code does.
     private static void Stamp(BehaviorIdentity identity)

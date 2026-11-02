@@ -121,12 +121,16 @@ internal sealed class CandidateNeuron(ICandidateHost host, ICandidateVerifier ve
             await Fail($"restart: {error.Message}", removeContainer: true);
             return Describe();
         }
-        return cluster.Stage == DeploymentStage.Steady && cluster.CurrentSha == Sha ? await Finish() : Describe();
+        if (cluster.Stage == DeploymentStage.Steady && cluster.CurrentSha == Sha)
+        {
+            await Finish();
+        }
+        return Describe();
     }
 
-    public async Task<CandidateSnapshot> Finish()
+    public async Task Finish()
     {
-        if (Snapshot.Stage != CandidateStage.Promoting || settling) { return Describe(); }
+        if (Snapshot.Stage != CandidateStage.Promoting || settling) { return; }
         settling = true;
         try
         {
@@ -135,12 +139,11 @@ internal sealed class CandidateNeuron(ICandidateHost host, ICandidateVerifier ve
             await Index.Ended(Sha);
         }
         finally { settling = false; }
-        return Describe();
     }
 
-    public async Task<CandidateSnapshot> Abandon(string reason)
+    public async Task Abandon(string reason)
     {
-        if (Snapshot.Stage != CandidateStage.Promoting || settling) { return Describe(); }
+        if (Snapshot.Stage != CandidateStage.Promoting || settling) { return; }
         settling = true;
         try
         {
@@ -148,7 +151,6 @@ internal sealed class CandidateNeuron(ICandidateHost host, ICandidateVerifier ve
             await Fail(reason, removeContainer: true);
         }
         finally { settling = false; }
-        return Describe();
     }
 
     // Finish and Abandon interleave with each other and with Promote: one settles the promotion.

@@ -11,6 +11,8 @@ namespace IntoChat.OS.Modules.Microsoft.CSharp.Sessions;
 
 internal sealed record SessionClaims(string Brain, string Session, DateTimeOffset Expires);
 
+public sealed record AppSessionClaims(string Brain, string App, string Sha, DateTimeOffset Expires, string? AccountId = null);
+
 // A sandbox session's bearer token for the runtime edge: the brain and session it speaks for, signed
 // with HMAC-SHA256. The brain rotates it over the stream before it expires.
 // A configured RunTokenKey wins. Development otherwise signs with a key made at startup.
@@ -119,6 +121,48 @@ internal sealed class SessionTokens(IModuleIntegrations<CSharpModule> integratio
         if (!CryptographicOperations.FixedTimeEquals(HMACSHA256.HashData(Key, claims), presented)) { return null; }
         var parsed = JsonSerializer.Deserialize<SessionClaims>(claims, JsonSerializerOptions.Web);
         return parsed is not null && parsed.Expires > time.GetUtcNow() ? parsed : null;
+    }
+
+    public string IssueAppToken(string brain, string app, string sha, string? accountId = null)
+    {
+        var claims = JsonSerializer.SerializeToUtf8Bytes(new AppSessionClaims(brain, app, sha, time.GetUtcNow() + Lifetime, accountId), JsonSerializerOptions.Web);
+        return Base64Url(claims) + "." + Base64Url(HMACSHA256.HashData(Key, claims));
+    }
+
+    public AppSessionClaims? ValidateAppToken(string? token)
+    {
+        if (token?.Split('.') is not [var payload, var signature])
+        {
+            return null;
+        }
+
+        byte[] claims;
+        try
+        {
+            claims = FromBase64Url(payload);
+        }
+        catch (FormatException)
+        {
+            return null;
+        }
+
+        byte[] presented;
+        try
+        {
+            presented = FromBase64Url(signature);
+        }
+        catch (FormatException)
+        {
+            return null;
+        }
+
+        if (!CryptographicOperations.FixedTimeEquals(HMACSHA256.HashData(Key, claims), presented))
+        {
+            return null;
+        }
+
+        var parsed = JsonSerializer.Deserialize<AppSessionClaims>(claims, JsonSerializerOptions.Web);
+        return parsed is not null && !string.IsNullOrWhiteSpace(parsed.Brain) && !string.IsNullOrWhiteSpace(parsed.App) && parsed.Expires > time.GetUtcNow() ? parsed : null;
     }
 
     private static string Base64Url(byte[] bytes) => Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');

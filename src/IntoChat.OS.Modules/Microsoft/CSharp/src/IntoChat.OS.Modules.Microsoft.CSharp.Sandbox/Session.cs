@@ -3,20 +3,21 @@ using System.Text.Json;
 using IntoChat.OS.Client.Runtime;
 using IntoChat.OS.Client.Runtime.V1;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace IntoChat.OS.Modules.Microsoft.CSharp.Sandbox;
 
-// One brain's connection and its loaded behaviors. The control loop follows the brain's stream: ready
-// names the desired set, an assignment loads (or swaps) one behavior, a retirement unloads it, a logs request is answered from
-// its ring buffer. Every load and every exit is reported. A behavior the brain did not retire is the
-// host's to keep alive: an exit is reported and the behavior is loaded again after a growing backoff,
+// One brain's connection and its loaded apps. The control loop follows the brain's stream: ready
+// names the desired set, an assignment loads (or swaps) one app, a retirement unloads it, a logs request is answered from
+// its ring buffer. Every load and every exit is reported. An app the brain did not retire is the
+// host's to keep alive: an exit is reported and the app is loaded again after a growing backoff,
 // until the brain retires it or assigns it a different hash.
-public sealed class Session(SessionConnection connection, BehaviorLoader loader, ILogger logger, TimeSpan? reloadBase = null, TimeProvider? time = null, TimeSpan? drainDeadline = null) : IAsyncDisposable
+public sealed class Session(SessionConnection connection, HttpClient http, IOptions<SandboxOptions> options, ILogger logger, TimeSpan? reloadBase = null, TimeProvider? time = null, TimeSpan? drainDeadline = null) : IAsyncDisposable
 {
     private static readonly TimeSpan ReloadCap = TimeSpan.FromSeconds(60);
 
     private readonly TimeSpan _reloadBase = reloadBase ?? TimeSpan.FromSeconds(1);
-    private readonly ConcurrentDictionary<string, BehaviorRun> _behaviors = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, AppRunner> _apps = new(StringComparer.Ordinal);
     // Per behavior, the assignment whose run last failed and how many times it has exited, which sizes
     // the next backoff. Held across reloads: only a clean exit, a new hash or a retirement forgets it.
     private readonly ConcurrentDictionary<string, FailedRun> _failures = new(StringComparer.Ordinal);
@@ -26,7 +27,8 @@ public sealed class Session(SessionConnection connection, BehaviorLoader loader,
     private readonly ConcurrentDictionary<string, AssignmentEvent> _assigned = new(StringComparer.Ordinal);
     private readonly SemaphoreSlim _changes = new(1, 1);
 
-    public IReadOnlyDictionary<string, BehaviorRun> Behaviors => _behaviors;
+    public IReadOnlyDictionary<string, AppRunner> Behaviors => _apps;
+    public IReadOnlyDictionary<string, AppRunner> Apps => _apps;
 
     internal void RefreshToken(string token) => connection.TryUpdateToken(token);
 
@@ -57,7 +59,7 @@ public sealed class Session(SessionConnection connection, BehaviorLoader loader,
         try
         {
             // A reconnecting stream resends every assignment: one already running as assigned keeps running.
-            if (_behaviors.TryGetValue(assignment.Behavior, out var current) && Same(current.Assignment, assignment)) { return; }
+            if (_apps.TryGetValue(assignment.Behavior, out var current) && Same(current.Assignment, assignment)) { return; }
             await LoadAsync(assignment, cancellationToken).ConfigureAwait(false);
         }
         finally { _changes.Release(); }
@@ -72,7 +74,7 @@ public sealed class Session(SessionConnection connection, BehaviorLoader loader,
         // A different hash is a different program, so the backoff an earlier one earned does not hold it back.
         if (_failures.TryGetValue(assignment.Behavior, out var failed) && failed.Assignment.Hash != assignment.Hash) { _failures.TryRemove(assignment.Behavior, out _); }
         // A swap unloads only this behavior; the others keep running.
-        if (_behaviors.TryGetValue(assignment.Behavior, out var previous))
+        if (_apps.TryGetValue(assignment.Behavior, out var previous))
         {
             if (await DrainAsync(previous, assignment, superseded, cancellationToken).ConfigureAwait(false) is { } refusal)
             {
@@ -80,38 +82,39 @@ public sealed class Session(SessionConnection connection, BehaviorLoader loader,
                 return;
             }
         }
-        BehaviorRun run;
-        try { run = await loader.LoadAsync(connection, assignment, logger, cancellationToken).ConfigureAwait(false); }
+        AppRunner app;
+        try { app = await AppRunner.LoadAsync(http, options, connection, assignment, logger, cancellationToken).ConfigureAwait(false); }
         catch (Exception error) when (error is not OperationCanceledException)
         {
             await ReportAsync(new(assignment.Behavior, assignment.Hash, "Exited", 1, error.Message, assignment.Revision), cancellationToken).ConfigureAwait(false);
             return;
         }
-        _behaviors[assignment.Behavior] = run;
+        _apps[assignment.Behavior] = app;
         logger.LogInformation("Loaded behavior {Behavior} {Hash}", assignment.Behavior, assignment.Hash);
-        await ReportAsync(new(run.Id, run.Hash, "Running", null, null, run.Assignment.Revision), cancellationToken).ConfigureAwait(false);
-        _ = ReportExitAsync(run);
+        await ReportAsync(new(app.Id, app.Hash, "Running", null, null, app.Assignment.Revision), cancellationToken).ConfigureAwait(false);
+        _ = ReportExitAsync(app);
     }
 
     // A reassign: fetch and check the new build, stop the old run taking new work and wait for its in-flight work, then unload it. Any
     // refusal (the build cannot be fetched or does not match its hash, the work does not finish in the deadline) leaves the old
     // run exactly as it was, still assigned and still receiving its signals, and says why.
-    private async Task<string?> DrainAsync(BehaviorRun previous, AssignmentEvent assignment, AssignmentEvent? superseded, CancellationToken cancellationToken)
+    private async Task<string?> DrainAsync(AppRunner previous, AssignmentEvent assignment, AssignmentEvent? superseded, CancellationToken cancellationToken)
     {
         string? refusal = null;
+        var deadline = drainDeadline ?? options.Value.DrainDeadline;
         try
         {
-            await loader.PrepareAsync(assignment, cancellationToken).ConfigureAwait(false);
+            await AppRunner.PrepareAsync(http, options, assignment, cancellationToken).ConfigureAwait(false);
             previous.Draining = true;
-            if (await connection.PauseAsync(assignment.Behavior, drainDeadline ?? loader.DrainDeadline, time, cancellationToken).ConfigureAwait(false))
+            if (await connection.PauseAsync(assignment.Behavior, deadline, time, cancellationToken).ConfigureAwait(false))
             {
                 // The old run may have exited by itself meanwhile; then there is nothing left to stop.
-                if (_behaviors.TryRemove(new(assignment.Behavior, previous))) { await previous.DisposeAsync().ConfigureAwait(false); }
+                if (_apps.TryRemove(new(assignment.Behavior, previous))) { await previous.DisposeAsync().ConfigureAwait(false); }
                 connection.Release(assignment.Behavior);
                 logger.LogInformation("Drained and unloaded behavior {Behavior} {Hash}", previous.Id, previous.Hash);
                 return null;
             }
-            refusal = $"The running build still had work in flight after {(drainDeadline ?? loader.DrainDeadline).TotalSeconds:0.##} seconds; it keeps running and {assignment.Hash} was not loaded.";
+            refusal = $"The running build still had work in flight after {deadline.TotalSeconds:0.##} seconds; it keeps running and {assignment.Hash} was not loaded.";
         }
         catch (Exception error) when (error is not OperationCanceledException)
         { refusal = $"The new build {assignment.Hash} could not be prepared: {error.Message}"; logger.LogWarning(error, "Preparing {Hash} for {Behavior} failed", assignment.Hash, assignment.Behavior); }
@@ -151,39 +154,39 @@ public sealed class Session(SessionConnection connection, BehaviorLoader loader,
     {
         // Retired for good: a reload already scheduled for it is now unwanted.
         _assigned.TryRemove(behavior, out _);
-        if (!_behaviors.TryRemove(behavior, out var run))
+        if (!_apps.TryRemove(behavior, out var app))
         {
-            // A behavior that exited on its own holds nothing to stop, but the brain still expects the
+            // An app that exited on its own holds nothing to stop, but the brain still expects the
             // retirement answered against the hash it last ran.
             if (_failures.TryRemove(behavior, out var failed))
             { await ReportAsync(new(behavior, failed.Assignment.Hash, "Stopped", 0, null, failed.Assignment.Revision), cancellationToken).ConfigureAwait(false); }
             return;
         }
         _failures.TryRemove(behavior, out _);
-        await run.DisposeAsync().ConfigureAwait(false);
-        logger.LogInformation("Unloaded behavior {Behavior} {Hash}", run.Id, run.Hash);
-        await ReportAsync(new(run.Id, run.Hash, "Stopped", 0, null, run.Assignment.Revision), cancellationToken).ConfigureAwait(false);
+        await app.DisposeAsync().ConfigureAwait(false);
+        logger.LogInformation("Unloaded behavior {Behavior} {Hash}", app.Id, app.Hash);
+        await ReportAsync(new(app.Id, app.Hash, "Stopped", 0, null, app.Assignment.Revision), cancellationToken).ConfigureAwait(false);
     }
 
     // An exit the brain did not ask for: reported, then reloaded after a backoff for as long as the
     // assignment stands. A clean exit is not a failure, so it is not reloaded.
-    private async Task ReportExitAsync(BehaviorRun run)
+    private async Task ReportExitAsync(AppRunner app)
     {
-        var exit = await run.Completion.ConfigureAwait(false);
-        if (!_behaviors.TryRemove(new(run.Id, run))) { return; }
+        var exit = await app.Completion.ConfigureAwait(false);
+        if (!_apps.TryRemove(new(app.Id, app))) { return; }
         // Counted before the exit is reported, so a retirement arriving with that report answers it as stopped.
         var attempt = 1;
-        if (exit == 0) { _failures.TryRemove(run.Id, out _); }
+        if (exit == 0) { _failures.TryRemove(app.Id, out _); }
         else
         {
-            attempt = _failures.TryGetValue(run.Id, out var failed) && failed.Assignment.Hash == run.Hash ? failed.Count + 1 : 1;
-            _failures[run.Id] = new(run.Assignment, attempt);
+            attempt = _failures.TryGetValue(app.Id, out var failed) && failed.Assignment.Hash == app.Hash ? failed.Count + 1 : 1;
+            _failures[app.Id] = new(app.Assignment, attempt);
         }
-        await ReportAsync(new(run.Id, run.Hash, "Exited", exit, run.Error, run.Assignment.Revision), connection.Stopping).ConfigureAwait(false);
-        await run.DisposeAsync().ConfigureAwait(false);
+        await ReportAsync(new(app.Id, app.Hash, "Exited", exit, app.Error, app.Assignment.Revision), connection.Stopping).ConfigureAwait(false);
+        await app.DisposeAsync().ConfigureAwait(false);
         if (exit == 0) { return; }
         var delay = TimeSpan.FromTicks(Math.Min(_reloadBase.Ticks << Math.Min(attempt - 1, 6), ReloadCap.Ticks));
-        _ = ReloadLaterAsync(run.Assignment, delay);
+        _ = ReloadLaterAsync(app.Assignment, delay);
     }
 
     private async Task ReloadLaterAsync(AssignmentEvent assignment, TimeSpan delay)
@@ -198,7 +201,7 @@ public sealed class Session(SessionConnection connection, BehaviorLoader loader,
                 // a resent assignment or a retirement during the backoff took this one's place, and a run
                 // loaded meanwhile already keeps it alive.
                 if (!_assigned.TryGetValue(assignment.Behavior, out var held) || !ReferenceEquals(held, assignment)
-                    || _behaviors.ContainsKey(assignment.Behavior)) { return; }
+                    || _apps.ContainsKey(assignment.Behavior)) { return; }
                 logger.LogInformation("Reloading behavior {Behavior} {Hash}", assignment.Behavior, assignment.Hash);
                 await LoadAsync(assignment, connection.Stopping).ConfigureAwait(false);
             }
@@ -208,7 +211,7 @@ public sealed class Session(SessionConnection connection, BehaviorLoader loader,
     }
 
     private Task AnswerLogsAsync(LogsRequestEvent request, CancellationToken cancellationToken)
-        => connection.ReportLogsAsync(request.Request, _behaviors.TryGetValue(request.Behavior, out var run) ? run.Tail(request.Tail) : "", cancellationToken);
+        => connection.ReportLogsAsync(request.Request, _apps.TryGetValue(request.Behavior, out var app) ? app.Tail(request.Tail) : "", cancellationToken);
 
     private async Task ReportAsync(BehaviorStatusReport status, CancellationToken cancellationToken)
     {
@@ -219,8 +222,8 @@ public sealed class Session(SessionConnection connection, BehaviorLoader loader,
 
     public async ValueTask DisposeAsync()
     {
-        foreach (var run in _behaviors.Values) { await run.DisposeAsync().ConfigureAwait(false); }
-        _behaviors.Clear();
+        foreach (var app in _apps.Values) { await app.DisposeAsync().ConfigureAwait(false); }
+        _apps.Clear();
         await connection.DisposeAsync().ConfigureAwait(false);
         _changes.Dispose();
     }
