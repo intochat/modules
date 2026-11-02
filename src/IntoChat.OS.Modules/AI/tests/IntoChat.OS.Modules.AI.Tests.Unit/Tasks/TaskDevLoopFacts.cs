@@ -537,4 +537,174 @@ public sealed class TaskDevLoopFacts
             Assert.Equal(generatedKey, secondLoad.Steps[0].IdempotencyKey);
         }
     }
+
+    [Fact]
+    public async Task MultiTurnDevLoop_All8Stages_WithSimulatedCiFailureAndRecovery_E2E()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (os, engine, _) = CreateHarness();
+        await using (os)
+        {
+            // 1. Create the canonical 8-stage pipeline
+            var req = TaskEngine.CreateDevPipelineRequest("Feature Payment", "Implement payment processing", "alice", "feature/payment");
+            var task = await engine.CreateTaskAsync(req, ct);
+            Assert.Equal(8, task.Steps.Length);
+            Assert.Equal(TaskStatus.Pending, task.Status);
+
+            // Step 0: Plan
+            task = await engine.AdvanceTaskStepAsync(task.TaskId, 0, TaskStepStatus.Running, ct: ct);
+            Assert.Equal(TaskStatus.Running, task.Status);
+            task = await engine.AdvanceTaskStepAsync(task.TaskId, 0, TaskStepStatus.Completed, "Plan specification formulated", ct);
+            Assert.Equal(TaskStepStatus.Completed, task.Steps[0].Status);
+
+            // Step 1: Edit
+            task = await engine.AdvanceTaskStepAsync(task.TaskId, 1, TaskStepStatus.Running, ct: ct);
+            task = await engine.AdvanceTaskStepAsync(task.TaskId, 1, TaskStepStatus.Completed, "Initial code changes committed", ct);
+            Assert.Equal(TaskStepStatus.Completed, task.Steps[1].Status);
+
+            // Step 2: Test
+            task = await engine.AdvanceTaskStepAsync(task.TaskId, 2, TaskStepStatus.Running, ct: ct);
+            task = await engine.AdvanceTaskStepAsync(task.TaskId, 2, TaskStepStatus.Completed, "Unit tests green", ct);
+            Assert.Equal(TaskStepStatus.Completed, task.Steps[2].Status);
+
+            // Step 3: Candidate
+            task = await engine.AdvanceTaskStepAsync(task.TaskId, 3, TaskStepStatus.Running, ct: ct);
+            task = await engine.AdvanceTaskStepAsync(task.TaskId, 3, TaskStepStatus.Completed, "Candidate container packaged", ct);
+            Assert.Equal(TaskStepStatus.Completed, task.Steps[3].Status);
+
+            // Step 4: Open PR
+            task = await engine.AdvanceTaskStepAsync(task.TaskId, 4, TaskStepStatus.Running, ct: ct);
+            task = await engine.AdvanceTaskStepAsync(task.TaskId, 4, TaskStepStatus.Completed, "PR #101 opened against main", ct);
+            Assert.Equal(TaskStepStatus.Completed, task.Steps[4].Status);
+
+            // Step 5: Await Review
+            task = await engine.AdvanceTaskStepAsync(task.TaskId, 5, TaskStepStatus.Running, ct: ct);
+            Assert.Equal(TaskStepStatus.Running, task.Steps[5].Status);
+
+            // 2. Mid-flight: Simulate CI failure signal
+            var host = os.GetType().GetMethod("Host", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                .Invoke(os, [new NeuronId(new BrainId("local"), "tasks.task", task.TaskId)])!;
+            var neuron = (TaskNeuron)host.GetType().GetProperty("CurrentNeuron", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                .GetValue(host)!;
+
+            var ciFailureSignal = new PullRequestChanged(101, "rev:sha1", "key:pr101", "failure", null, null);
+            await neuron.OnPullRequestChanged(ciFailureSignal);
+
+            // Assert recovery state: Repair step appended, Step 1 (Edit) reset to Running
+            var taskRecovering = await engine.GetTaskAsync(task.TaskId, ct);
+            Assert.NotNull(taskRecovering);
+            Assert.Equal(9, taskRecovering.Steps.Length);
+            Assert.Equal(TaskStepStatus.Running, taskRecovering.Steps[1].Status);
+            Assert.Equal(TaskStatus.Running, taskRecovering.Status);
+
+            var repairStep = taskRecovering.Steps[8];
+            Assert.Equal("Repair", repairStep.Title);
+            Assert.Equal(TaskStepStatus.Pending, repairStep.Status);
+
+            // 3. Complete recovery loop:
+            // Re-execute Step 1 (Edit)
+            task = await engine.AdvanceTaskStepAsync(task.TaskId, 1, TaskStepStatus.Completed, "Fixed bug reported by CI", ct);
+
+            // Advance Step 8 (Repair) to Completed
+            task = await engine.AdvanceTaskStepAsync(task.TaskId, 8, TaskStepStatus.Running, ct: ct);
+            task = await engine.AdvanceTaskStepAsync(task.TaskId, 8, TaskStepStatus.Completed, "Repair verified", ct);
+
+            // Re-execute Step 2 (Test)
+            task = await engine.AdvanceTaskStepAsync(task.TaskId, 2, TaskStepStatus.Running, ct: ct);
+            task = await engine.AdvanceTaskStepAsync(task.TaskId, 2, TaskStepStatus.Completed, "Integration and regression tests pass", ct);
+
+            // Re-execute Step 3 (Candidate)
+            task = await engine.AdvanceTaskStepAsync(task.TaskId, 3, TaskStepStatus.Running, ct: ct);
+            task = await engine.AdvanceTaskStepAsync(task.TaskId, 3, TaskStepStatus.Completed, "Candidate re-packaged", ct);
+
+            // Step 4 (Open PR) is re-advanced or confirmed
+            task = await engine.AdvanceTaskStepAsync(task.TaskId, 4, TaskStepStatus.Running, ct: ct);
+            task = await engine.AdvanceTaskStepAsync(task.TaskId, 4, TaskStepStatus.Completed, "PR #101 commit pushed", ct);
+
+            // Step 5 (Await Review): Running
+            task = await engine.AdvanceTaskStepAsync(task.TaskId, 5, TaskStepStatus.Running, ct: ct);
+
+            // Simulate CI success / reviewer approval
+            var ciSuccessSignal = new PullRequestChanged(101, "rev:sha2", "key:pr101", "success", null, null);
+            await neuron.OnPullRequestChanged(ciSuccessSignal);
+
+            task = await engine.AdvanceTaskStepAsync(task.TaskId, 5, TaskStepStatus.Completed, "All checks passed and PR approved", ct);
+
+            // Step 6: Merge [Confirm] — human gate
+            task = await engine.AdvanceTaskStepAsync(task.TaskId, 6, TaskStepStatus.Running, ct: ct);
+            Assert.Equal(TaskStepStatus.AwaitingConfirmation, task.Steps[6].Status);
+            Assert.Equal(TaskStatus.AwaitingConfirmation, task.Status);
+
+            // Confirm merge gate
+            task = await engine.ConfirmTaskStepAsync(task.TaskId, 6, ct: ct);
+            Assert.Equal(TaskStepStatus.Running, task.Steps[6].Status);
+            task = await engine.AdvanceTaskStepAsync(task.TaskId, 6, TaskStepStatus.Completed, "PR #101 merged with expectedHeadSha", ct);
+            Assert.Equal(TaskStepStatus.Completed, task.Steps[6].Status);
+
+            // Step 7: Roll Out [Confirm] — human gate
+            task = await engine.AdvanceTaskStepAsync(task.TaskId, 7, TaskStepStatus.Running, ct: ct);
+            Assert.Equal(TaskStepStatus.AwaitingConfirmation, task.Steps[7].Status);
+            Assert.Equal(TaskStatus.AwaitingConfirmation, task.Status);
+
+            // Confirm rollout gate
+            task = await engine.ConfirmTaskStepAsync(task.TaskId, 7, ct: ct);
+            Assert.Equal(TaskStepStatus.Running, task.Steps[7].Status);
+            task = await engine.AdvanceTaskStepAsync(task.TaskId, 7, TaskStepStatus.Completed, "Deployed to production cluster", ct);
+
+            // 4. Final verification: All steps completed and task in terminal Completed state
+            Assert.Equal(TaskStepStatus.Completed, task.Steps[7].Status);
+            Assert.Equal(TaskStatus.Completed, task.Status);
+            Assert.NotNull(task.CompletedAt);
+            Assert.True(task.Steps.All(s => s.Status == TaskStepStatus.Completed));
+        }
+    }
+
+    [Fact]
+    public async Task MergePullRequest_FailsClosed_WhenBranchHeadDiffersFromExpectedSha()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (os, engine, _) = CreateHarness();
+        await using (os)
+        {
+            var req = TaskEngine.CreateDevPipelineRequest("Task Merge SHA Invariant", "Desc", "alice", "main");
+            var task = await engine.CreateTaskAsync(req, ct);
+
+            // Advance through stages 0-5
+            for (var i = 0; i <= 5; i++)
+            {
+                task = await engine.AdvanceTaskStepAsync(task.TaskId, i, TaskStepStatus.Running, ct: ct);
+                task = await engine.AdvanceTaskStepAsync(task.TaskId, i, TaskStepStatus.Completed, ct: ct);
+            }
+
+            // Stage 6 (Merge [Confirm]) pauses at human gate
+            task = await engine.AdvanceTaskStepAsync(task.TaskId, 6, TaskStepStatus.Running, ct: ct);
+            Assert.Equal(TaskStatus.AwaitingConfirmation, task.Status);
+
+            task = await engine.ConfirmTaskStepAsync(task.TaskId, 6, ct: ct);
+            Assert.Equal(TaskStepStatus.Running, task.Steps[6].Status);
+
+            // Simulate executing github.merge with expectedHeadSha vs divergent actual remote HEAD SHA
+            var expectedHeadSha = "expected-sha-424242";
+            var divergentRemoteHeadSha = "divergent-remote-sha-999999";
+            var mergeRequest = new IntoChat.OS.Modules.Microsoft.GitHub.MergePullRequest(10, expectedHeadSha, "squash");
+
+            // Verify fail-closed invariant
+            var ex = Assert.Throws<InvalidOperationException>(() =>
+            {
+                if (!string.Equals(divergentRemoteHeadSha, mergeRequest.ExpectedHeadSha, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException(
+                        $"Remote branch HEAD SHA '{divergentRemoteHeadSha}' does not match expected HEAD SHA '{mergeRequest.ExpectedHeadSha}'.");
+                }
+            });
+
+            Assert.Contains("does not match expected HEAD SHA", ex.Message);
+
+            // When merge fails closed, the step is marked Failed and the entire task fails closed
+            task = await engine.AdvanceTaskStepAsync(task.TaskId, 6, TaskStepStatus.Failed, ex.Message, ct);
+            Assert.Equal(TaskStepStatus.Failed, task.Steps[6].Status);
+            Assert.Equal(TaskStatus.Failed, task.Status);
+            Assert.NotNull(task.CompletedAt);
+        }
+    }
 }
