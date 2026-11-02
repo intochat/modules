@@ -24,6 +24,7 @@ internal sealed class LocalBehaviorAssemblies : IBehaviorAssemblies
     private readonly ITimeLimitedDataProtector _protector;
     private readonly IServiceProvider _services;
     private readonly IOptions<CSharpOptions> _options;
+    private readonly int _maxCached;
 
     public LocalBehaviorAssemblies(IConfiguration configuration, IDataProtectionProvider protection, IServiceProvider services, IOptions<CSharpOptions> options)
     {
@@ -31,6 +32,7 @@ internal sealed class LocalBehaviorAssemblies : IBehaviorAssemblies
         _protector = protection.CreateProtector(ProtectionPurpose).ToTimeLimitedDataProtector();
         _services = services;
         _options = options;
+        _maxCached = options.Value.MaxCachedBehaviors > 0 ? options.Value.MaxCachedBehaviors : 50;
     }
 
     public async Task Put(CompiledBehavior behavior, CancellationToken cancellationToken)
@@ -41,6 +43,7 @@ internal sealed class LocalBehaviorAssemblies : IBehaviorAssemblies
         await WriteAsync(behavior.Hash, behavior.Assembly, cancellationToken).ConfigureAwait(false);
         // As with the blob store, symbols are written last: their presence marks the pair complete.
         await WriteAsync(behavior.Hash + ".pdb", behavior.Symbols, cancellationToken).ConfigureAwait(false);
+        Prune();
     }
 
     public Task<bool> Exists(string hash, CancellationToken cancellationToken)
@@ -84,7 +87,12 @@ internal sealed class LocalBehaviorAssemblies : IBehaviorAssemblies
         catch (CryptographicException) { return Results.Unauthorized(); }
         catch (FormatException) { return Results.Unauthorized(); }
         var path = Path.Combine(_root, name);
-        return File.Exists(path) ? Results.File(path, "application/octet-stream") : Results.NotFound();
+        if (File.Exists(path))
+        {
+            try { File.SetLastAccessTimeUtc(path, DateTime.UtcNow); } catch { }
+            return Results.File(path, "application/octet-stream");
+        }
+        return Results.NotFound();
     }
 
     private async Task WriteAsync(string name, byte[] bytes, CancellationToken cancellationToken)
@@ -124,4 +132,33 @@ internal sealed class LocalBehaviorAssemblies : IBehaviorAssemblies
     {
         if (!ValidName(name)) { throw new ArgumentException("A behavior download names a SHA-256 hash or its .pdb file.", nameof(name)); }
     }
+
+    private void Prune()
+    {
+        try
+        {
+            if (!Directory.Exists(_root)) { return; }
+            var files = Directory.EnumerateFiles(_root, "*")
+                .Where(path =>
+                {
+                    var name = Path.GetFileName(path);
+                    return name.Length == 64 && ValidName(name);
+                })
+                .Select(path => new FileInfo(path))
+                .OrderByDescending(f => f.LastAccessTimeUtc)
+                .Skip(_maxCached)
+                .ToList();
+
+            foreach (var old in files)
+            {
+                try { old.Delete(); } catch { }
+                try { File.Delete(Path.Combine(_root, old.Name + ".pdb")); } catch { }
+            }
+        }
+        catch
+        {
+            // Pruning is non-fatal best effort maintenance
+        }
+    }
+
 }

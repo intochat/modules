@@ -17,6 +17,8 @@ public sealed class CSharpOptions : IModuleOptions
     public int MaximumPending { get; set; } = 64;
     // How long an app's rules may take to judge one request; past it the request is rejected.
     public TimeSpan RuleTimeout { get; set; } = TimeSpan.FromSeconds(3);
+    // Maximum number of compiled behavior pairs to keep in the local cache before pruning oldest (default: 50).
+    public int MaxCachedBehaviors { get; set; } = 50;
 
     public static readonly string SectionName = IntoChatOSConfiguration.ModuleOptionsSection(new ModuleId("csharp"));
 
@@ -35,5 +37,6 @@ public sealed class CSharpOptions : IModuleOptions
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(MaximumPending, 1);
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(RuleTimeout, TimeSpan.Zero);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxCachedBehaviors, 1);
     }
 }
