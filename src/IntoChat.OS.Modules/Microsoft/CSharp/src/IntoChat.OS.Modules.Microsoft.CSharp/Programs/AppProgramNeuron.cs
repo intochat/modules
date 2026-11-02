@@ -80,7 +80,7 @@ internal sealed class AppProgramNeuron : DigitalBrain.Neuron<AppProgramState>, I
         BehaviorAssembly[] behaviorAssemblies = [.. compiled.Assemblies.OrderBy(f => f.Key, StringComparer.Ordinal)
             .Select(f => new BehaviorAssembly(f.Key, f.Value.Hash))];
         var hash = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(string.Join("\n", behaviorAssemblies.Select(b => b.Path + ":" + b.Hash)))));
-        var caller = CallerContextStamper.TryGet(out var stamped) ? stamped : State.Principal ?? CapabilityCallers.Of(Brain, Brain, Brain);
+        var caller = await ProgramPrincipal.ForBrain(Context.Services, Brain, State.Principal) ?? CapabilityCallers.Of(Brain, Brain, Brain);
 
         var next = State with
         {
@@ -139,7 +139,7 @@ internal sealed class AppProgramNeuron : DigitalBrain.Neuron<AppProgramState>, I
         BehaviorAssembly[] behaviorAssemblies = [.. behaviors.OrderBy(f => f.Key, StringComparer.Ordinal)
             .Select(f => new BehaviorAssembly(f.Key, f.Value.Hash))];
         var hash = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(string.Join("\n", behaviorAssemblies.Select(b => b.Path + ":" + b.Hash)))));
-        var caller = CallerContextStamper.TryGet(out var stamped) ? stamped : State.Principal ?? CapabilityCallers.Of(Brain, Brain, Brain);
+        var caller = await ProgramPrincipal.ForBrain(Context.Services, Brain, State.Principal) ?? CapabilityCallers.Of(Brain, Brain, Brain);
 
         var next = State with
         {

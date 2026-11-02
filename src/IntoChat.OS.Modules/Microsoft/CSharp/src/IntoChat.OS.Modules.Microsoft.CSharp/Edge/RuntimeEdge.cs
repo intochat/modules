@@ -54,7 +54,7 @@ internal sealed class RuntimeEdge(SessionTokens tokens, CompiledTypes types, IGr
         {
             var legacyClaims = ValidateToken(brainId, token);
             var identity = await IdentityOf(brainId, legacyClaims.Session, invocation.Behavior).ConfigureAwait(false);
-            caller = identity.Caller ?? identity.Principal ?? CapabilityCallers.Of(brainId, brainId, brainId);
+            caller = identity.Caller ?? identity.Principal ?? await Programs.ProgramPrincipal.ForBrain(Plain, brainId, null).ConfigureAwait(false) ?? CapabilityCallers.Of(brainId, brainId, brainId);
             Stamp(identity);
         }
 
