@@ -11,6 +11,7 @@ using DigitalBrain.Runtime.Orleans.Signalling;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using DigitalBrain.Runtime.Orleans.Hosting;
+using DigitalBrain.Runtime.Orleans.Capabilities;
 
 namespace IntoChat.OS.Modules.Flutter.Space;
 
@@ -36,7 +37,7 @@ internal sealed class SpaceWatcher(ILogger<SpaceWatcher> logger, CircleMembers f
         await using var circles = await Optional(() => cluster.Listen<CircleChanged>(nameof(SpaceWatcher), (_, change, _) => Guarded(change, change => RebuildMembers(change.Members.Concat(change.PreviousMembers ?? [])))));
         await using var posts = await Optional(() => cluster.Listen<CircleSpoke>(nameof(SpaceWatcher), (publisher, change, _) => Guarded(change, async _ =>
         {
-            var circle = await Unstamped(() => SiloNeurons.Get<ICircleStateReader>(plain, ICircle.Key(publisher.Brain.Value)).Members());
+            var circle = await AsPlatform(publisher.Brain.Value, () => SiloNeurons.Get<ICircleStateReader>(plain, ICircle.Key(publisher.Brain.Value)).Members());
             await RebuildMembers(circle);
         })));
         try { await Task.Delay(Timeout.Infinite, stoppingToken); }
@@ -90,22 +91,26 @@ internal sealed class SpaceWatcher(ILogger<SpaceWatcher> logger, CircleMembers f
         { foreach (var brain in await friends.PersonalBrains(account)) { await Rebuild(brain); } }
     }
 
-    private Task Rebuild(string? brain) => brain is null ? Task.CompletedTask : Unstamped(() => SiloNeurons.Get<ISpace>(plain, ISpace.Key(brain)).Recompose());
-    private Task RefreshApp(string key) => BrainOf(key) is { } brain ? Unstamped(() => SiloNeurons.Get<ISpace>(plain, ISpace.Key(brain)).RefreshApp(key)) : Task.CompletedTask;
+    private Task Rebuild(string? brain) => brain is null ? Task.CompletedTask : AsPlatform(brain, () => SiloNeurons.Get<ISpace>(plain, ISpace.Key(brain)).Recompose());
+    private Task RefreshApp(string key) => BrainOf(key) is { } brain ? AsPlatform(brain, () => SiloNeurons.Get<ISpace>(plain, ISpace.Key(brain)).RefreshApp(key)) : Task.CompletedTask;
 
     // A recomposition is the module's own act. A plain listener runs in the turn that saved the change, with that writer's stamp,
-    // and a friend's change must not reach another brain's space as the friend: the call goes out unstamped, as the hub pump's did.
-    private static async Task Unstamped(Func<Task> call)
+    // and a friend's change must not reach another brain's space as the friend: the call goes out as the platform, for the brain
+    // whose space it rebuilds. The kernel refuses unstamped calls to plain neurons.
+    private static async Task AsPlatform(string brain, Func<Task> call)
     {
-        Orleans.Runtime.RequestContext.Remove(CallerContextStamper.RequestContextKey);
+        using var platform = RuntimeCallerContext.Stamp(Platform(brain));
         await call();
     }
 
-    private static async Task<T> Unstamped<T>(Func<Task<T>> call)
+    private static async Task<T> AsPlatform<T>(string brain, Func<Task<T>> call)
     {
-        Orleans.Runtime.RequestContext.Remove(CallerContextStamper.RequestContextKey);
+        using var platform = RuntimeCallerContext.Stamp(Platform(brain));
         return await call();
     }
+
+    private static DigitalBrain.Capabilities.CapabilityCaller Platform(string brain) => DigitalBrain.Capabilities.CapabilityCallers.Platform("flutter.space", "system", brain);
+
     private static string? BrainOf(string key)
     {
         var marker = key.IndexOf("/apps/", StringComparison.Ordinal);

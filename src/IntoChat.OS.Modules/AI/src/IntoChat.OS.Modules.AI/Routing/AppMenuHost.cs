@@ -6,6 +6,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Orleans;
 using DigitalBrain.Runtime.Orleans.Hosting;
+using DigitalBrain.Runtime.Orleans.Capabilities;
 
 namespace IntoChat.OS.Modules.AI.Routing;
 
@@ -46,6 +47,9 @@ internal sealed class AppMenuHost(DigitalBrain.Spi.IClusterListeners listeners, 
         var marker = key.IndexOf("/apps/", StringComparison.Ordinal);
         if (marker <= 0) { return; }
         var brain = key[..marker];
+        // The menu is the module's own read of the brain's apps, made as the platform for that brain: the kernel refuses unstamped
+        // calls to plain neurons.
+        using var platform = RuntimeCallerContext.Stamp(DigitalBrain.Capabilities.CapabilityCallers.Platform("ai.app-menu", "system", brain));
         // The first scan includes the changed app itself: a plain app announces its change before the kernel's directory may list
         // it (06-08: the directory registers a plain neuron once its call completes).
         if (!catalog.TryGet(brain, out _)) { await Scan(brain, key, version, cancellationToken); return; }
