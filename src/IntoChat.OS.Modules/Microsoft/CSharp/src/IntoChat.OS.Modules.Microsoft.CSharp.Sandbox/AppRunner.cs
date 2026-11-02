@@ -202,11 +202,12 @@ public sealed class AppRunner : IAsyncDisposable
             attachResolver.Invoke(instance, [new Func<Type, object?>(capabilityType => ResolveCapability(brain, snapshot, capabilityType))]);
         }
         if (snapshot.GetType().GetProperty("RuntimeStateRevision")?.GetValue(snapshot) is long rev) { _stateRevision = rev; }
-        if (snapshot.GetType().GetProperty("RuntimeStateJson")?.GetValue(snapshot) is string stateJson) { RestoreState(instance, stateJson); }
+        // A state that cannot be restored stops the app before any turn runs: a turn would save the default state over it.
+        if (snapshot.GetType().GetProperty("RuntimeStateJson")?.GetValue(snapshot) is string stateJson) { _lastSavedState = RestoreState(instance, stateJson); }
         RefreshViews(instance, presenter);
         var turns = new SemaphoreSlim(1, 1);
-        var operationLoops = snapshot.Manifest.Operations.Where(operation => definition.FindOperation(operation.Name) is not null)
-            .Select(operation => Serve(brain, app, definition, instance, presenter, operation.Name, turns, stopping));
+        var operationLoops = ServedOperations(definition, snapshot.Manifest.Operations.Select(operation => operation.Name))
+            .Select(operation => Serve(brain, app, definition, instance, presenter, operation, turns, stopping));
         var signalLoops = definition.SignalSubscriptions
             .Select(sub => ServeSignalSubscription(brain, app, definition, instance, presenter, sub, turns, stopping));
         var loops = operationLoops.Concat(signalLoops).ToArray();
@@ -369,27 +370,42 @@ public sealed class AppRunner : IAsyncDisposable
         return string.IsNullOrWhiteSpace(input) ? null : JsonSerializer.Deserialize(input, parameter.ParameterType, Json);
     }
 
-    private void RestoreState(App instance, string? stateJson)
+    // The code is the operation list: every [On] operation is served. Manifest names keep their spelling, and an
+    // operation the manifest omits is served under its kebab-case method name. Signal reactions are not requests.
+    internal static string[] ServedOperations(AppDefinition definition, IEnumerable<string> manifestNames)
     {
-        if (string.IsNullOrWhiteSpace(stateJson)) { return; }
-        try
+        var reactions = definition.SignalSubscriptions.Select(sub => sub.Method).ToHashSet();
+        var served = new List<string>();
+        var covered = new HashSet<MethodInfo>();
+        foreach (var name in manifestNames)
         {
-            var type = instance.GetType();
-            var stateProp = type.GetProperty("State", BindingFlags.Public | BindingFlags.Instance);
-            if (stateProp is null) { return; }
-            var restored = JsonSerializer.Deserialize(stateJson, stateProp.PropertyType, Json);
-            if (restored is null) { return; }
-            var setMethod = type.GetMethod("Set", BindingFlags.NonPublic | BindingFlags.Instance, [stateProp.PropertyType]);
-            if (setMethod is not null)
-            {
-                setMethod.Invoke(instance, [restored]);
-                _lastSavedState = stateJson;
-            }
+            if (definition.FindOperation(name) is { } method && covered.Add(method)) { served.Add(name); }
         }
-        catch (Exception error)
+        foreach (var method in definition.Operations.Values.OrderBy(method => method.Name, StringComparer.Ordinal))
         {
-            AppLog.Log($"Failed to restore app state: {error.Message}");
+            if (!reactions.Contains(method) && covered.Add(method)) { served.Add(Kebab(method.Name)); }
         }
+        return [.. served];
+    }
+
+    internal static string Kebab(string name) =>
+        string.Concat(name.Select((c, i) => i > 0 && char.IsUpper(c) && !char.IsUpper(name[i - 1]) ? "-" + char.ToLowerInvariant(c) : char.ToLowerInvariant(c).ToString()));
+
+    // Returns the JSON it restored. Any failure throws: the runner faults instead of starting with a default state.
+    internal static string? RestoreState(App instance, string? stateJson)
+    {
+        if (string.IsNullOrWhiteSpace(stateJson)) { return null; }
+        var type = instance.GetType();
+        var stateProp = type.GetProperty("State", BindingFlags.Public | BindingFlags.Instance);
+        if (stateProp is null) { return null; }
+        object? restored;
+        try { restored = JsonSerializer.Deserialize(stateJson, stateProp.PropertyType, Json); }
+        catch (JsonException error) { throw new AppStateRestoreException($"The saved state does not read as {stateProp.PropertyType.Name}: {error.Message}", error); }
+        if (restored is null) { throw new AppStateRestoreException($"The saved state reads as null for {stateProp.PropertyType.Name}."); }
+        var setMethod = type.GetMethod("Set", BindingFlags.NonPublic | BindingFlags.Instance, [stateProp.PropertyType])
+            ?? throw new AppStateRestoreException($"{type.Name} has no Set({stateProp.PropertyType.Name}) to restore its state.");
+        setMethod.Invoke(instance, [restored]);
+        return stateJson;
     }
 
     private async Task PersistStateAsync(IApp app, App instance)
@@ -412,6 +428,12 @@ public sealed class AppRunner : IAsyncDisposable
                 var resultProp = saveTask.GetType().GetProperty("Result");
                 if (resultProp?.GetValue(saveTask) is { } updated && updated.GetType().GetProperty("RuntimeStateRevision")?.GetValue(updated) is long newRev)
                 {
+                    // The app neuron ignores a save behind its revision: another writer saved first, so this state was not kept.
+                    if (newRev != _stateRevision + 1)
+                    {
+                        _lastSavedState = null;
+                        AppLog.Log($"State save at revision {_stateRevision} was not kept; the app holds revision {newRev}. Another runner may be writing this app.");
+                    }
                     _stateRevision = newRev;
                 }
             }
@@ -449,3 +471,6 @@ public sealed class AppRunner : IAsyncDisposable
         }
     }
 }
+
+// The saved state of an app cannot be restored into its current TState.
+public sealed class AppStateRestoreException(string message, Exception? inner = null) : InvalidOperationException(message, inner);
