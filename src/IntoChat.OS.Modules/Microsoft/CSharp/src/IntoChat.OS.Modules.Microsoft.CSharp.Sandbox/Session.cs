@@ -86,6 +86,7 @@ public sealed class Session(SessionConnection connection, HttpClient http, IOpti
         try { app = await AppRunner.LoadAsync(http, options, connection, assignment, logger, cancellationToken).ConfigureAwait(false); }
         catch (Exception error) when (error is not OperationCanceledException)
         {
+            logger.LogWarning(error, "Behavior {Behavior} {Hash} did not load", assignment.Behavior, assignment.Hash);
             await ReportAsync(new(assignment.Behavior, assignment.Hash, "Exited", 1, error.Message, assignment.Revision), cancellationToken).ConfigureAwait(false);
             return;
         }
