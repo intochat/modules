@@ -210,7 +210,10 @@ public sealed class AppRunner : IAsyncDisposable
             .Select(operation => Serve(brain, app, definition, instance, presenter, operation, turns, stopping));
         var signalLoops = definition.SignalSubscriptions
             .Select(sub => ServeSignalSubscription(brain, app, definition, instance, presenter, sub, turns, stopping));
-        var loops = operationLoops.Concat(signalLoops).ToArray();
+        var address = AddressOf(appKey, brain.Setting("Brain"));
+        var watchLoops = instance.DeclaredWatches()
+            .Select(watch => ServeWatch(brain, app, definition, instance, presenter, watch, address, turns, stopping));
+        var loops = operationLoops.Concat(signalLoops).Concat(watchLoops).ToArray();
         try { await Task.WhenAll(loops).ConfigureAwait(false); }
         finally { await presenter.DrainAsync().ConfigureAwait(false); }
         return 0;
@@ -299,6 +302,68 @@ public sealed class AppRunner : IAsyncDisposable
                 {
                     turns.Release();
                 }
+            }
+        }
+        catch (OperationCanceledException) when (stopping.IsCancellationRequested) { }
+    }
+
+    // The brain an app runs in is its Brain setting, or the scope its key ({brain}/apps/{name}) names.
+    internal static AppAddress AddressOf(string appKey, string? brainSetting)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(appKey);
+        if (!string.IsNullOrWhiteSpace(brainSetting)) { return new(brainSetting, appKey); }
+        var at = appKey.IndexOf("/apps/", StringComparison.Ordinal);
+        return at > 0 ? new(appKey[..at], appKey) : throw new InvalidOperationException($"{appKey} is not an app key ({{brain}}/apps/{{name}}).");
+    }
+
+    // A declared watch: one neuron, or the members its registry names (selected again on each registry change). Each signal is a turn.
+    private Task ServeWatch(IntoChatOSConnection brain, IApp app, AppDefinition definition, App instance, IPresenter presenter, AppWatch watch,
+        AppAddress address, SemaphoreSlim turns, CancellationToken stopping)
+    {
+        var source = ResolveNeuron(brain, watch.SourceType, watch.Key(address));
+        if (!watch.IsSet)
+        {
+            return (Task)typeof(AppRunner).GetMethod(nameof(ServeFixedWatch), BindingFlags.Instance | BindingFlags.NonPublic)!
+                .MakeGenericMethod(watch.SignalType)
+                .Invoke(this, [brain, app, definition, instance, presenter, watch, source, turns, stopping])!;
+        }
+        return (Task)typeof(AppRunner).GetMethod(nameof(ServeSetWatch), BindingFlags.Instance | BindingFlags.NonPublic)!
+            .MakeGenericMethod(watch.SourceType, watch.ChangeType!, watch.MemberType!, watch.SignalType)
+            .Invoke(this, [brain, app, definition, instance, presenter, watch, source, address, turns, stopping])!;
+    }
+
+    private Task ServeFixedWatch<TSignal>(IntoChatOSConnection brain, IApp app, AppDefinition definition, App instance, IPresenter presenter,
+        AppWatch watch, object source, SemaphoreSlim turns, CancellationToken stopping) where TSignal : Signal
+        => ServeWatchSignals(brain.On<TSignal>(source, stopping), app, definition, instance, presenter, watch, turns, stopping);
+
+    private Task ServeSetWatch<TRegistry, TChange, TMember, TSignal>(IntoChatOSConnection brain, IApp app, AppDefinition definition, App instance,
+        IPresenter presenter, AppWatch watch, object source, AppAddress address, SemaphoreSlim turns, CancellationToken stopping)
+        where TRegistry : class where TChange : Signal where TMember : class where TSignal : Signal
+    {
+        var sources = Sources.Named<TRegistry, TChange, TMember>((TRegistry)source, async (registry, ct) =>
+            [.. (await watch.Select!(registry, address, ct).ConfigureAwait(false)).Select(key => (TMember)ResolveNeuron(brain, typeof(TMember), key))]);
+        return ServeWatchSignals(brain.On<TSignal>(sources, stopping), app, definition, instance, presenter, watch, turns, stopping);
+    }
+
+    private async Task ServeWatchSignals<TSignal>(IAsyncEnumerable<TSignal> signals, IApp app, AppDefinition definition, App instance,
+        IPresenter presenter, AppWatch watch, SemaphoreSlim turns, CancellationToken stopping) where TSignal : Signal
+    {
+        try
+        {
+            await foreach (var signal in signals.WithCancellation(stopping).ConfigureAwait(false))
+            {
+                await turns.WaitAsync(stopping).ConfigureAwait(false);
+                try
+                {
+                    await watch.Handle(signal).ConfigureAwait(false);
+                    RefreshViews(instance, presenter);
+                    await PersistStateAsync(app, instance).ConfigureAwait(false);
+                }
+                catch (Exception error) when (error is not OperationCanceledException)
+                {
+                    AppLog.Log($"{definition.Id}.{watch.Name} failed for signal {typeof(TSignal).Name}: {error}");
+                }
+                finally { turns.Release(); }
             }
         }
         catch (OperationCanceledException) when (stopping.IsCancellationRequested) { }
