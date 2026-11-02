@@ -3,6 +3,7 @@ using DigitalBrain.Spi;
 using IntoChat.OS.Framework;
 using IntoChat.OS.Runtime;
 using Microsoft.Extensions.DependencyInjection;
+using DigitalBrain.Signals.Watch;
 
 namespace IntoChat.OS.Modules.Flutter.Workspace;
 

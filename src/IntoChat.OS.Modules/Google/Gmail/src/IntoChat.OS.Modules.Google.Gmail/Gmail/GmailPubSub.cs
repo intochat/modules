@@ -2,7 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
-using IntoChat.OS.Framework.Modules.Validation;
+using DigitalBrain.Modules.Validation;
 
 namespace IntoChat.OS.Modules.Google.Gmail;
 

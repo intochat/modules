@@ -1,4 +1,5 @@
-using IntoChat.OS.Runtime.Storage.Confinement;
+
+using DigitalBrain.Capabilities.Storage.Confinement;
 
 namespace IntoChat.OS.Modules.LocalDisk;
 

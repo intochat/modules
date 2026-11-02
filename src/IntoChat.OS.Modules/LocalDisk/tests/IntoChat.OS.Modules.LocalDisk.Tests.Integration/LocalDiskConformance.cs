@@ -1,6 +1,6 @@
 using DigitalBrain.Capabilities.Storage;
 using DigitalBrain.Testing.Conformance.Storage;
-using IntoChat.OS.Runtime.Storage.Confinement;
+using DigitalBrain.Capabilities.Storage.Confinement;
 
 namespace IntoChat.OS.Modules.LocalDisk.Tests.Integration;
 

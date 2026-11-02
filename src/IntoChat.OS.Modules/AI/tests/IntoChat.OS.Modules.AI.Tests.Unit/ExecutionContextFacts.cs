@@ -56,7 +56,7 @@ public sealed class ExecutionContextFacts
     public void ExecutionContextProviderManagesCurrentAndPush()
     {
         var provider = new ExecutionContextProvider();
-        var caller = CapabilityCallers.Of("bob", "acc-2", "brain-2", CallerKind.Assistant);
+        var caller = CapabilityCallers.Of("bob", "acc-2", "brain-2", CallerKind.Agent);
         var custom = provider.Create("exec-custom", caller, cancellationToken: TestContext.Current.CancellationToken);
 
         var defaultContext = provider.Current;

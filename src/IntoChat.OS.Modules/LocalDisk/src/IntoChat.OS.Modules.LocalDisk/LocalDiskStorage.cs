@@ -5,8 +5,8 @@ using DigitalBrain.Capabilities.Storage;
 using DigitalBrain.Operations;
 using DigitalBrain.Spi;
 using IntoChat.OS.Framework.Diagnostics;
-using IntoChat.OS.Runtime.Storage.Confinement;
 using Microsoft.Extensions.Logging.Abstractions;
+using DigitalBrain.Capabilities.Storage.Confinement;
 
 namespace IntoChat.OS.Modules.LocalDisk;
 

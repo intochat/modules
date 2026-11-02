@@ -1,5 +1,5 @@
-using IntoChat.OS.Runtime.Storage.Confinement;
 using MicrosoftSdk = Microsoft;
+using DigitalBrain.Capabilities.Storage.Confinement;
 
 namespace IntoChat.OS.Modules.Microsoft.Windows.Tests.Unit;
 

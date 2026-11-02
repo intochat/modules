@@ -1,4 +1,5 @@
-using IntoChat.OS.Framework.Modules.Validation;
+using DigitalBrain.Modules.Validation;
+using DigitalBrain.Rules;
 using MimeKit;
 
 namespace IntoChat.OS.Modules.Google.Gmail;
@@ -24,10 +25,17 @@ internal static class GmailValidation
             [.. issues.Select(issue => new GmailFieldIssue(issue.Path, issue.Code, issue.Message))]);
     }
 
-    private static void Identifier(ValidationRules rules, List<ValidationIssue> issues, string path, string? value, int maximum)
+    // An option rule is named "code:path"; a broken one is an issue at that path.
+    private static IEnumerable<ValidationIssue> Broken(IEnumerable<Rule> rules) => rules.Where(rule => rule.Broken).Select(rule =>
     {
-        rules.Required(path, value);
-        rules.StringLength(path, value, 1, maximum);
+        var colon = rule.Name.IndexOf(':', StringComparison.Ordinal);
+        return new ValidationIssue(rule.Name[(colon + 1)..], rule.Name[..colon], rule.Message);
+    });
+
+    private static void Identifier(List<Rule> rules, List<ValidationIssue> issues, string path, string? value, int maximum)
+    {
+        rules.Add(new Required(path, value));
+        rules.Add(new StringLength(path, value, 1, maximum));
         if (value?.Any(char.IsControl) == true) { issues.Add(new(path, "characters", "Control characters are not allowed.")); }
     }
 
@@ -35,11 +43,11 @@ internal static class GmailValidation
     {
         public ValidationIssue[] Validate(GmailInboxRequest value)
         {
-            var rules = new ValidationRules();
+            List<Rule> rules = [];
             List<ValidationIssue> issues = [];
-            rules.Range("pageSize", value.PageSize, 1, 100);
+            rules.Add(new NumberRange("pageSize", value.PageSize, 1, 100));
             if (value.PageToken is not null) { Identifier(rules, issues, "pageToken", value.PageToken, MaximumPageTokenLength); }
-            return [.. rules.Issues, .. issues];
+            return [.. Broken(rules), .. issues];
         }
     }
 
@@ -47,10 +55,10 @@ internal static class GmailValidation
     {
         public ValidationIssue[] Validate(GmailMessageRequest value)
         {
-            var rules = new ValidationRules();
+            List<Rule> rules = [];
             List<ValidationIssue> issues = [];
             Identifier(rules, issues, "messageId", value.MessageId, 512);
-            return [.. rules.Issues, .. issues];
+            return [.. Broken(rules), .. issues];
         }
     }
 
@@ -58,28 +66,28 @@ internal static class GmailValidation
     {
         public ValidationIssue[] Validate(GmailDraftRequest value)
         {
-            var rules = new ValidationRules();
+            List<Rule> rules = [];
             List<ValidationIssue> issues = [];
             Recipients("to", value.To);
             Recipients("cc", value.Cc);
             Recipients("bcc", value.Bcc);
-            rules.Range("recipients", (long)(value.To?.Length ?? 0) + (value.Cc?.Length ?? 0) + (value.Bcc?.Length ?? 0), 1, MaximumRecipients);
+            rules.Add(new NumberRange("recipients", (long)(value.To?.Length ?? 0) + (value.Cc?.Length ?? 0) + (value.Bcc?.Length ?? 0), 1, MaximumRecipients));
             Text("subject", value.Subject, MaximumSubjectBytes);
             Text("body", value.Body, MaximumBodyBytes);
             if (value.Subject?.Any(character => character is '\r' or '\n' or '\0') == true)
             { issues.Add(new("subject", "header", "Header line breaks and null characters are not allowed.")); }
-            return [.. rules.Issues, .. issues];
+            return [.. Broken(rules), .. issues];
 
             void Text(string path, string? text, int maximum)
             {
                 if (text is null) { issues.Add(new(path, "required", "A string is required; it may be empty.")); }
-                else { rules.Utf8Length(path, text, maximum); }
+                else { rules.Add(new Utf8Length(path, text, maximum)); }
             }
 
             void Recipients(string path, string[]? addresses)
             {
-                rules.Required(path, addresses);
-                rules.ArrayLength(path, addresses, 0, MaximumRecipients);
+                rules.Add(new Required(path, addresses));
+                rules.Add(new ArrayLength<string>(path, addresses, 0, MaximumRecipients));
                 if (addresses is null) { return; }
                 // An already-invalid oversized array must not cause unbounded address parsing work.
                 for (var index = 0; index < Math.Min(addresses.Length, MaximumRecipients); index++)
@@ -97,11 +105,11 @@ internal static class GmailValidation
     {
         public ValidationIssue[] Validate(GmailCreateDraftRequest value)
         {
-            var rules = new ValidationRules();
+            List<Rule> rules = [];
             List<ValidationIssue> issues = [];
             Identifier(rules, issues, "previewId", value.PreviewId, 128);
             Identifier(rules, issues, "requestId", value.RequestId, 128);
-            return [.. rules.Issues, .. issues];
+            return [.. Broken(rules), .. issues];
         }
     }
 
@@ -109,10 +117,10 @@ internal static class GmailValidation
     {
         public ValidationIssue[] Validate(GmailDraftOperationRequest value)
         {
-            var rules = new ValidationRules();
+            List<Rule> rules = [];
             List<ValidationIssue> issues = [];
             Identifier(rules, issues, "requestId", value.RequestId, 128);
-            return [.. rules.Issues, .. issues];
+            return [.. Broken(rules), .. issues];
         }
     }
 }

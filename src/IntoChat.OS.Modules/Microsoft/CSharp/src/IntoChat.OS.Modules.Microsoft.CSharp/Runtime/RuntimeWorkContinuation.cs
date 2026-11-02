@@ -1,6 +1,7 @@
 using IntoChat.OS.Contracts.Configuration;
 using IntoChat.OS.Framework;
 using DigitalBrain.Runtime.Orleans.Hosting;
+using DigitalBrain.Invocation;
 
 namespace IntoChat.OS.Modules.Microsoft.CSharp.Runtime;
 

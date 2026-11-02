@@ -18,6 +18,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 using Orleans;
+using DigitalBrain.Signals.Watch;
 
 namespace IntoChat.OS.Modules.Flutter.Workspace;
 

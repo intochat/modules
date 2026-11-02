@@ -13,6 +13,7 @@ using IntoChat.OS.Modules.Apps;
 using IntoChat.OS.Modules.Apps.Signals;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using DigitalBrain.Signals.Watch;
 
 namespace IntoChat.OS.Modules.Microsoft.CSharp.Sandbox;
 

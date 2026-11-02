@@ -25,6 +25,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Hosting;
 using Orleans.Hosting;
+using DigitalBrain.Invocation;
 
 namespace IntoChat.OS.Modules.Microsoft.CSharp;
 

@@ -28,7 +28,7 @@ internal sealed class LocalBehaviorAssemblies : IBehaviorAssemblies
 
     public LocalBehaviorAssemblies(IConfiguration configuration, IDataProtectionProvider protection, IServiceProvider services, IOptions<CSharpOptions> options)
     {
-        _root = Path.Combine(StateHome.Resolve(configuration).Path, "behaviors");
+        _root = Path.Combine(StateHome.Resolve(configuration, RuntimeOptions.IntoChatCompatible).Path, "behaviors");
         _protector = protection.CreateProtector(ProtectionPurpose).ToTimeLimitedDataProtector();
         _services = services;
         _options = options;

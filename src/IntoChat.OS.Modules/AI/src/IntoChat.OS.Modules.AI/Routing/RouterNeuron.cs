@@ -14,6 +14,7 @@ using IntoChat.OS.Connections.Surface;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using DigitalBrain.Runtime.Orleans.Hosting;
+using DigitalBrain.Invocation;
 
 namespace IntoChat.OS.Modules.AI.Routing;
 

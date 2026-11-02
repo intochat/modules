@@ -3,7 +3,7 @@ using IntoChat.OS.Connections;
 using IntoChat.OS.Contracts.Configuration;
 using IntoChat.OS.Framework;
 using IntoChat.OS.Framework.Modules;
-using IntoChat.OS.Framework.Modules.Validation;
+using DigitalBrain.Modules.Validation;
 
 namespace IntoChat.OS.Modules.Google.Gmail;
 

@@ -62,7 +62,7 @@ internal sealed class SessionTokens(IModuleIntegrations<CSharpModule> integratio
 
     private static byte[] LoadOrCreate(IConfiguration configuration, ILogger logger)
     {
-        var home = StateHome.Resolve(configuration).EnsureCreated();
+        var home = StateHome.Resolve(configuration, RuntimeOptions.IntoChatCompatible).EnsureCreated();
         var path = Path.Combine(home.Secrets, KeyFileName);
         var protector = MachineKeyProtectors.ForCurrentPlatform();
         if (File.Exists(path))

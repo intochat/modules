@@ -1,10 +1,10 @@
 using IntoChat.OS.Framework.Machine;
-using IntoChat.OS.Runtime.Storage.Confinement;
 using System.Diagnostics;
 using IntoChat.OS.Contracts.Configuration;
 using IntoChat.OS.Framework;
 using IntoChat.OS.Connections.Platform.Connections;
 using DigitalBrain.Runtime.Orleans.Hosting;
+using DigitalBrain.Capabilities.Storage.Confinement;
 
 namespace IntoChat.OS.Modules.Microsoft.Windows;
 
