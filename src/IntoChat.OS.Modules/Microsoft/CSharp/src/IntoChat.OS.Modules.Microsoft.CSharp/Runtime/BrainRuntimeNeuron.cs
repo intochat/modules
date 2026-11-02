@@ -15,7 +15,6 @@ using IntoChat.OS.Framework.Compute;
 using IntoChat.OS.Modules.Microsoft.CSharp.Assemblies;
 using IntoChat.OS.Modules.Microsoft.CSharp.Catalog;
 using IntoChat.OS.Modules.Microsoft.CSharp.Files;
-using IntoChat.OS.Modules.Microsoft.CSharp.Programs;
 using IntoChat.OS.Modules.Microsoft.CSharp.Runtime.Signals;
 using IntoChat.OS.Modules.Microsoft.CSharp.Sessions;
 using Microsoft.AspNetCore.Hosting.Server;
@@ -215,58 +214,26 @@ internal sealed class BrainRuntimeNeuron(
         { throw new UnauthorizedAccessException("A continuation belongs to its own brain."); }
     }
 
-    private bool TryResolveAppProgramKey(string owner, [NotNullWhen(true)] out string? appProgramKey)
-    {
-        appProgramKey = null;
-        if (owner.StartsWith("csharp/", StringComparison.OrdinalIgnoreCase) ||
-            owner.Contains("/csharp/", StringComparison.OrdinalIgnoreCase))
-        {
-            return false;
-        }
-
-        if (AppProgramKeys.TryParse(owner, out var ownerBrain, out var appName))
-        {
-            appProgramKey = AppProgramKeys.For(ownerBrain, appName);
-            return true;
-        }
-
-        if (owner.StartsWith("apps/", StringComparison.OrdinalIgnoreCase) ||
-            owner.StartsWith("app/", StringComparison.OrdinalIgnoreCase) ||
-            !owner.Contains('/'))
-        {
-            appProgramKey = AppProgramKeys.For(Brain, owner);
-            return true;
-        }
-
-        return false;
-    }
-
     // Interleaved (its contract says so): compiling is seconds of CPU, off this runtime's scheduler, and storing
     // the assemblies is I/O; neither touches the runtime's state. The compiled program then takes a turn of its own.
     // Idempotent by request: the same owner, sources and settings asked again while that program compiles joins
     // it, and asked again once it is applied (and still current) answers it, so a caller whose call timed out asks
     // again instead of compiling the program twice.
-    public async Task<ProgramView> Assign(string owner, Dictionary<string, string> sources, Dictionary<string, string> settings)
+    public Task<ProgramView> Assign(string owner, Dictionary<string, string> sources, Dictionary<string, string> settings)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(owner);
         ArgumentNullException.ThrowIfNull(sources);
         ArgumentNullException.ThrowIfNull(settings);
 
-        if (TryResolveAppProgramKey(owner, out var appProgramKey))
-        {
-            var appProgram = SiloNeurons.Get<IAppProgram>(ServiceProvider, appProgramKey);
-            await appProgram.Assign(sources, settings);
-        }
-
         // The caller is part of the request: the same program assigned by another principal is applied again.
-        return await Assigned(owner, RequestKey(owner, sources, settings, CallerContextStamper.TryGet(out var caller) ? caller : null), settings,
+        return Assigned(owner, RequestKey(owner, sources, settings, CallerContextStamper.TryGet(out var caller) ? caller : null), settings,
             () => Compile(sources));
     }
 
     // The prebuilt twin of Assign: the program was compiled ahead of time and arrives as assemblies. Nothing is compiled; each
     // assembly must hash to the name it is stored and loaded under, which is the check the sandbox repeats on download. A mismatch
     // refuses the whole program before anything is stored or applied. Request idempotency, storing and applying are Assign's.
-    public async Task<ProgramView> AssignPrebuilt(string owner, Dictionary<string, PrebuiltBehavior> behaviors, Dictionary<string, string> settings)
+    public Task<ProgramView> AssignPrebuilt(string owner, Dictionary<string, PrebuiltBehavior> behaviors, Dictionary<string, string> settings)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(owner);
         ArgumentNullException.ThrowIfNull(behaviors);
@@ -274,14 +241,8 @@ internal sealed class BrainRuntimeNeuron(
         if (behaviors.Values.Any(behavior => behavior?.Assembly is null || behavior.Symbols is null || behavior.Hash is null))
         { throw new ArgumentException("A prebuilt behavior carries its assembly, its symbols and its hash.", nameof(behaviors)); }
 
-        if (TryResolveAppProgramKey(owner, out var appProgramKey))
-        {
-            var appProgram = SiloNeurons.Get<IAppProgram>(ServiceProvider, appProgramKey);
-            await appProgram.AssignPrebuilt(behaviors, settings);
-        }
-
         var named = behaviors.ToDictionary(pair => pair.Key, pair => "prebuilt:" + pair.Value.Hash, StringComparer.Ordinal);
-        return await Assigned(owner, RequestKey(owner, named, settings, CallerContextStamper.TryGet(out var caller) ? caller : null), settings,
+        return Assigned(owner, RequestKey(owner, named, settings, CallerContextStamper.TryGet(out var caller) ? caller : null), settings,
             () => Verified(behaviors));
     }
 
@@ -451,11 +412,6 @@ internal sealed class BrainRuntimeNeuron(
     public async Task Retire(string owner)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(owner);
-        if (TryResolveAppProgramKey(owner, out var appProgramKey))
-        {
-            var appProgram = SiloNeurons.Get<IAppProgram>(ServiceProvider, appProgramKey);
-            await appProgram.Retire();
-        }
 
         // The owner's latest change: an Assign still compiling from before it is not applied after it.
         _changed[owner] = ++_tickets;

@@ -292,7 +292,7 @@ public sealed class AppRunner : IAsyncDisposable
                 }
                 catch (Exception error) when (error is not OperationCanceledException)
                 {
-                    AppLog.Log($"{definition.Manifest.Id}.{sub.OperationName} failed for signal {typeof(TSignal).Name}: {error}");
+                    AppLog.Log($"{definition.Id}.{sub.OperationName} failed for signal {typeof(TSignal).Name}: {error}");
                 }
                 finally
                 {
@@ -326,7 +326,7 @@ public sealed class AppRunner : IAsyncDisposable
             await PersistStateAsync(app, instance).ConfigureAwait(false);
         }
         catch (Exception error) when (error is not OperationCanceledException)
-        { AppLog.Log($"{definition.Manifest.Id}.{operation} failed for request {request.RequestId}: {error}"); }
+        { AppLog.Log($"{definition.Id}.{operation} failed for request {request.RequestId}: {error}"); }
     }
 
     private static void RefreshViews(App instance, IPresenter presenter)

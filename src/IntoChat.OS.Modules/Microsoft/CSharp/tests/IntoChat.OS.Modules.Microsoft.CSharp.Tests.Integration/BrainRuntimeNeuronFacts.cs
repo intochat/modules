@@ -5,7 +5,6 @@ using IntoChat.OS.Framework;
 using IntoChat.OS.Modules.Microsoft.CSharp.Assemblies;
 using IntoChat.OS.Modules.Microsoft.CSharp.Catalog;
 using IntoChat.OS.Modules.Microsoft.CSharp.Files;
-using IntoChat.OS.Modules.Microsoft.CSharp.Programs;
 using IntoChat.OS.Modules.Microsoft.CSharp.Runtime;
 using IntoChat.OS.Modules.Microsoft.CSharp.Sessions;
 using Microsoft.Extensions.Configuration;
@@ -115,7 +114,7 @@ public sealed class BrainRuntimeNeuronFacts(BrainRuntimeNeuronFixture fixture) :
         var runtimeId = runtime.Id(BrainRuntimeNeuron.GrainTypeName, BrainRuntimeKeys.Name);
         var programs = runtime.Get<IBrainPrograms>(runtimeId);
 
-        var owner = $"app/remediation-{kind}";
+        var owner = $"csharp/remediation-{kind}";
         var sources = new Dictionary<string, string>
         {
             ["app.cs"] = ValidAppSource,
@@ -125,28 +124,21 @@ public sealed class BrainRuntimeNeuronFacts(BrainRuntimeNeuronFixture fixture) :
             ["Color"] = "blue",
         };
 
-        // Assign app program to BrainRuntimeNeuron
+        // Assign program to BrainRuntimeNeuron
         var view = await programs.Assign(owner, sources, settings);
         Assert.NotNull(view);
         Assert.NotEmpty(view.Hash);
         Assert.Single(view.Behaviors);
 
-        var appProgramId = runtime.Id("microsoft.csharp.app-program", $"app/remediation-{kind}");
-        var appProgram = runtime.Get<IAppProgram>(appProgramId);
-        var appProgramView = await appProgram.Describe();
-        Assert.NotNull(appProgramView);
-        Assert.Equal("Running", appProgramView.Behaviors[0].Status);
+        var described = await programs.Describe(owner);
+        Assert.NotNull(described);
 
-        // Retire app program: verifies Orleans grain context is preserved,
+        // Retire program: verifies Orleans grain context is preserved,
         // EndSessionAsync executes cleanly, ReminderNames check succeeds,
         // and no InvalidOperationException is thrown.
         await programs.Retire(owner);
 
         var describedAfter = await programs.Describe(owner);
         Assert.Null(describedAfter);
-
-        var appProgramViewAfter = await appProgram.Describe();
-        Assert.NotNull(appProgramViewAfter);
-        Assert.Equal("Stopped", appProgramViewAfter.Behaviors[0].Status);
     }
 }

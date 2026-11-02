@@ -97,8 +97,3 @@ public class TaskDirectoryNeuron : Neuron<TaskDirectoryState>, ITaskDirectoryNeu
         return Task.FromResult(results);
     }
 }
-
-[Obsolete("Renamed to TaskDirectoryNeuron.")]
-public sealed class TaskDirectoryGrain : TaskDirectoryNeuron
-{
-}
