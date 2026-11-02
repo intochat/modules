@@ -725,7 +725,7 @@ internal sealed class BrainRuntimeNeuron(
             foreach (var id in newOnly) { streams.TryPush(session.Id, RetireEvent.Kind, new RetireEvent(id)); }
             foreach (var behavior in old.Program.Behaviors) { streams.TryPush(session.Id, AssignmentEvent.Kind, await AssignmentFor(old.Program, behavior)); }
         }
-        _ = Self<IBrainRuntimeArrivals>(arrivals => arrivals.CatchUp());
+        _ = CatchUp();
     }
 
     // Interleaved: waits for each behavior of the owner's current program to report (running, failed to update, or exited), or the
@@ -919,7 +919,7 @@ internal sealed class BrainRuntimeNeuron(
         {
             SyncWatched();
             // Off the activation turn: a source's log may be on a part this machine has yet to open.
-            _ = Self<IBrainRuntimeArrivals>(arrivals => arrivals.CatchUp());
+            _ = CatchUp();
         }
         // Signals may have arrived while watches were absent. Relaunch disposable behaviors so
         // their subscribe-then-read recovery runs against durable state, with fresh credentials.
@@ -1381,7 +1381,7 @@ internal sealed class BrainRuntimeNeuron(
         if (_plain.Contains(key))
         {
             await PlainWatchAsync(key, required: null);
-            await Self<IBrainRuntimeArrivals>(arrivals => arrivals.Read(key));
+            await Read(key);
         }
     }
 
