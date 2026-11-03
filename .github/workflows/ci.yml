@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  packages: read
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -33,14 +34,10 @@ jobs:
         with:
           global-json-file: global.json
 
-      - name: Populate NuGet packages from releases
+      - name: Authenticate GitHub Packages
         env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          version="v$(tr -d '[:space:]' < VERSION)"
-          mkdir -p ../nuget
-          gh release download "${version}" --repo intochat/digitalbrain -p "*.nupkg" -D ../nuget --clobber || gh release download --repo intochat/digitalbrain -p "*.nupkg" -D ../nuget --clobber
-          gh release download "${version}" --repo intochat/modules -p "*.nupkg" -D ../nuget --clobber || gh release download --repo intochat/modules -p "*.nupkg" -D ../nuget --clobber
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: dotnet nuget update source github --username "${{ github.actor }}" --password "${GITHUB_TOKEN}" --store-password-in-clear-text --configfile nuget.config
 
       - name: Restore dependencies
         run: dotnet restore IntoChat.Modules.slnx -v quiet
@@ -59,14 +56,10 @@ jobs:
         with:
           global-json-file: global.json
 
-      - name: Populate NuGet packages from releases
+      - name: Authenticate GitHub Packages
         env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          version="v$(tr -d '[:space:]' < VERSION)"
-          mkdir -p ../nuget
-          gh release download "${version}" --repo intochat/digitalbrain -p "*.nupkg" -D ../nuget --clobber || gh release download --repo intochat/digitalbrain -p "*.nupkg" -D ../nuget --clobber
-          gh release download "${version}" --repo intochat/modules -p "*.nupkg" -D ../nuget --clobber || gh release download --repo intochat/modules -p "*.nupkg" -D ../nuget --clobber
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: dotnet nuget update source github --username "${{ github.actor }}" --password "${GITHUB_TOKEN}" --store-password-in-clear-text --configfile nuget.config
 
       - name: Build solution
         run: dotnet build IntoChat.Modules.slnx -c Release -v quiet -p:CodeGraphRefresh=false
@@ -89,3 +82,47 @@ jobs:
         run: |
           echo "format=${{ needs.format.result }} build=${{ needs.build.result }}"
           exit 1
+
+  publish:
+    name: publish
+    needs: [ci]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    concurrency:
+      group: publish-master
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Authenticate GitHub Packages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: dotnet nuget update source github --username "${{ github.actor }}" --password "${GITHUB_TOKEN}" --store-password-in-clear-text --configfile nuget.config
+
+      - name: Version
+        id: version
+        env:
+          RUN_NUMBER: ${{ github.run_number }}
+        run: echo "version=$(tr -d '[:space:]' < VERSION)-pre.${RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+
+      - name: Pack prerelease packages
+        run: dotnet pack IntoChat.Modules.slnx -c Release -o artifacts -p:CodeGraphRefresh=false -p:VersionSuffix=pre.${{ github.run_number }}
+
+      - name: Push packages to GitHub Packages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: dotnet nuget push "artifacts/*.nupkg" --source https://nuget.pkg.github.com/intochat/index.json --api-key "${GITHUB_TOKEN}" --skip-duplicate
+
+      - name: Notify consumers
+        env:
+          GH_TOKEN: ${{ secrets.OS_DOWNSTREAM_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: gh api repos/intochat/os/dispatches -f event_type=modules-published -F client_payload[version]="${VERSION}"

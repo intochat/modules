@@ -37,21 +37,10 @@ jobs:
         with:
           global-json-file: global.json
 
-      - name: Populate NuGet packages from releases
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          version="v$(tr -d '[:space:]' < VERSION)"
-          mkdir -p ../nuget
-          gh release download "${version}" --repo intochat/digitalbrain -p "*.nupkg" -D ../nuget --clobber
-          gh release download "${version}" --repo intochat/modules -p "*.nupkg" -D ../nuget --clobber
-
-      - name: Configure GitHub Packages source
+      - name: Authenticate GitHub Packages
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          dotnet nuget update source github --username "${{ github.actor }}" --password "${GITHUB_TOKEN}" --store-password-in-clear-text --configfile nuget.config
-          dotnet nuget enable source github --configfile nuget.config
+        run: dotnet nuget update source github --username "${{ github.actor }}" --password "${GITHUB_TOKEN}" --store-password-in-clear-text --configfile nuget.config
 
       - name: Pack module packages
         run: dotnet pack IntoChat.Modules.slnx -c Release -o artifacts -p:CodeGraphRefresh=false
@@ -65,3 +54,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release upload "${GITHUB_REF_NAME}" artifacts/*.nupkg --clobber
+
+      - name: Notify consumers
+        env:
+          GH_TOKEN: ${{ secrets.OS_DOWNSTREAM_TOKEN }}
+        run: |
+          VERSION="$(tr -d '[:space:]' < VERSION)"
+          gh api repos/intochat/os/dispatches -f event_type=modules-published -F client_payload[version]="${VERSION}"
