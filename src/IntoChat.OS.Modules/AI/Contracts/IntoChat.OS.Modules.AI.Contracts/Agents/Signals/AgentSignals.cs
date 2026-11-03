@@ -10,6 +10,8 @@ public sealed record TurnStarted(string AgentId, string RunId, string UserText) 
 {
     // Persisted conversation version at publication; zero means no version was supplied.
     public long Version { get; init; }
+
+    public string? RunKey { get; init; }
 }
 
 // Sequence numbers a run's progress from 1; delivery is at-least-once, so handlers key their
@@ -19,18 +21,24 @@ public sealed record TurnStarted(string AgentId, string RunId, string UserText) 
 public sealed record TurnProgressed(string AgentId, string RunId, string Kind, string? Text, string? Tool, string? Payload, int Sequence) : DigitalBrain.Signal
 {
     public long Version { get; init; }
+
+    public string? RunKey { get; init; }
 }
 
 [Signal("agent.turn-completed")]
 public sealed record TurnCompleted(string AgentId, string RunId, string Reply) : DigitalBrain.Signal
 {
     public long Version { get; init; }
+
+    public string? RunKey { get; init; }
 }
 
 [Signal("agent.turn-failed")]
 public sealed record TurnFailed(string AgentId, string RunId, string Error, bool Cancelled) : DigitalBrain.Signal
 {
     public long Version { get; init; }
+
+    public string? RunKey { get; init; }
 }
 
 [Signal("agent.transcript-cleared")]

@@ -27,6 +27,21 @@ public class TaskDirectoryNeuron : Neuron<TaskDirectoryState>, ITaskDirectoryNeu
             CompletedAt = task.CompletedAt,
             StepCount = task.Steps.Length,
             CompletedStepCount = task.Steps.Count(s => s.Status == TaskStepStatus.Completed),
+            ParentId = task.ParentId,
+            Links = task.Links?.Select(l => new TaskLinkState { TargetId = l.TargetId, Kind = l.Kind }).ToArray() ?? [],
+            Steps = task.Steps.Select(s => new TaskStepState
+            {
+                Index = s.Index,
+                Title = s.Title,
+                Description = s.Description,
+                Capability = s.Capability,
+                Status = s.Status,
+                RollbackCapability = s.RollbackCapability,
+                Output = s.Output,
+                StartedAt = s.StartedAt,
+                CompletedAt = s.CompletedAt,
+                IdempotencyKey = s.IdempotencyKey,
+            }).ToArray(),
         };
         existing.Add(entry);
 
@@ -57,6 +72,9 @@ public class TaskDirectoryNeuron : Neuron<TaskDirectoryState>, ITaskDirectoryNeu
                     CompletedAt = completedAt ?? e.CompletedAt,
                     StepCount = e.StepCount,
                     CompletedStepCount = e.CompletedStepCount,
+                    ParentId = e.ParentId,
+                    Links = e.Links,
+                    Steps = e.Steps,
                 };
             }
             return e;
@@ -90,9 +108,22 @@ public class TaskDirectoryNeuron : Neuron<TaskDirectoryState>, ITaskDirectoryNeu
             e.Description,
             e.Owner,
             e.Status,
-            [],
+            e.Steps.Select(s => new TaskStep(
+                s.Index,
+                s.Title,
+                s.Description,
+                s.Capability,
+                s.Status,
+                s.RollbackCapability,
+                s.Output,
+                s.StartedAt,
+                s.CompletedAt,
+                s.IdempotencyKey)).ToArray(),
             e.CreatedAt,
-            e.CompletedAt)).ToArray();
+            e.CompletedAt,
+            null,
+            e.ParentId,
+            e.Links.Select(l => new TaskLink(l.TargetId, l.Kind)).ToArray())).ToArray();
 
         return Task.FromResult(results);
     }

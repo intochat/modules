@@ -139,6 +139,16 @@ public sealed class TaskEngine : ITaskEngine
         return await neuron.ConfirmStepAsync(stepIndex, confirmationToken).ConfigureAwait(false);
     }
 
+    public async Task<AgentTask> LinkTaskAsync(string taskId, string targetId, string kind, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(taskId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(targetId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(kind);
+        ct.ThrowIfCancellationRequested();
+        var neuron = GetTaskNeuron(taskId);
+        return await neuron.LinkAsync(targetId, kind).ConfigureAwait(false);
+    }
+
     public static CreateTaskRequest CreateDevPipelineRequest(string title, string description, string owner, string branch)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(title);

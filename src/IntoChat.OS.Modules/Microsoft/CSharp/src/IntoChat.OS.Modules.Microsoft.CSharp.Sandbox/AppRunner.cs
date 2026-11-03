@@ -32,6 +32,9 @@ public sealed class AppRunner : IAsyncDisposable
     private AssemblyLoadContext? _context;
     private long _stateRevision;
     private string? _lastSavedState;
+    private string? _lastRootView;
+
+    public static event Action<AppNavigated>? Navigated;
 
     internal AppRunner(AssignmentEvent assignment, AssemblyLoadContext context, Type appType, int logLines)
     {
@@ -205,7 +208,7 @@ public sealed class AppRunner : IAsyncDisposable
         if (snapshot.GetType().GetProperty("RuntimeStateRevision")?.GetValue(snapshot) is long rev) { _stateRevision = rev; }
         // A state that cannot be restored stops the app before any turn runs: a turn would save the default state over it.
         if (snapshot.GetType().GetProperty("RuntimeStateJson")?.GetValue(snapshot) is string stateJson) { _lastSavedState = RestoreState(instance, stateJson); }
-        RefreshViews(instance, presenter);
+        RefreshViews(appKey, instance, presenter, "open");
         var turns = new SemaphoreSlim(1, 1);
         var operationLoops = ServedOperations(definition, snapshot.Manifest.Operations.Select(operation => operation.Name))
             .Select(operation => Serve(brain, app, definition, instance, presenter, operation, turns, stopping));
@@ -292,7 +295,7 @@ public sealed class AppRunner : IAsyncDisposable
                 try
                 {
                     await definition.Invoke(instance, sub.OperationName, signal, Json, stopping).ConfigureAwait(false);
-                    RefreshViews(instance, presenter);
+                    RefreshViews(instance.AppId, instance, presenter, sub.OperationName);
                     await PersistStateAsync(app, instance).ConfigureAwait(false);
                 }
                 catch (Exception error) when (error is not OperationCanceledException)
@@ -357,7 +360,7 @@ public sealed class AppRunner : IAsyncDisposable
                 try
                 {
                     await watch.Handle(signal).ConfigureAwait(false);
-                    RefreshViews(instance, presenter);
+                    RefreshViews(instance.AppId, instance, presenter, watch.Name);
                     await PersistStateAsync(app, instance).ConfigureAwait(false);
                 }
                 catch (Exception error) when (error is not OperationCanceledException)
@@ -389,18 +392,28 @@ public sealed class AppRunner : IAsyncDisposable
         try
         {
             await definition.Invoke(instance, operation, Argument(definition.FindOperation(operation)!, request.Input), Json, stopping).ConfigureAwait(false);
-            RefreshViews(instance, presenter);
+            RefreshViews(instance.AppId, instance, presenter, operation);
             await PersistStateAsync(app, instance).ConfigureAwait(false);
         }
         catch (Exception error) when (error is not OperationCanceledException)
         { AppLog.Log($"{definition.Id}.{operation} failed for request {request.RequestId}: {error}"); }
     }
 
-    private static void RefreshViews(App instance, IPresenter presenter)
+    private void RefreshViews(string appId, App instance, IPresenter presenter, string cause)
     {
         var type = instance.GetType();
         var side = ReadProperty(type, instance, "Side") ?? InvokeRenderMethod(type, instance, "RenderSide", "Side");
         var main = ReadProperty(type, instance, "Main") ?? InvokeRenderMethod(type, instance, "Render", "Main");
+        if (main is not null)
+        {
+            var toView = string.IsNullOrWhiteSpace(main.Title) ? "main" : main.Title;
+            if (!string.Equals(_lastRootView, toView, StringComparison.Ordinal))
+            {
+                var fromView = _lastRootView;
+                _lastRootView = toView;
+                Navigated?.Invoke(new AppNavigated(appId, fromView, toView, cause));
+            }
+        }
         if (side is not null || main is not null)
         {
             presenter.Present(side, main);

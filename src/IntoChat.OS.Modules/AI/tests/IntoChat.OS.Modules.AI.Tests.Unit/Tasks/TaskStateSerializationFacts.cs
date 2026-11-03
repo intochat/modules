@@ -26,6 +26,11 @@ public sealed class TaskStateSerializationFacts
             CreatedAt = now.AddMinutes(-5),
             CompletedAt = null,
             RollbackReason = null,
+            ParentId = "task-parent-001",
+            Links =
+            [
+                new TaskLinkState { TargetId = "local/apps/notes", Kind = "produced" }
+            ],
             Steps =
             [
                 new TaskStepState
@@ -65,6 +70,10 @@ public sealed class TaskStateSerializationFacts
         Assert.Equal(state.Status, read.Status);
         Assert.Equal(state.CreatedAt, read.CreatedAt);
         Assert.Null(read.CompletedAt);
+        Assert.Equal("task-parent-001", read.ParentId);
+        Assert.Single(read.Links);
+        Assert.Equal("local/apps/notes", read.Links[0].TargetId);
+        Assert.Equal("produced", read.Links[0].Kind);
         Assert.Equal(2, read.Steps.Length);
         Assert.Equal(state.Steps[0].Title, read.Steps[0].Title);
         Assert.Equal(state.Steps[0].Status, read.Steps[0].Status);

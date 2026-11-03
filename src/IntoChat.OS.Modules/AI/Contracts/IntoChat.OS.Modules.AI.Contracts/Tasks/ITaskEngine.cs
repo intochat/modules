@@ -16,4 +16,5 @@ public interface ITaskEngine
     Task<AgentTask> CancelTaskAsync(string taskId, string reason, CancellationToken ct = default);
     Task<TaskVerificationResult> VerifyTaskStepAsync(string taskId, int stepIndex, CancellationToken ct = default);
     Task<AgentTask> ConfirmTaskStepAsync(string taskId, int stepIndex, string? confirmationToken = null, CancellationToken ct = default);
+    Task<AgentTask> LinkTaskAsync(string taskId, string targetId, string kind, CancellationToken ct = default);
 }

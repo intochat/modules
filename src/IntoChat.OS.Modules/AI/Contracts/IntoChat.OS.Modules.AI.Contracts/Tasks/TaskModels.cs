@@ -23,6 +23,10 @@ public enum TaskStepStatus
     AwaitingConfirmation = 5
 }
 
+public sealed record TaskLink(
+    string TargetId,
+    string Kind);
+
 public sealed record TaskStepDefinition(
     string Title,
     string Description,
@@ -34,7 +38,9 @@ public sealed record CreateTaskRequest(
     string Title,
     string Description,
     string Owner,
-    TaskStepDefinition[] Steps);
+    TaskStepDefinition[] Steps,
+    string? ParentId = null,
+    TaskLink[]? Links = null);
 
 public sealed record TaskStep(
     int Index,
@@ -57,7 +63,9 @@ public sealed record AgentTask(
     TaskStep[] Steps,
     DateTimeOffset CreatedAt,
     DateTimeOffset? CompletedAt = null,
-    string? RollbackReason = null);
+    string? RollbackReason = null,
+    string? ParentId = null,
+    TaskLink[]? Links = null);
 
 public sealed record TaskVerificationResult(
     bool Passed,

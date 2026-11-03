@@ -46,6 +46,8 @@ public sealed class TaskNeuron : Neuron<TaskState>, ITaskNeuron, Orleans.IRemind
             Status = TaskStatus.Pending,
             Steps = steps,
             CreatedAt = Context.Time.GetUtcNow(),
+            ParentId = request.ParentId,
+            Links = request.Links?.Select(l => new TaskLinkState { TargetId = l.TargetId, Kind = l.Kind }).ToArray() ?? [],
         };
 
         await Save(next, new TaskCreated(next.TaskId, next.Title, next.Owner));
@@ -154,6 +156,8 @@ public sealed class TaskNeuron : Neuron<TaskState>, ITaskNeuron, Orleans.IRemind
             CreatedAt = State.CreatedAt,
             CompletedAt = completedAt,
             RollbackReason = State.RollbackReason,
+            ParentId = State.ParentId,
+            Links = State.Links,
         };
 
         var signals = new List<Signal>
@@ -242,6 +246,8 @@ public sealed class TaskNeuron : Neuron<TaskState>, ITaskNeuron, Orleans.IRemind
             CreatedAt = State.CreatedAt,
             CompletedAt = State.CompletedAt,
             RollbackReason = State.RollbackReason,
+            ParentId = State.ParentId,
+            Links = State.Links,
         };
 
         var signals = new List<Signal>
@@ -399,6 +405,8 @@ public sealed class TaskNeuron : Neuron<TaskState>, ITaskNeuron, Orleans.IRemind
             CreatedAt = State.CreatedAt,
             CompletedAt = null,
             RollbackReason = isFailure ? "CI failure reported on pull request" : $"Review comment received from {pr.CommentAuthor}",
+            ParentId = State.ParentId,
+            Links = State.Links,
         };
 
         var signals = new List<Signal>
@@ -492,6 +500,8 @@ public sealed class TaskNeuron : Neuron<TaskState>, ITaskNeuron, Orleans.IRemind
             CreatedAt = State.CreatedAt,
             CompletedAt = State.CompletedAt,
             RollbackReason = reason,
+            ParentId = State.ParentId,
+            Links = State.Links,
         };
 
         await Save(next, new TaskRolledBack(next.TaskId, toStepIndex, reason));
@@ -522,6 +532,8 @@ public sealed class TaskNeuron : Neuron<TaskState>, ITaskNeuron, Orleans.IRemind
             CreatedAt = State.CreatedAt,
             CompletedAt = now,
             RollbackReason = reason,
+            ParentId = State.ParentId,
+            Links = State.Links,
         };
 
         await Save(next, new TaskCompleted(next.TaskId, TaskStatus.Cancelled));
@@ -542,6 +554,46 @@ public sealed class TaskNeuron : Neuron<TaskState>, ITaskNeuron, Orleans.IRemind
         catch (Exception error)
         {
             NullLogger.Instance.LogSwallowed(error, "Stop reminder on cancel");
+        }
+
+        return next.ToModel();
+    }
+
+    public async Task<AgentTask> LinkAsync(string targetId, string kind)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(targetId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(kind);
+
+        if (State.Links.Any(l => string.Equals(l.TargetId, targetId, StringComparison.Ordinal) && string.Equals(l.Kind, kind, StringComparison.OrdinalIgnoreCase)))
+        {
+            return State.ToModel();
+        }
+
+        var nextLinks = State.Links.Concat([new TaskLinkState { TargetId = targetId, Kind = kind }]).ToArray();
+        var next = new TaskState
+        {
+            TaskId = State.TaskId,
+            Title = State.Title,
+            Description = State.Description,
+            Owner = State.Owner,
+            Status = State.Status,
+            Steps = State.Steps,
+            CreatedAt = State.CreatedAt,
+            CompletedAt = State.CompletedAt,
+            RollbackReason = State.RollbackReason,
+            ParentId = State.ParentId,
+            Links = nextLinks,
+        };
+
+        await Save(next, new TaskCreated(next.TaskId, next.Title, next.Owner));
+
+        try
+        {
+            await Directory.RegisterTaskAsync(next.ToModel());
+        }
+        catch (Exception error)
+        {
+            NullLogger.Instance.LogSwallowed(error, "Directory update on link");
         }
 
         return next.ToModel();

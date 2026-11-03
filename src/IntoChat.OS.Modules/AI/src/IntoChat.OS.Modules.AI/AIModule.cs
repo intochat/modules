@@ -81,8 +81,10 @@ public sealed class AIModule : DigitalBrain.Module, IHttpModule
         services.TryAddScoped<IExecutionContext>(sp => sp.GetRequiredService<IExecutionContextProvider>().Current);
         services.TryAddSingleton<IDecisionMaker, DecisionMaker>();
         services.TryAddSingleton<IKnowledgeStore, InMemoryKnowledgeStore>();
-        // Memory facts and relations join the brain graph (brain-graph-plan Phase 3).
+        // Memory facts, tasks and agent runs join the brain graph (brain-graph-plan Phase 3 + studio-graph-plan §3.1).
         services.AddSingleton<DigitalBrain.Graph.IGraphSource, Memory.KnowledgeGraphSource>();
+        services.AddSingleton<DigitalBrain.Graph.IGraphSource, Tasks.TaskGraphSource>();
+        services.AddSingleton<DigitalBrain.Graph.IGraphSource, Agents.Runs.RunGraphSource>();
         services.TryAddSingleton<ITaskEngine, TaskEngine>();
         services.TryAddSingleton<ITestVerificationService, TestVerificationService>();
     }

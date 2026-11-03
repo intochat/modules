@@ -14,4 +14,5 @@ public interface ITaskNeuron
     Task<AgentTask> CancelAsync(string reason);
     Task<TaskVerificationResult> VerifyStepAsync(int stepIndex);
     Task<AgentTask> ConfirmStepAsync(int stepIndex, string? confirmationToken = null);
+    Task<AgentTask> LinkAsync(string targetId, string kind);
 }

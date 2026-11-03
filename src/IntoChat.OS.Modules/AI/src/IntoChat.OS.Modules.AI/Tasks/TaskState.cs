@@ -14,6 +14,8 @@ public sealed class TaskState
     [Id(6)] public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     [Id(7)] public DateTimeOffset? CompletedAt { get; set; }
     [Id(8)] public string? RollbackReason { get; set; }
+    [Id(9)] public string? ParentId { get; set; }
+    [Id(10)] public TaskLinkState[] Links { get; set; } = [];
 
     public AgentTask ToModel()
     {
@@ -34,6 +36,12 @@ public sealed class TaskState
                 s.IdempotencyKey);
         }
 
+        var links = new TaskLink[Links.Length];
+        for (var i = 0; i < Links.Length; i++)
+        {
+            links[i] = new TaskLink(Links[i].TargetId, Links[i].Kind);
+        }
+
         return new AgentTask(
             TaskId,
             Title,
@@ -43,8 +51,17 @@ public sealed class TaskState
             steps,
             CreatedAt,
             CompletedAt,
-            RollbackReason);
+            RollbackReason,
+            ParentId,
+            links);
     }
+}
+
+[GenerateSerializer, Alias("tasks.link-state")]
+public sealed class TaskLinkState
+{
+    [Id(0)] public string TargetId { get; set; } = "";
+    [Id(1)] public string Kind { get; set; } = "";
 }
 
 [GenerateSerializer, Alias("tasks.step-state")]
@@ -80,4 +97,7 @@ public sealed class TaskDirectoryEntryState
     [Id(6)] public DateTimeOffset? CompletedAt { get; set; }
     [Id(7)] public int StepCount { get; set; }
     [Id(8)] public int CompletedStepCount { get; set; }
+    [Id(9)] public string? ParentId { get; set; }
+    [Id(10)] public TaskLinkState[] Links { get; set; } = [];
+    [Id(11)] public TaskStepState[] Steps { get; set; } = [];
 }

@@ -352,6 +352,7 @@ internal sealed class AgentNeuron : AiNeuron<AgentStorage>, IAgent, IAgentDriver
         {
             // Start already stored this run; only a Run admits it here.
             if (State.ActiveRun != run) { await Persist(State with { ActiveRun = run }); }
+            await TrackRunStart(runId);
             await Notify(new TurnStarted(Key, runId, run.UserText));
             // The caller's script can finish as soon as Start returns. Release once the turn's first
             // signal is published, so later streamed progress still reaches the projection.
@@ -449,7 +450,11 @@ internal sealed class AgentNeuron : AiNeuron<AgentStorage>, IAgent, IAgentDriver
         {
             try
             {
-                if (completed) { await Notify(new TurnCompleted(Key, runId, visible)); }
+                if (completed)
+                {
+                    await TrackRunEnd(runId, "Completed");
+                    await Notify(new TurnCompleted(Key, runId, visible));
+                }
                 else
                 {
                     // Finally while yielding means the consumer stopped pulling: an abandoned stream is a cancelled run.
@@ -466,6 +471,7 @@ internal sealed class AgentNeuron : AiNeuron<AgentStorage>, IAgent, IAgentDriver
                     var persisted = true;
                     try { await Persist(State with { ActiveRun = null, Runs = Keep(State.Runs, run) }); }
                     catch (Exception persist) { persisted = false; Abandon(persist, runId); }
+                    await TrackRunEnd(runId, cancelled ? "Cancelled" : "Failed");
                     await Announce(persisted);
                     await Notify(new TurnFailed(Key, runId, error, cancelled), persisted);
                 }
@@ -584,6 +590,32 @@ internal sealed class AgentNeuron : AiNeuron<AgentStorage>, IAgent, IAgentDriver
         }
     }
 
+    private string RunKeyOf(string runId) => $"{Scope}/agent.run/{runId}";
+
+    private async Task TrackRunStart(string runId)
+    {
+        try
+        {
+            await Context.Get<Runs.IRunNeuron>(new DigitalBrain.NeuronId(Id.Brain, "agent.run", runId)).StartAsync(Key);
+        }
+        catch
+        {
+            // Best-effort in minimal test hosts that do not register RunNeuron.
+        }
+    }
+
+    private async Task TrackRunEnd(string runId, string status)
+    {
+        try
+        {
+            await Context.Get<Runs.IRunNeuron>(new DigitalBrain.NeuronId(Id.Brain, "agent.run", runId)).CompleteAsync(status);
+        }
+        catch
+        {
+            // Best-effort in minimal test hosts that do not register RunNeuron.
+        }
+    }
+
     private async Task Notify(DigitalBrain.Signal signal, bool persisted = true)
     {
         // Failed persistence needs a fresh Read to reactivate/recover the abandoned run,
@@ -591,10 +623,10 @@ internal sealed class AgentNeuron : AiNeuron<AgentStorage>, IAgent, IAgentDriver
         var version = persisted ? Committed.Version : 0;
         signal = signal switch
         {
-            TurnStarted started => started with { Version = version },
-            TurnProgressed progressed => progressed with { Version = version },
-            TurnCompleted completed => completed with { Version = version },
-            TurnFailed failed => failed with { Version = version },
+            TurnStarted started => started with { Version = version, RunKey = started.RunKey ?? RunKeyOf(started.RunId) },
+            TurnProgressed progressed => progressed with { Version = version, RunKey = progressed.RunKey ?? RunKeyOf(progressed.RunId) },
+            TurnCompleted completed => completed with { Version = version, RunKey = completed.RunKey ?? RunKeyOf(completed.RunId) },
+            TurnFailed failed => failed with { Version = version, RunKey = failed.RunKey ?? RunKeyOf(failed.RunId) },
             _ => signal,
         };
         try { await Publish(signal); }
