@@ -67,6 +67,9 @@ jobs:
       - name: Test modules
         run: dotnet test IntoChat.Modules.slnx -c Release --no-build -p:CodeGraphRefresh=false
 
+      - name: Test architecture facts
+        run: dotnet test --project tests/IntoChat.Modules.Architecture.Tests.Unit/IntoChat.Modules.Architecture.Tests.Unit.csproj -c Release --no-build -p:CodeGraphRefresh=false
+
       - name: Validate NuGet packages
         run: dotnet pack IntoChat.Modules.slnx -c Release --no-build -v quiet -o artifacts/packages -p:CodeGraphRefresh=false
 

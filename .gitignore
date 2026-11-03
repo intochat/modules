@@ -58,3 +58,4 @@ deployment/*.json
 __pycache__/
 /packages/
 /.nuget-local/
+Directory.Build.local.props

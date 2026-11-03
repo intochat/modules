@@ -98,4 +98,7 @@
     <Project Path="src/IntoChat.OS.Modules/IntoChat.OS/Tools/src/IntoChat.OS.Modules.Tools/IntoChat.OS.Modules.Tools.csproj" />
     <Project Path="src/IntoChat.OS.Modules/IntoChat.OS/Tools/tests/IntoChat.OS.Modules.Tools.Tests.Unit/IntoChat.OS.Modules.Tools.Tests.Unit.csproj" />
   </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="tests/IntoChat.Modules.Architecture.Tests.Unit/IntoChat.Modules.Architecture.Tests.Unit.csproj" />
+  </Folder>
 </Solution>
