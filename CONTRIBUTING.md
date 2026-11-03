@@ -19,6 +19,7 @@ Every module follows a clean 3-project DDD structure:
 2. **Typed Signals & State**: Every stateful neuron inherits `DigitalBrain.Neuron<TState>` and persists state transitions atomically with a `[Signal]` via `await Save(next, signal)`.
 3. **Fast In-Memory Verification**: Every module must include a unit test project inheriting `ModuleOnTestOSFacts<TModule>` that runs in milliseconds on `TestOS.Local()` without Docker.
 4. **No `IntoChat.OS.*` Reference**: Modules depend only on `DigitalBrain.*` framework packages — no `IntoChat.OS.*` reference; an architecture fact (`BoundaryFacts.NoModuleClosureReachesAnOsAssembly`) enforces it.
+5. **Independent Versions & Remote Feeds**: `VERSION` is maintained independently of `digitalbrain` and `os`. `DigitalBrain.*` packages are consumed via nuget.org previews, or a developer feed named only in the git-ignored `Directory.Build.local.props`.
 
 ## 3. Submitting a Pull Request
 
