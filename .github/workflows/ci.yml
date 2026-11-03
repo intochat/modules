@@ -48,7 +48,7 @@ jobs:
   build:
     name: build
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
 
@@ -64,11 +64,30 @@ jobs:
       - name: Build solution
         run: dotnet build IntoChat.Modules.slnx -c Release -v quiet -p:CodeGraphRefresh=false
 
-      - name: Test modules
-        run: dotnet test IntoChat.Modules.slnx -c Release --no-build -p:CodeGraphRefresh=false
-
-      - name: Test architecture facts
-        run: dotnet test --project tests/IntoChat.Modules.Architecture.Tests.Unit/IntoChat.Modules.Architecture.Tests.Unit.csproj -c Release --no-build -p:CodeGraphRefresh=false
+      - name: Facts
+        run: |
+          for project in \
+            tests/IntoChat.Modules.Architecture.Tests.Unit/IntoChat.Modules.Architecture.Tests.Unit.csproj \
+            src/IntoChat.OS.Modules/ArtCraft/ArtCraft/tests/IntoChat.OS.Modules.ArtCraft.Tests.Unit/IntoChat.OS.Modules.ArtCraft.Tests.Unit.csproj \
+            src/IntoChat.OS.Modules/ClickHouse/tests/IntoChat.OS.Modules.ClickHouse.Tests.Unit/IntoChat.OS.Modules.ClickHouse.Tests.Unit.csproj \
+            src/IntoChat.OS.Modules/Google/Auth/tests/IntoChat.OS.Modules.Google.Auth.Tests.Unit/IntoChat.OS.Modules.Google.Auth.Tests.Unit.csproj \
+            src/IntoChat.OS.Modules/Google/Drive/tests/IntoChat.OS.Modules.Google.Drive.Tests.Unit/IntoChat.OS.Modules.Google.Drive.Tests.Unit.csproj \
+            src/IntoChat.OS.Modules/Google/Gmail/tests/IntoChat.OS.Modules.Google.Gmail.Tests.Unit/IntoChat.OS.Modules.Google.Gmail.Tests.Unit.csproj \
+            src/IntoChat.OS.Modules/IntoChat.OS/Tools/tests/IntoChat.OS.Modules.Tools.Tests.Unit/IntoChat.OS.Modules.Tools.Tests.Unit.csproj \
+            src/IntoChat.OS.Modules/LocalDisk/tests/IntoChat.OS.Modules.LocalDisk.Tests.Unit/IntoChat.OS.Modules.LocalDisk.Tests.Unit.csproj \
+            src/IntoChat.OS.Modules/Microsoft/Azure/tests/IntoChat.OS.Modules.Microsoft.Azure.Tests.Unit/IntoChat.OS.Modules.Microsoft.Azure.Tests.Unit.csproj \
+            src/IntoChat.OS.Modules/Microsoft/GitHub/tests/IntoChat.OS.Modules.Microsoft.GitHub.Tests.Unit/IntoChat.OS.Modules.Microsoft.GitHub.Tests.Unit.csproj \
+            src/IntoChat.OS.Modules/Microsoft/Playwright/tests/IntoChat.OS.Modules.Microsoft.Playwright.Tests.Unit/IntoChat.OS.Modules.Microsoft.Playwright.Tests.Unit.csproj \
+            src/IntoChat.OS.Modules/Microsoft/Roslyn/tests/IntoChat.OS.Modules.Microsoft.Roslyn.Tests.Unit/IntoChat.OS.Modules.Microsoft.Roslyn.Tests.Unit.csproj \
+            src/IntoChat.OS.Modules/Microsoft/Windows/tests/IntoChat.OS.Modules.Microsoft.Windows.Tests.Unit/IntoChat.OS.Modules.Microsoft.Windows.Tests.Unit.csproj \
+            src/IntoChat.OS.Modules/ModelContextProtocol/Mcp/tests/IntoChat.OS.Modules.Mcp.Tests.Unit/IntoChat.OS.Modules.Mcp.Tests.Unit.csproj \
+            src/IntoChat.OS.Modules/Postgres/tests/IntoChat.OS.Modules.Postgres.Tests.Unit/IntoChat.OS.Modules.Postgres.Tests.Unit.csproj \
+            src/IntoChat.OS.Modules/Qdrant/tests/IntoChat.OS.Modules.Qdrant.Tests.Unit/IntoChat.OS.Modules.Qdrant.Tests.Unit.csproj \
+            src/IntoChat.OS.Modules/Salesforce/tests/IntoChat.OS.Modules.Salesforce.Tests.Unit/IntoChat.OS.Modules.Salesforce.Tests.Unit.csproj \
+            src/IntoChat.OS.Modules/Supabase/tests/IntoChat.OS.Modules.Supabase.Tests.Unit/IntoChat.OS.Modules.Supabase.Tests.Unit.csproj \
+            src/IntoChat.OS.Modules/Time/tests/IntoChat.OS.Modules.Time.Tests.Unit/IntoChat.OS.Modules.Time.Tests.Unit.csproj; do
+            dotnet test --project "$project" -c Release --no-build -p:CodeGraphRefresh=false
+          done
 
       - name: Validate NuGet packages
         run: dotnet pack IntoChat.Modules.slnx -c Release --no-build -v quiet -o artifacts/packages -p:CodeGraphRefresh=false

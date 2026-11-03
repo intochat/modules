@@ -18,6 +18,7 @@ Every module follows a clean 3-project DDD structure:
 1. **Zero `.Aspire.Hosting` Projects**: Modules never reference `.NET Aspire` hosting packages. Declare HTTP, Webhook, Secret, State, or Container requirements in `ModuleManifest.Needs` (`Need.HttpClient(...)`, `Need.Webhook(...)`, `Need.Container(...)`).
 2. **Typed Signals & State**: Every stateful neuron inherits `DigitalBrain.Neuron<TState>` and persists state transitions atomically with a `[Signal]` via `await Save(next, signal)`.
 3. **Fast In-Memory Verification**: Every module must include a unit test project inheriting `ModuleOnTestOSFacts<TModule>` that runs in milliseconds on `TestOS.Local()` without Docker.
+4. **No `IntoChat.OS.*` Reference**: Modules depend only on `DigitalBrain.*` framework packages — no `IntoChat.OS.*` reference; an architecture fact (`BoundaryFacts.NoModuleClosureReachesAnOsAssembly`) enforces it.
 
 ## 3. Submitting a Pull Request
 

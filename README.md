@@ -28,15 +28,15 @@ Want to connect your DigitalBrain or IntoChat OS to a new service, API, or hardw
 
 | Module | ID | Kind | Declarative `Needs` / `Auth` | Description |
 |---|---|---|---|---|
-| **AI & Memory** | `ai` | Capability | `Need.Http`, `Need.Model`, `Need.Secrets` | `MemoryNeuron` (`IMemory`), `AgentContextNeuron` (`IAgentContext`), `RouterNeuron` (Local Jev), `ILLM`, `IVectorIndex`. |
-| **Google Gmail** | `gmail` | Connector | `Need.HttpClient("gmail")`, `Need.Webhook("/webhooks/gmail", "gmail.inbox")`, `ModuleAuth("google")` | Reactive inbox neuron emitting `NewEmailReceived` on webhook push + metered Gmail API client. |
+| **Google Gmail** | `gmail` | Connector | `Need.HttpClient("gmail")`, `Need.Webhook("/google/gmail/watch", "gmail")`, `ModuleAuth("google-oauth")` | Reactive inbox neuron emitting `MailReceived` on webhook push + metered Gmail API client. |
 | **Google Drive** | `google-drive` | Connector | `Need.HttpClient("google-drive")`, `ModuleAuth("google")` | Google Drive files, folders, and change notifications. |
 | **Google Auth** | `google-auth` | Auth | `Need.Http`, `Need.Secrets` | OAuth 2.0 token broker for Google Workspace connectors. |
-| **GitHub** | `github` | Connector | `Need.HttpClient("github")`, `Need.Webhook("/webhooks/github", "github.events")`, `ModuleAuth("github")` | Repositories, pull requests, issues, and webhook signal delivery. |
+| **GitHub** | `github` | Connector | `Need.HttpClient("github")`, `Need.Webhook("/github/webhook", "github.repository")`, `ModuleAuth("github")` | Repositories, pull requests, issues, and webhook signal delivery. |
+| **Azure** | `azure` | Connector | `ConnectorDefinition("azure", ...)` | Azure subscription connector (`IAzure`) for resource provisioning. |
+| **Windows** | `windows` | Connector / Storage | `Provides: [Capability.Storage.V1]` | Windows edge machine connector (`IWindows`, `IStorage`, `IFileSystem`, `IConsole`) and TPM master key custody. |
 | **Model Context Protocol** | `mcp` | Connector | `Need.HttpClient("mcp")`, `Need.Secrets` | Connects external MCP servers as typed brain capabilities. |
 | **Salesforce** | `salesforce` | Connector | `Need.HttpClient("salesforce")`, `ModuleAuth("salesforce")` | CRM objects, SOQL queries, and opportunity tracking. |
-| **Aspire Telemetry** | `aspire` | Diagnostics | `Need.State` | `AspireNeuron` (`IAspire`) & `FakeAspire` for reading structured logs, traces, metrics, and resources inside apps and the Creator self-improving loop. |
-| **Flame 3D** | `flame` | UI / 3D | `Need.State` | 3D scene graph primitives (`SceneDefinition`, `BrainScene`) rendered by the Flutter shell. |
+| **Tools** | `tools` | Capability | `IRuntimeCapabilitySource` | Per-brain registry of tool sources (`IToolSource`) and runtime capability discovery. |
 | **Time** | `time` | Capability | `Need.Reminders` | Durable timers, schedules, and cron reminders. |
 | **LocalDisk** | `local-disk` | Storage | `Need.State` | Sandboxed local filesystem access for `local` and `local+cloud` topologies. |
 | **Postgres** | `postgres` | Storage | `Need.State`, `Need.Secrets` | Relational storage capability (`storage@1`) backed by PostgreSQL. |
@@ -44,16 +44,19 @@ Want to connect your DigitalBrain or IntoChat OS to a new service, API, or hardw
 | **ClickHouse** | `clickhouse` | Analytics | `Need.Http`, `Need.Secrets` | High-throughput analytical event store. |
 | **Supabase** | `supabase` | Storage / Auth | `Need.Http`, `Need.Secrets` | Supabase storage and realtime integration. |
 | **Playwright** | `microsoft-playwright` | Automation | `Need.Http` | Headless browser automation and web extraction neuron. |
-| **Roslyn & C#** | `microsoft-roslyn` / `csharp` | Compiler | `Need.Sandbox` | Contract discovery, syntax analysis, and isolated `csharp-sandbox` execution. |
+| **Roslyn** | `microsoft-roslyn` | Compiler | `Setting.Of<RoslynModuleOptions>` | C# workspace analysis, code fixes, and ChangeSet editing. |
 | **ArtCraft** | `artcraft` | Media | `Need.Http` | Generative visual and canvas assets. |
 
 ---
 
 ## 🛠️ How to Author a Module
 
-Every module is a pure DDD package with **zero** `.Aspire.Hosting` project required. Simply declare your module's infrastructure needs in `ModuleManifest`, and `IntoChat.OS` provisions metered HTTP pipelines, OAuth tokens, and webhook endpoints automatically:
+Every module is a pure DDD package that depends only on `DigitalBrain.*` framework packages — **zero** `.Aspire.Hosting` or `IntoChat.OS.*` references required. Simply declare your module's infrastructure needs in `ModuleManifest` and connector metadata via `DigitalBrain.Capabilities.Connections`, and any DigitalBrain host (including `IntoChat.OS` or `TestOS.Local()`) provisions metered HTTP pipelines, OAuth tokens, and webhook endpoints automatically:
 
 ```csharp
+using DigitalBrain.Capabilities.Connections.Connectors;
+using DigitalBrain.Modules.Configuration;
+
 [DigitalBrain.Module("x")]
 public sealed class XModule : DigitalBrain.Module
 {
@@ -62,16 +65,25 @@ public sealed class XModule : DigitalBrain.Module
         Requires: [],
         Needs:
         [
-            DigitalBrain.Need.State("IntoChatOS"),
             DigitalBrain.Need.Secrets,
-            DigitalBrain.Need.HttpClient("x-api", "IntoChatOS:Modules:x:BaseUrl", requestsPerMinute: 120),
+            DigitalBrain.Need.HttpClient("x-api", ModuleConfiguration.ModuleOptionsSection("x") + ":BaseUrl", requestsPerMinute: 120),
             DigitalBrain.Need.Webhook("/webhooks/x", "x.feed"),
         ],
-        Settings: [],
-        Secrets: [new("IntoChatOS:Modules:x:ApiKey")])
+        Settings: [DigitalBrain.Setting.Of<XModuleOptions>(ModuleConfiguration.ModuleOptionsSection("x"))],
+        Secrets: [])
     {
         Id = "x",
         Auth = new DigitalBrain.ModuleAuth("x-oauth2", ["tweet.read", "users.read"]),
+    };
+
+    public static IntegrationSchema Integration { get; } = IntegrationSchema.For("x", "X (Twitter)")
+        .OffersSetting("ClientId")
+        .OffersSecret("ClientSecret");
+
+    public static ConnectorDefinition Connector { get; } = new("x", "X (Twitter)", ["x-oauth2"], ["x"])
+    {
+        Neurons = [typeof(IXFeed)],
+        Signals = [typeof(XPostReceived)],
     };
 }
 ```
