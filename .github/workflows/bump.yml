@@ -1,0 +1,60 @@
+name: bump
+
+on:
+  repository_dispatch:
+    types: [digitalbrain-published, modules-published]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  DOTNET_NOLOGO: 'true'
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 'true'
+  DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+
+jobs:
+  bump:
+    name: bump
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Bump pins and open pull request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT_ACTION: ${{ github.event.action }}
+          VERSION: ${{ github.event.client_payload.version }}
+        run: |
+          case "$EVENT_ACTION" in
+            digitalbrain-published) FAMILY="DigitalBrain" ;;
+            modules-published) FAMILY="IntoChat.OS.Modules" ;;
+            *) echo "Unsupported event action: $EVENT_ACTION" >&2; exit 1 ;;
+          esac
+
+          set +e
+          dotnet run scripts/bump-pins.cs -- --family "$FAMILY" --version "$VERSION"
+          code=$?
+          set -e
+
+          if [ "$code" -eq 2 ]; then
+            echo "No pins changed for $FAMILY $VERSION."
+            exit 0
+          fi
+          if [ "$code" -ne 0 ]; then
+            exit "$code"
+          fi
+
+          BRANCH="bump/$FAMILY/$VERSION"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add Directory.Packages.props
+          git commit -m "build: $FAMILY $VERSION"
+          git push -u origin "$BRANCH"
+          gh pr create --title "build: $FAMILY $VERSION" --label dependencies --body "Automated bump from ${{ github.event.client_payload.version }}" --head "bump/$FAMILY/$VERSION"

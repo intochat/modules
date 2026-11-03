@@ -1,0 +1,13 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageVersion Include="DigitalBrain" Version="0.12.0-preview.2" />
+    <PackageVersion Include="DigitalBrain.UI" Version="0.12.0-preview.2" />
+    <PackageVersion Include="DigitalBrain.Runtime.Orleans" Version="0.12.0-preview.4" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageVersion Include="IntoChat.OS.Modules.AI" Version="0.12.0-preview.4" />
+  </ItemGroup>
+</Project>
