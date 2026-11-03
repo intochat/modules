@@ -1,3 +1,5 @@
+using DigitalBrain.Errors;
+
 namespace IntoChat.OS.Modules.Postgres;
 
 // Carries a safe error with SQLSTATE, excluding server details and connection credentials.

@@ -1,6 +1,5 @@
+using DigitalBrain.Capabilities.Compute;
 using System.Reflection;
-using IntoChat.OS.Contracts.Compute;
-using IntoChat.OS.Framework.Modules.Metering;
 using IntoChat.OS.Modules.Google.Drive;
 using IntoChat.OS.Modules.Google.Gmail;
 using Microsoft.Extensions.Configuration;

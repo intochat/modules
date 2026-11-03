@@ -1,7 +1,4 @@
-using IntoChat.OS.Contracts.Configuration;
-using IntoChat.OS.Framework;
-using IntoChat.OS.Framework.Modules;
-using IntoChat.OS.Framework.Modules.Platform.Integrations;
+using DigitalBrain.Runtime.Http.Surface;
 using IntoChat.OS.Modules.Salesforce;
 using Xunit;
 

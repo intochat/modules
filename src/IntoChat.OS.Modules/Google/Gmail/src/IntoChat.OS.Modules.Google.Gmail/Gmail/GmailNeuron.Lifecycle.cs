@@ -1,11 +1,8 @@
+using DigitalBrain.Capabilities.Compute;
+using DigitalBrain.Capabilities.Connections;
+using DigitalBrain.Capabilities.Connections.Connectors;
+using DigitalBrain.Capabilities.Connections.Integrations;
 using System.Text.Json;
-using IntoChat.OS.Contracts.Configuration;
-using IntoChat.OS.Framework;
-using IntoChat.OS.Contracts.Compute;
-using IntoChat.OS.Framework.Compute;
-using IntoChat.OS.Connections.Platform.Connections;
-using IntoChat.OS.Connections.Platform.Identity;
-using IntoChat.OS.Connections.Platform.Integrations;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace IntoChat.OS.Modules.Google.Gmail;

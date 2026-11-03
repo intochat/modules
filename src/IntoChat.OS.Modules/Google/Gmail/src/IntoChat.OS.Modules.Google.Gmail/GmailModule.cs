@@ -1,10 +1,8 @@
-using IntoChat.OS.Connections.Platform.Connections;
-using IntoChat.OS.Connections.Platform.Integrations;
-using IntoChat.OS.Contracts.Compute;
-using IntoChat.OS.Framework.Modules;
-using IntoChat.OS.Framework.Modules.Configuration;
-using IntoChat.OS.Framework.Modules.Metering;
-using IntoChat.OS.Framework.Modules.Platform.Integrations;
+using DigitalBrain.Capabilities.Compute;
+using DigitalBrain.Capabilities.Connections.Connectors;
+using DigitalBrain.Modules.Configuration;
+using DigitalBrain.Modules.Options;
+using DigitalBrain.Runtime.Http.Surface;
 using IntoChat.OS.Modules.Google.Auth;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
@@ -21,10 +19,10 @@ public sealed class GmailModule : DigitalBrain.Module, IHttpModule
         Requires: [],
         Needs:
         [
-            DigitalBrain.Need.HttpClient("gmail", IntoChatOSConfiguration.ModuleOptionsSection("gmail") + ":ApiBaseUri", requestsPerMinute: 120),
+            DigitalBrain.Need.HttpClient("gmail", ModuleConfiguration.ModuleOptionsSection("gmail") + ":ApiBaseUri", requestsPerMinute: 120),
             DigitalBrain.Need.Webhook(WatchPath, "gmail"),
         ],
-        Settings: [DigitalBrain.Setting.Of<GmailModuleOptions>(IntoChatOSConfiguration.ModuleOptionsSection("gmail"))],
+        Settings: [DigitalBrain.Setting.Of<GmailModuleOptions>(ModuleConfiguration.ModuleOptionsSection("gmail"))],
         Secrets: [])
     {
         Auth = new DigitalBrain.ModuleAuth("google-oauth", [GmailScopes.Read]),

@@ -5,6 +5,7 @@
     <RootNamespace>IntoChat.OS.Modules.Microsoft.Orleans.Contracts</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="IntoChat.OS" />
+    <PackageReference Include="DigitalBrain" />
+    <PackageReference Include="Microsoft.Orleans.Sdk" />
   </ItemGroup>
 </Project>

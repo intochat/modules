@@ -1,7 +1,6 @@
+using DigitalBrain.Brains;
+using DigitalBrain.Runtime.Orleans.Capabilities;
 using DigitalBrain.Capabilities;
-using IntoChat.OS.Contracts.Configuration;
-using IntoChat.OS.Framework;
-using IntoChat.OS.Framework.Modules;
 
 namespace IntoChat.OS.Modules.Postgres.Tables;
 
@@ -29,10 +28,10 @@ public readonly record struct TableOwner(string BrainId, string AppId)
     public static TableOwner Current(CapabilityCaller caller)
     {
         ArgumentNullException.ThrowIfNull(caller);
-        if (!CallerContextStamper.IsTrusted(caller) || string.IsNullOrWhiteSpace(caller.AppId))
+        if (!RuntimeCallerContext.IsTrusted(caller) || string.IsNullOrWhiteSpace(caller.AppId))
         { throw new UnauthorizedAccessException("A trusted brain and app caller is required."); }
         return new(BrainScope.Create(caller.AccountId, caller.BrainId).Id, caller.AppId);
     }
 
-    public static TableOwner Current() => Current(CallerContextStamper.Require());
+    public static TableOwner Current() => Current(RuntimeCallerContext.Require());
 }

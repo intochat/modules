@@ -1,9 +1,8 @@
+using DigitalBrain.Brains;
+using DigitalBrain.Runtime.Orleans.Capabilities;
 using DigitalBrain.Capabilities;
 using System.Text.Json;
 using DigitalBrain.Invocation;
-using IntoChat.OS.Connections;
-using IntoChat.OS.Framework;
-using IntoChat.OS.Framework.Modules;
 
 namespace IntoChat.OS.Modules.Postgres.Tables;
 
@@ -33,12 +32,12 @@ internal sealed class TableLifecycleGuard : IIncomingGrainCallFilter
         if (owner.BrainId != BrainScope.CurrentId()) { throw new UnauthorizedAccessException("This storage belongs to another brain."); }
         if (call.Method == nameof(ITableIndex.ReadTables))
         {
-            var caller = CallerContextStamper.Require();
-            if (!CallerContextStamper.IsTrusted(caller) || caller.Kind == CallerKind.App)
+            var caller = RuntimeCallerContext.Require();
+            if (!RuntimeCallerContext.IsTrusted(caller) || caller.Kind == CallerKind.App)
             { throw new UnauthorizedAccessException("Only trusted host code may read app storage."); }
             return;
         }
-        var expected = call.Method is nameof(ITableIndex.Retire) or nameof(ITableIndex.Reopen) ? AppGrainType.Name : TableNeuron.GrainType;
+        var expected = call.Method is nameof(ITableIndex.Retire) or nameof(ITableIndex.Reopen) ? "apps.app2" : TableNeuron.GrainType;
         var source = SourceOf(context.SourceId);
         if (source is null || source.Value.Type != expected)
         { throw new UnauthorizedAccessException("Only the owning module may change table lifetime."); }

@@ -1,5 +1,5 @@
+using DigitalBrain.Capabilities.Connections.Integrations;
 using System.IdentityModel.Tokens.Jwt;
-using IntoChat.OS.Connections.Platform.Integrations;
 using Microsoft.AspNetCore.Http;
 using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;

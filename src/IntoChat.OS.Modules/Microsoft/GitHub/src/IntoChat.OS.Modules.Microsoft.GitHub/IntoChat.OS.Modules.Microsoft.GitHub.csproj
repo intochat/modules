@@ -13,7 +13,12 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../Contracts/IntoChat.OS.Modules.Microsoft.GitHub.Contracts/IntoChat.OS.Modules.Microsoft.GitHub.Contracts.csproj" />
-    <PackageReference Include="IntoChat.OS.Framework" />
   </ItemGroup>
-  <ItemGroup><PackageReference Include="IntoChat.OS.Modules.Identity" /></ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="DigitalBrain" />
+    <PackageReference Include="DigitalBrain.Capabilities.Connections" />
+    <PackageReference Include="DigitalBrain.Runtime.Orleans" />
+    <PackageReference Include="Microsoft.Orleans.Sdk" />
+    <PackageReference Include="DigitalBrain.Runtime.Http" />
+  </ItemGroup>
 </Project>

@@ -10,6 +10,10 @@
     <PackageReference Include="ModelContextProtocol.Core" />
     <ProjectReference Include="../../Contracts/IntoChat.OS.Modules.Mcp.Contracts/IntoChat.OS.Modules.Mcp.Contracts.csproj" />
   </ItemGroup>
-  <ItemGroup><PackageReference Include="IntoChat.OS.Framework" /></ItemGroup>
-  <ItemGroup><PackageReference Include="IntoChat.OS.Modules.Identity" /></ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="DigitalBrain" />
+    <PackageReference Include="DigitalBrain.Capabilities.Connections" />
+    <PackageReference Include="DigitalBrain.Runtime.Orleans" />
+    <PackageReference Include="Microsoft.Orleans.Sdk" />
+  </ItemGroup>
 </Project>

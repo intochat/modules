@@ -1,9 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="../../src/IntoChat.OS.Modules.Microsoft.Azure/IntoChat.OS.Modules.Microsoft.Azure.csproj" />
-    <PackageReference Include="IntoChat.OS.Framework" />
-    <PackageReference Include="IntoChat.OS.ServiceDefaults" />
     <PackageReference Include="DigitalBrain.Testing" />
-    <ProjectReference Include="../../../CSharp/src/IntoChat.OS.Modules.Microsoft.CSharp/IntoChat.OS.Modules.Microsoft.CSharp.csproj" />
   </ItemGroup>
 </Project>

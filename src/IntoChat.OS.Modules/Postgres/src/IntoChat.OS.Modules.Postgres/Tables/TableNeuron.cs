@@ -1,6 +1,7 @@
-using IntoChat.OS.Contracts.Configuration;
-using IntoChat.OS.Framework;
-using IntoChat.OS.Framework.Diagnostics;
+using DigitalBrain.Brains;
+using DigitalBrain.Capabilities.Connections;
+using DigitalBrain.Errors;
+using DigitalBrain.Log;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using IntoChat.OS.Modules.Postgres.Tables.Signals;
@@ -70,7 +71,7 @@ internal sealed partial class TableNeuron(ITableStore provider, ITablePlacements
     private TablePlacement Pinned => State.Placement ?? TablePlacement.Shared;
 
     private ITableStore Tables(TablePlacement placement)
-        => placement.Kind == TablePlacementKind.Connection ? new HostedTables(Context.Get<IPostgresTableHost>(IntoChat.OS.Connections.Platform.Connections.ConnectionGrains.IdFor(placement.Name!))) : provider;
+        => placement.Kind == TablePlacementKind.Connection ? new HostedTables(Context.Get<IPostgresTableHost>(DigitalBrain.Capabilities.Connections.ConnectionKeys.IdFor(placement.Name!))) : provider;
 
     // The index is a plain neuron (06-08) reached as this neuron, so TableLifecycleGuard sees this table's host as the caller.
     private ITableIndex Tables(string owner)

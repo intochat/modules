@@ -1,4 +1,4 @@
-using IntoChat.OS.Connections.Platform.Connections;
+using DigitalBrain.Capabilities.Connections.Connectors;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 

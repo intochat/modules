@@ -1,9 +1,4 @@
-using IntoChat.OS;
-using IntoChat.OS.Connections;
-using IntoChat.OS.Contracts.Configuration;
-using IntoChat.OS.Framework;
-using IntoChat.OS.Framework.Modules;
-using IntoChat.OS.Connections.Platform.Integrations;
+using DigitalBrain.Capabilities.Connections.Integrations;
 
 namespace IntoChat.OS.Modules.Microsoft.GitHub;
 

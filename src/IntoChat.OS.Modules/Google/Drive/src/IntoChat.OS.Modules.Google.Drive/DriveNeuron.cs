@@ -1,12 +1,10 @@
+using DigitalBrain.Brains;
+using DigitalBrain.Capabilities.Compute;
+using DigitalBrain.Capabilities.Connections;
+using DigitalBrain.Runtime.Orleans.Capabilities;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
-using IntoChat.OS.Contracts.Configuration;
-using IntoChat.OS.Framework;
-using IntoChat.OS.Contracts.Compute;
-using IntoChat.OS.Framework.Compute;
-using IntoChat.OS.Connections.Platform.Connections;
-using IntoChat.OS.Framework.Modules.Metering;
 using IntoChat.OS.Modules.Google.Auth;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -87,7 +85,7 @@ internal sealed partial class DriveNeuron()
 
     private IDisposable? EnterTrace()
     {
-        var caller = CallerContextStamper.Require();
+        var caller = RuntimeCallerContext.Require();
         if (BrainScope.Create(caller.AccountId, caller.BrainId).Id != Key.Brain)
         { throw new UnauthorizedAccessException("The Drive connection belongs to another brain."); }
         return TraceContext.Current is null

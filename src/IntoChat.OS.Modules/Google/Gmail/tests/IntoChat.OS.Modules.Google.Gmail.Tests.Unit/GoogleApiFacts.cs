@@ -1,7 +1,7 @@
+using DigitalBrain.Capabilities.Compute;
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using IntoChat.OS.Contracts.Compute;
 using IntoChat.OS.Modules.Google.Gmail;
 using Microsoft.Extensions.Time.Testing;
 

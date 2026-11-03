@@ -1,3 +1,4 @@
+using DigitalBrain.Modules.Configuration;
 namespace IntoChat.OS.Modules.ArtCraft;
 
 [DigitalBrain.Module(ManifestName)]
@@ -9,7 +10,7 @@ public sealed class ArtCraftModule : DigitalBrain.Module
         Provides: [],
         Requires: [],
         Needs: [],
-        Settings: [DigitalBrain.Setting.Of<ArtCraftModuleOptions>(IntoChat.OS.Framework.Modules.Configuration.IntoChatOSConfiguration.ModuleOptionsSection(ManifestName))],
+        Settings: [DigitalBrain.Setting.Of<ArtCraftModuleOptions>(DigitalBrain.Modules.Configuration.ModuleConfiguration.ModuleOptionsSection(ManifestName))],
         Secrets: []);
 
     public static bool RequiresContainer => true;

@@ -1,5 +1,4 @@
 using DigitalBrain;
-using IntoChat.OS;
 
 namespace IntoChat.OS.Modules.Time.Reminders.Signals;
 

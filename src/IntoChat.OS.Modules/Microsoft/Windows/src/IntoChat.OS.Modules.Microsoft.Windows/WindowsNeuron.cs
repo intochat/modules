@@ -1,9 +1,8 @@
+using DigitalBrain.Capabilities.Connections;
+using DigitalBrain.Errors;
+using DigitalBrain.Runtime.Orleans.Capabilities;
 using System.Text.Json;
 using DigitalBrain.Capabilities.Storage;
-using IntoChat.OS.Framework.Machine;
-using IntoChat.OS.Framework;
-using IntoChat.OS.Framework.Modules;
-using IntoChat.OS.Connections.Platform.Connections;
 using DigitalBrain.Capabilities.Storage.Confinement;
 
 namespace IntoChat.OS.Modules.Microsoft.Windows;
@@ -19,7 +18,7 @@ internal sealed class WindowsConnectionState : ConnectionState
 // to the allowed roots, read fresh on every call.
 [DigitalBrain.Neuron("windows", State = "windows")]
 internal sealed class WindowsNeuron(
-    IMachineIdentity identity, WindowsStorageCoordinator coordinator)
+    MachineIdentity identity, WindowsStorageCoordinator coordinator)
     : ConnectionNeuron<WindowsConnectionState>, IWindows, IStorage, IStorageUpload
 {
     private StorageUploadSessions? _uploads;
@@ -54,7 +53,7 @@ internal sealed class WindowsNeuron(
 
     private static string UploadCaller()
     {
-        var caller = CallerContextStamper.Require();
+        var caller = RuntimeCallerContext.Require();
         return JsonSerializer.Serialize(new[] { caller.AccountId, caller.BrainId, caller.PrincipalId, caller.Kind.ToString(), caller.AppId, caller.ConversationId });
     }
 

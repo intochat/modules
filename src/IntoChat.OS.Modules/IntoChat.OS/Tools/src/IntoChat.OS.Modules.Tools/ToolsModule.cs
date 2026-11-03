@@ -1,5 +1,5 @@
+using DigitalBrain.Capabilities.Connections.Integrations;
 using Microsoft.Extensions.Configuration;
-using IntoChat.OS.Connections.Contracts;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 

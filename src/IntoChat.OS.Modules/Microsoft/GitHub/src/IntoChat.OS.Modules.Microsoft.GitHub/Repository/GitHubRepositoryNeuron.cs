@@ -1,8 +1,7 @@
+using DigitalBrain.Brains;
+using DigitalBrain.Capabilities.Connections;
+using DigitalBrain.Runtime.Orleans.Capabilities;
 using DigitalBrain.Capabilities;
-using IntoChat.OS.Contracts.Configuration;
-using IntoChat.OS.Framework;
-using IntoChat.OS.Framework.Modules;
-using IntoChat.OS.Connections.Platform.Connections;
 using IntoChat.OS.Modules.Microsoft.GitHub.Signals;
 using DigitalBrain.Runtime.Orleans.Hosting;
 
@@ -86,7 +85,7 @@ internal sealed class GitHubRepositoryNeuron : ConnectionNeuron<GitHubRepository
     public async Task Revoke(string reason)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(reason);
-        if (CallerContextStamper.TryGet(out var caller) && caller.Kind != CallerKind.Platform)
+        if (RuntimeCallerContext.TryGet(out var caller) && caller.Kind != CallerKind.Platform)
         { throw new UnauthorizedAccessException($"Only the platform can revoke connection github/{Key.Connection}."); }
         await RevokeAsync(reason);
     }
@@ -224,7 +223,7 @@ internal sealed class GitHubRepositoryNeuron : ConnectionNeuron<GitHubRepository
 
     private void RequireMergeProvenance()
     {
-        if (!CallerContextStamper.TryGet(out var caller) || caller is null)
+        if (!RuntimeCallerContext.TryGet(out var caller) || caller is null)
         {
             throw new UnauthorizedAccessException("Caller is not authenticated or stamped.");
         }
@@ -364,7 +363,7 @@ internal sealed class GitHubRepositoryNeuron : ConnectionNeuron<GitHubRepository
 
     private void RequireOwnBrainOrUnstamped()
     {
-        if (CallerContextStamper.TryGet(out var caller) && caller.Kind != CallerKind.Platform
+        if (RuntimeCallerContext.TryGet(out var caller) && caller.Kind != CallerKind.Platform
             && BrainScope.Create(caller.AccountId, caller.BrainId).Id != Key.Brain)
         { throw new UnauthorizedAccessException($"Only the owning brain can deliver to connection github/{Key.Connection}."); }
     }

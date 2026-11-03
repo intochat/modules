@@ -1,16 +1,13 @@
-using Microsoft.Extensions.Configuration;
 using System.Reflection;
 using System.Runtime.Versioning;
+using DigitalBrain.Capabilities.Connections.Connectors;
 using DigitalBrain.Capabilities.Storage;
-using IntoChat.OS.Contracts.Configuration;
-using IntoChat.OS.Framework.Machine;
-using IntoChat.OS.Framework.Modules;
-using IntoChat.OS.Connections.Configuration;
-using IntoChat.OS.Framework.Modules.Configuration;
-using IntoChat.OS.Framework.Parts;
-using IntoChat.OS.Connections.Platform.Integrations;
+using DigitalBrain.Identity.Local.Custody;
+using DigitalBrain.Modules.Configuration;
+using DigitalBrain.Runtime.Http.Surface;
 using IntoChat.OS.Modules.Microsoft.Windows.Signals;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -26,7 +23,7 @@ public sealed class WindowsModule : DigitalBrain.Module, IHttpModule
         Provides: [DigitalBrain.Capabilities.Capability.Storage.V1],
         Requires: [],
         Needs: [],
-        Settings: [DigitalBrain.Setting.Of<WindowsOptions>(IntoChatOSConfiguration.ModuleOptionsSection(ManifestName))],
+        Settings: [DigitalBrain.Setting.Of<WindowsOptions>(ModuleConfiguration.ModuleOptionsSection(ManifestName))],
         Secrets: []);
 
     public static ConnectorDefinition Connector { get; } = new("windows", "Windows", ["device"], [])
@@ -44,21 +41,11 @@ public sealed class WindowsModule : DigitalBrain.Module, IHttpModule
         ArgumentNullException.ThrowIfNull(services);
         services.TryAddSingleton<MachineIdentity>();
         services.TryAddSingleton<WindowsStorageCoordinator>();
-        services.TryAddSingleton<IMachineIdentity>(provider => provider.GetRequiredService<MachineIdentity>());
-        services.TryAddSingleton(MachineKeyStore);
+        var runtimeOptions = DigitalBrain.Runtime.Orleans.RuntimeOptions.Resolve(services);
         if (OperatingSystem.IsWindows()
-            && Enum.TryParse<MasterKeyCustodyKind>(HostConfiguration.HostKey(configuration, IntoChatOSNames.CustodyConfigurationKey), ignoreCase: true, out var custody)
+            && Enum.TryParse<MasterKeyCustodyKind>(HostConfiguration.HostKey(configuration, runtimeOptions.CustodyConfigurationKey), ignoreCase: true, out var custody)
             && custody == MasterKeyCustodyKind.Tpm)
         { UseTpmCustody(services); }
-    }
-
-    // TPM custody when the provider can make keys; otherwise the master-key-sealed file next to the machine-id file,
-    // so Custody reports "file" rather than failing.
-    private static IMachineKeyStore MachineKeyStore(IServiceProvider provider)
-    {
-        if (OperatingSystem.IsWindows() && TpmMasterKeyCustody.IsAvailable()) { return new TpmMachineKeyStore(); }
-        var file = provider.GetRequiredService<MachineIdentity>().File;
-        return new FileMachineKeyStore(Path.GetDirectoryName(Path.GetFullPath(file))!, provider.GetRequiredService<IMasterKeyCustody>());
     }
 
     // The local brain key stays wrapped by the TPM. Missing hardware refuses startup.

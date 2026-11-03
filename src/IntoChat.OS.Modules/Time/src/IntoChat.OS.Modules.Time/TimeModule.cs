@@ -1,5 +1,5 @@
-using IntoChat.OS.Framework.Modules;
-using IntoChat.OS.Framework.Modules.Configuration;
+using DigitalBrain.Modules.Configuration;
+using DigitalBrain.Modules.Options;
 
 namespace IntoChat.OS.Modules.Time;
 
@@ -12,12 +12,12 @@ public sealed class TimeModule : DigitalBrain.Module
     public static System.Reflection.Assembly? Contracts => typeof(Reminders.IReminder).Assembly;
 
     public static readonly string MinimumReminderPeriodKey =
-        IntoChatOSConfiguration.ModuleOptionsSection(new ModuleId(ModuleName)) + ":MinimumReminderPeriod";
+        ModuleConfiguration.ModuleOptionsSection(new ModuleId(ModuleName)) + ":MinimumReminderPeriod";
 
     public static DigitalBrain.ModuleManifest Manifest { get; } = new(
         Provides: [],
         Requires: [],
         Needs: [DigitalBrain.Need.Reminders],
-        Settings: [DigitalBrain.Setting.Of<TimeModuleOptions>(IntoChatOSConfiguration.ModuleOptionsSection(new ModuleId(ModuleName)))],
+        Settings: [DigitalBrain.Setting.Of<TimeModuleOptions>(ModuleConfiguration.ModuleOptionsSection(new ModuleId(ModuleName)))],
         Secrets: []);
 }

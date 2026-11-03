@@ -1,5 +1,6 @@
-using IntoChat.OS.Connections.Platform.Integrations;
-using IntoChat.OS.Framework.Modules.Platform.Integrations;
+using DigitalBrain.Capabilities.Connections.Connectors;
+using DigitalBrain.Capabilities.Connections.Integrations;
+using DigitalBrain.Modules.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -15,7 +16,7 @@ public sealed class ClickHouseModule : DigitalBrain.Module
         Provides: [],
         Requires: [],
         Needs: [],
-        Settings: [DigitalBrain.Setting.Of<ClickHouseModuleOptions>(IntoChat.OS.Framework.Modules.Configuration.IntoChatOSConfiguration.ModuleOptionsSection(ClickHouseModule.ManifestName))],
+        Settings: [DigitalBrain.Setting.Of<ClickHouseModuleOptions>(DigitalBrain.Modules.Configuration.ModuleConfiguration.ModuleOptionsSection(ClickHouseModule.ManifestName))],
         Secrets: []);
 
     public static bool RequiresContainer => true;

@@ -1,8 +1,7 @@
-using IntoChat.OS.Contracts.Compute;
-using IntoChat.OS.Framework.Modules;
-using IntoChat.OS.Framework.Modules.Configuration;
-using IntoChat.OS.Framework.Modules.Metering;
-using IntoChat.OS.Framework.Modules.Platform.Integrations;
+using DigitalBrain.Capabilities.Compute;
+using DigitalBrain.Capabilities.Connections.Connectors;
+using DigitalBrain.Modules.Configuration;
+using DigitalBrain.Modules.Options;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -20,7 +19,7 @@ public sealed class GoogleAuthModule : DigitalBrain.Module
         Provides: [],
         Requires: [],
         Needs: [],
-        Settings: [DigitalBrain.Setting.Of<GoogleAuthModuleOptions>(IntoChatOSConfiguration.ModuleOptionsSection(ModuleName))],
+        Settings: [DigitalBrain.Setting.Of<GoogleAuthModuleOptions>(ModuleConfiguration.ModuleOptionsSection(ModuleName))],
         Secrets: []);
 
     public static IntegrationSchema Integration { get; } = IntegrationSchema.For(GoogleAuth.Integration, "Google OAuth")

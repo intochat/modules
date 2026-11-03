@@ -1,8 +1,6 @@
+using DigitalBrain.Brains;
+using DigitalBrain.Capabilities.Connections;
 using IntoChat.OS.Modules.Postgres;
-using IntoChat.OS.Connections;
-using IntoChat.OS.Contracts.Configuration;
-using IntoChat.OS.Framework;
-using IntoChat.OS.Connections.Platform.Connections;
 using IntoChat.OS.Modules.Postgres.Tables;
 
 namespace IntoChat.OS.Modules.Postgres;

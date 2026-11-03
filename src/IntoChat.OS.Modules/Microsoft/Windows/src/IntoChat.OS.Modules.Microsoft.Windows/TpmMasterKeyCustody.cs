@@ -1,7 +1,7 @@
 using System.Runtime.Versioning;
 using System.Security.Cryptography;
 using System.Text;
-using IntoChat.OS.Framework.Parts;
+using DigitalBrain.Identity.Local.Custody;
 
 namespace IntoChat.OS.Modules.Microsoft.Windows;
 
@@ -11,11 +11,11 @@ namespace IntoChat.OS.Modules.Microsoft.Windows;
 // Keys are per user (no CngKeyCreationOptions.MachineKey): a host run under another account, such as a service
 // account, sees none of them, so its part opens fail with the R74 "not unwrappable on this machine" error.
 [SupportedOSPlatform("windows")]
-internal sealed class TpmMasterKeyCustody(string prefix = TpmMasterKeyCustody.DefaultPrefix) : IMasterKeyCustody
+public sealed class TpmMasterKeyCustody(string prefix = TpmMasterKeyCustody.DefaultPrefix) : IMasterKeyCustody
 {
     public const string DefaultPrefix = "intochat-os-";
 
-    internal static readonly CngProvider Provider = new("Microsoft Platform Crypto Provider");
+    public static readonly CngProvider Provider = new("Microsoft Platform Crypto Provider");
     private const int WrappedKeyBytes = 256;
     private const int NonceBytes = 12;
     private const int TagBytes = 16;

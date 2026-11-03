@@ -1,5 +1,3 @@
-using IntoChat.OS;
-
 namespace IntoChat.OS.Modules.ClickHouse.Query;
 
 [DigitalBrain.Contracts.NeuronAlias("clickhouse"), DigitalBrain.Contracts.DefaultNeuronType(ClickHouseNames.NeuronType)]

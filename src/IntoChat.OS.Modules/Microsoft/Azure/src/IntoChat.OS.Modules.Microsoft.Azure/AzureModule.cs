@@ -1,7 +1,8 @@
+using DigitalBrain.Capabilities.Connections.Connectors;
+using DigitalBrain.Modules.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using System.Reflection;
-using IntoChat.OS.Connections.Platform.Integrations;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace IntoChat.OS.Modules.Microsoft.Azure;
@@ -16,7 +17,7 @@ public sealed class AzureModule : DigitalBrain.Module
         Provides: [],
         Requires: [],
         Needs: [],
-        Settings: [DigitalBrain.Setting.Of<AzureOptions>(IntoChat.OS.Framework.Modules.Configuration.IntoChatOSConfiguration.ModuleOptionsSection(ManifestName))],
+        Settings: [DigitalBrain.Setting.Of<AzureOptions>(DigitalBrain.Modules.Configuration.ModuleConfiguration.ModuleOptionsSection(ManifestName))],
         Secrets: []);
 
     public static ConnectorDefinition Connector { get; } = new("azure", "Azure", ["identity"], [])

@@ -1,7 +1,6 @@
+using DigitalBrain.Capabilities.Compute;
 using System.Security.Cryptography;
 using System.Text.Json;
-using IntoChat.OS.Contracts.Compute;
-using IntoChat.OS.Framework.Compute;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 

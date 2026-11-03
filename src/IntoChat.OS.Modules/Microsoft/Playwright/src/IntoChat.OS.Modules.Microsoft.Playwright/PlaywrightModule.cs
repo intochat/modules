@@ -1,3 +1,4 @@
+using DigitalBrain.Modules.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -13,7 +14,7 @@ public sealed class PlaywrightModule : DigitalBrain.Module
         Provides: [],
         Requires: [],
         Needs: [],
-        Settings: [DigitalBrain.Setting.Of<PlaywrightModuleOptions>(IntoChat.OS.Framework.Modules.Configuration.IntoChatOSConfiguration.ModuleOptionsSection(ManifestName))],
+        Settings: [DigitalBrain.Setting.Of<PlaywrightModuleOptions>(DigitalBrain.Modules.Configuration.ModuleConfiguration.ModuleOptionsSection(ManifestName))],
         Secrets: []);
 
     public static System.Reflection.Assembly? Contracts => typeof(IPlaywright).Assembly;

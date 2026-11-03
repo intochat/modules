@@ -1,4 +1,4 @@
-using IntoChat.OS.Framework.Modules;
+using DigitalBrain.Modules.Options;
 
 namespace IntoChat.OS.Modules.ArtCraft;
 

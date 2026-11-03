@@ -1,3 +1,4 @@
+using DigitalBrain.Modules.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -14,7 +15,7 @@ public sealed class QdrantModule : DigitalBrain.Module
         Provides: [],
         Requires: [],
         Needs: [],
-        Settings: [DigitalBrain.Setting.Of<QdrantModuleOptions>(IntoChat.OS.Framework.Modules.Configuration.IntoChatOSConfiguration.ModuleOptionsSection(QdrantModule.ManifestName))],
+        Settings: [DigitalBrain.Setting.Of<QdrantModuleOptions>(DigitalBrain.Modules.Configuration.ModuleConfiguration.ModuleOptionsSection(QdrantModule.ManifestName))],
         Secrets: []);
 
     public static bool RequiresContainer => true;

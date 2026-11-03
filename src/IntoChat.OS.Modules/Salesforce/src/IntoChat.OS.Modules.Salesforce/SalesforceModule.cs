@@ -1,6 +1,6 @@
-using IntoChat.OS.Connections.Platform.Integrations;
-using IntoChat.OS.Framework.Modules.Configuration;
-using IntoChat.OS.Framework.Modules.Platform.Integrations;
+using DigitalBrain.Capabilities.Connections.Connectors;
+using DigitalBrain.Modules.Configuration;
+using DigitalBrain.Modules.Options;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -16,7 +16,7 @@ public sealed class SalesforceModule : DigitalBrain.Module
         Provides: [],
         Requires: [],
         Needs: [],
-        Settings: [DigitalBrain.Setting.Of<SalesforceModuleOptions>(IntoChatOSConfiguration.ModuleOptionsSection("salesforce"))],
+        Settings: [DigitalBrain.Setting.Of<SalesforceModuleOptions>(ModuleConfiguration.ModuleOptionsSection("salesforce"))],
         Secrets: []);
 
     public static System.Reflection.Assembly? Contracts => typeof(ISalesforce).Assembly;

@@ -1,12 +1,12 @@
-using IntoChat.OS.Framework.Machine;
-using IntoChat.OS.Connections;
-using IntoChat.OS.Framework;
-using IntoChat.OS.Connections.Platform.Connections;
+using DigitalBrain.Brains;
+using DigitalBrain.Capabilities.Connections;
+using DigitalBrain.Capabilities.Connections.Connectors;
+using DigitalBrain.Runtime.Http.Surface;
+using DigitalBrain.Runtime.Orleans.Hosting;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
-using DigitalBrain.Runtime.Orleans.Hosting;
 
 namespace IntoChat.OS.Modules.Microsoft.Windows;
 
@@ -17,19 +17,19 @@ internal static class WindowsEndpoints
     internal static void Map(IEndpointRouteBuilder endpoints)
     {
         var group = BrainRoutes.Group(endpoints, "/windows");
-        group.MapGet("/device", ([FromServices] IMachineIdentity identity) =>
+        group.MapGet("/device", ([FromServices] MachineIdentity identity) =>
             OperatingSystem.IsWindows()
                 ? Results.Ok(new { machineId = identity.Id, machineName = Environment.MachineName })
                 : Results.NotFound());
-        group.MapGet("/{machineId}/roots", (string machineId, [FromServices] IMachineIdentity identity, [FromServices] IServiceProvider grains) =>
+        group.MapGet("/{machineId}/roots", (string machineId, [FromServices] MachineIdentity identity, [FromServices] IServiceProvider grains) =>
             WithMachine(machineId, identity, grains, async machine => Results.Ok(await machine.Roots())));
-        group.MapPost("/{machineId}/roots/allow", (string machineId, WindowsRootInput input, [FromServices] IMachineIdentity identity, [FromServices] IServiceProvider grains) =>
+        group.MapPost("/{machineId}/roots/allow", (string machineId, WindowsRootInput input, [FromServices] MachineIdentity identity, [FromServices] IServiceProvider grains) =>
             ChangeRoot(machineId, input, identity, grains, true));
-        group.MapPost("/{machineId}/roots/revoke", (string machineId, WindowsRootInput input, [FromServices] IMachineIdentity identity, [FromServices] IServiceProvider grains) =>
+        group.MapPost("/{machineId}/roots/revoke", (string machineId, WindowsRootInput input, [FromServices] MachineIdentity identity, [FromServices] IServiceProvider grains) =>
             ChangeRoot(machineId, input, identity, grains, false));
     }
 
-    private static Task<IResult> ChangeRoot(string machineId, WindowsRootInput input, IMachineIdentity identity, [FromServices] IServiceProvider grains, bool allow)
+    private static Task<IResult> ChangeRoot(string machineId, WindowsRootInput input, MachineIdentity identity, [FromServices] IServiceProvider grains, bool allow)
         => WithMachine(machineId, identity, grains, async machine =>
         {
             if (string.IsNullOrWhiteSpace(input.Path) || !Path.IsPathFullyQualified(input.Path))
@@ -44,11 +44,11 @@ internal static class WindowsEndpoints
             { return Results.BadRequest(new { error = "The folder is unavailable on the connected Windows computer." }); }
         });
 
-    private static async Task<IResult> WithMachine(string machineId, IMachineIdentity identity, [FromServices] IServiceProvider grains, Func<IWindows, Task<IResult>> action)
+    private static async Task<IResult> WithMachine(string machineId, MachineIdentity identity, [FromServices] IServiceProvider grains, Func<IWindows, Task<IResult>> action)
     {
         if (!OperatingSystem.IsWindows() || machineId != identity.Id) { return Results.NotFound(); }
         var key = ConnectionKeys.For(BrainScope.CurrentId(), "windows", machineId);
-        if ((await grains.GetConnection(key).Read()).Status != ConnectionStatus.Connected)
+        if ((await SiloNeurons.Get<IConnection>(grains, ConnectionKeys.IdFor(key)).Read()).Status != ConnectionStatus.Connected)
         { return Results.Conflict(new { error = "Connect this Windows computer before choosing allowed folders." }); }
         return await action(SiloNeurons.Get<IWindows>(grains, key));
     }

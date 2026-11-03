@@ -7,6 +7,10 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Neuron interfaces and signals use the IntoChat.OS wire vocabulary; module runtime uses Framework. -->
-    <PackageReference Include="IntoChat.OS" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="DigitalBrain" />
+    <PackageReference Include="DigitalBrain.Capabilities.Connections" />
+    <PackageReference Include="Microsoft.Orleans.Sdk" />
   </ItemGroup>
 </Project>

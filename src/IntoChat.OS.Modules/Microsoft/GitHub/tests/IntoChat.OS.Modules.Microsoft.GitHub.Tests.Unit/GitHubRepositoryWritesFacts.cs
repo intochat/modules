@@ -1,3 +1,5 @@
+using DigitalBrain.Capabilities.Connections;
+using DigitalBrain.Runtime.Orleans.Capabilities;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -7,8 +9,6 @@ using DigitalBrain;
 using DigitalBrain.Capabilities;
 using DigitalBrain.Confirmation;
 using DigitalBrain.Spi;
-using IntoChat.OS.Connections.Platform.Connections;
-using IntoChat.OS.Framework;
 using IntoChat.OS.Modules.Microsoft.GitHub.Signals;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -93,7 +93,7 @@ public sealed class GitHubRepositoryWritesFacts
         var (neuron, _) = CreateConnectedNeuron();
         var request = new MergePullRequest(1, "head-sha-1234", "squash");
 
-        using (CallerContextStamper.StampScope(CapabilityCallers.Of("app-99", "acc-1", "local", CallerKind.App, "random.app")))
+        using (RuntimeCallerContext.StampScope(CapabilityCallers.Of("app-99", "acc-1", "local", CallerKind.App, "random.app")))
         {
             await Assert.ThrowsAsync<UnauthorizedAccessException>(() => neuron.MergePullRequest(request));
         }
@@ -106,7 +106,7 @@ public sealed class GitHubRepositoryWritesFacts
         mockSource.SnapshotToReturn = CreateSnapshot(1, "head-sha-1234");
         var request = new MergePullRequest(1, "head-sha-1234", "squash");
 
-        using (CallerContextStamper.StampScope(CapabilityCallers.Of("user-1", "acc-1", "local", CallerKind.User)))
+        using (RuntimeCallerContext.StampScope(CapabilityCallers.Of("user-1", "acc-1", "local", CallerKind.User)))
         {
             await neuron.MergePullRequest(request);
         }
@@ -123,7 +123,7 @@ public sealed class GitHubRepositoryWritesFacts
         mockSource.SnapshotToReturn = CreateSnapshot(1, "head-sha-1234");
         var request = new MergePullRequest(1, "head-sha-1234", "squash");
 
-        using (CallerContextStamper.StampScope(CapabilityCallers.Of("platform", "acc-1", "local", CallerKind.Platform)))
+        using (RuntimeCallerContext.StampScope(CapabilityCallers.Of("platform", "acc-1", "local", CallerKind.Platform)))
         {
             await neuron.MergePullRequest(request);
         }
@@ -138,7 +138,7 @@ public sealed class GitHubRepositoryWritesFacts
         mockSource.SnapshotToReturn = CreateSnapshot(1, "head-sha-1234");
         var request = new MergePullRequest(1, "head-sha-1234", "squash");
 
-        using (CallerContextStamper.StampScope(CapabilityCallers.Of("task-123", "acc-1", "local", CallerKind.App, "tasks.task")))
+        using (RuntimeCallerContext.StampScope(CapabilityCallers.Of("task-123", "acc-1", "local", CallerKind.App, "tasks.task")))
         {
             await neuron.MergePullRequest(request);
         }
@@ -153,7 +153,7 @@ public sealed class GitHubRepositoryWritesFacts
         mockSource.SnapshotToReturn = CreateSnapshot(1, "new-remote-head-5678");
         var request = new MergePullRequest(1, "old-expected-head-1234", "squash");
 
-        using (CallerContextStamper.StampScope(CapabilityCallers.Of("user-1", "acc-1", "local", CallerKind.User)))
+        using (RuntimeCallerContext.StampScope(CapabilityCallers.Of("user-1", "acc-1", "local", CallerKind.User)))
         {
             var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => neuron.MergePullRequest(request));
             Assert.Contains("does not match expected HEAD SHA", ex.Message);

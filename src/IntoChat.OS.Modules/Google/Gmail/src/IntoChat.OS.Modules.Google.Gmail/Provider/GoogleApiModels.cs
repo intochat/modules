@@ -1,4 +1,4 @@
-using IntoChat.OS.Contracts.Compute;
+using DigitalBrain.Capabilities.Compute;
 
 namespace IntoChat.OS.Modules.Google.Gmail;
 

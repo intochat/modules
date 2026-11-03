@@ -7,7 +7,13 @@
   <ItemGroup>
     <InternalsVisibleTo Include="IntoChat.OS.Modules.LocalDisk.Tests.Unit" />
     <InternalsVisibleTo Include="IntoChat.OS.Modules.LocalDisk.Tests.Integration" />
-    <PackageReference Include="IntoChat.OS.Framework" />
-    <PackageReference Include="IntoChat.OS.Modules.Identity" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="DigitalBrain" />
+    <PackageReference Include="DigitalBrain.Capabilities.Connections" />
+    <PackageReference Include="DigitalBrain.Runtime.Orleans" />
+    <PackageReference Include="Microsoft.Orleans.Sdk" />
+    <PackageReference Include="DigitalBrain.Capabilities.Storage" />
+    <PackageReference Include="DigitalBrain.Runtime.Http" />
   </ItemGroup>
 </Project>

@@ -1,19 +1,10 @@
-using IntoChat.OS.Modules.Postgres;
-using IntoChat.OS.Connections;
-using IntoChat.OS.Contracts.Configuration;
-using IntoChat.OS.Framework;
-using IntoChat.OS.Framework.Modules;
-using IntoChat.OS.Connections.Configuration;
-using IntoChat.OS.Framework.Configuration;
-using IntoChat.OS.Framework.Modules.Configuration;
-using IntoChat.OS.Connections.Platform.Integrations;
+using DigitalBrain.Capabilities.Connections;
+using DigitalBrain.Capabilities.Connections.Connectors;
+using DigitalBrain.Capabilities.Connections.Integrations;
 using IntoChat.OS.Modules.Postgres.Tables;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Microsoft.Extensions.Options;
-using Npgsql;
 
 namespace IntoChat.OS.Modules.Postgres;
 
@@ -39,11 +30,10 @@ public static class PostgresHosting
         // Tables
         services.TryAddSingleton<ITableStore, TableStore>();
         services.TryAddSingleton(provider => new BrainDatabases(provider.GetRequiredService<IModuleIntegrations<PostgresModule>>().Get("postgres")));
-        services.TryAddSingleton<ITablesSlot, AppTablesSlot>();
+        services.TryAddSingleton<ITablesSlot, NullTablesSlot>();
         services.TryAddSingleton<ITablePlacements, TablePlacements>();
         services.TryAddSingleton<IConnectionTableStores, ConnectionTableStores>();
         services.AddSingleton<IIncomingGrainCallFilter, TableLifecycleGuard>();
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IntoChat.OS.Modules.Apps.IAppStorageHook, TableStorageHook>());
         return services;
     }
 

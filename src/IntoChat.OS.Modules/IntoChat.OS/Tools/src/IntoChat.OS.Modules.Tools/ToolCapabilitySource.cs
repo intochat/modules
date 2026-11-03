@@ -1,6 +1,6 @@
-using IntoChat.OS.Contracts.Configuration;
-using IntoChat.OS.Framework;
-using IntoChat.OS.Connections.Contracts;
+using DigitalBrain.Brains;
+using DigitalBrain.Capabilities.Connections.Integrations;
+using DigitalBrain.Contracts;
 using DigitalBrain.Runtime.Orleans;
 using DigitalBrain.Runtime.Orleans.Hosting;
 using DigitalBrain.Spi;
@@ -47,7 +47,7 @@ public sealed class ToolCapabilitySource(IBrainObserver kernel, IServiceProvider
     private static Type? PlainSourceOf(string name) => PlainSources.GetOrAdd(name, static name =>
         AppDomain.CurrentDomain.GetAssemblies().Where(assembly => !assembly.IsDynamic)
             .Select(assembly => assembly.GetType(name, throwOnError: false))
-            .FirstOrDefault(type => type is { IsInterface: true } && typeof(IToolSource).IsAssignableFrom(type) && IntoChat.OS.Runtime.PlainNeuronContracts.Is(type)));
+            .FirstOrDefault(type => type is { IsInterface: true } && typeof(IToolSource).IsAssignableFrom(type) && DigitalBrain.Contracts.PlainNeuronContracts.Is(type)));
 
     internal static NeuronType Capability(string key, string contract, string title, ToolDescriptor tool)
     {

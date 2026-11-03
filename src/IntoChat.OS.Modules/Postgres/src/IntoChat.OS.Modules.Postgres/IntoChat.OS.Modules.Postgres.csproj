@@ -6,12 +6,16 @@
     <NoWarn>$(NoWarn);ORLEANSEXP005;CA1812</NoWarn>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="IntoChat.OS.Modules.Apps.Contracts" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <ProjectReference Include="../../Contracts/IntoChat.OS.Modules.Postgres.Contracts/IntoChat.OS.Modules.Postgres.Contracts.csproj" />
-    <PackageReference Include="IntoChat.OS.Framework" />
     <PackageReference Include="Npgsql" />
     <InternalsVisibleTo Include="IntoChat.OS.Modules.Postgres.Tests.Unit" />
     <InternalsVisibleTo Include="IntoChat.OS.Modules.Postgres.Tests.Integration" />
   </ItemGroup>
-  <ItemGroup><PackageReference Include="IntoChat.OS.Modules.Identity" /></ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="DigitalBrain" />
+    <PackageReference Include="DigitalBrain.Capabilities.Connections" />
+    <PackageReference Include="DigitalBrain.Runtime.Orleans" />
+    <PackageReference Include="Microsoft.Orleans.Sdk" />
+  </ItemGroup>
 </Project>

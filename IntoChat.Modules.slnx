@@ -1,11 +1,5 @@
 <Solution>
   <Folder Name="/Modules/" />
-  <Folder Name="/Modules/AI/">
-    <Project Path="src/IntoChat.OS.Modules/AI/Contracts/IntoChat.OS.Modules.AI.Contracts/IntoChat.OS.Modules.AI.Contracts.csproj" />
-    <Project Path="src/IntoChat.OS.Modules/AI/src/IntoChat.OS.Modules.AI/IntoChat.OS.Modules.AI.csproj" />
-    <Project Path="src/IntoChat.OS.Modules/AI/tests/IntoChat.OS.Modules.AI.Tests.Integration/IntoChat.OS.Modules.AI.Tests.Integration.csproj" />
-    <Project Path="src/IntoChat.OS.Modules/AI/tests/IntoChat.OS.Modules.AI.Tests.Unit/IntoChat.OS.Modules.AI.Tests.Unit.csproj" />
-  </Folder>
   <Folder Name="/Modules/ArtCraft/">
     <Project Path="src/IntoChat.OS.Modules/ArtCraft/ArtCraft/src/IntoChat.OS.Modules.ArtCraft/IntoChat.OS.Modules.ArtCraft.csproj" />
     <Project Path="src/IntoChat.OS.Modules/ArtCraft/ArtCraft/tests/IntoChat.OS.Modules.ArtCraft.Tests.Unit/IntoChat.OS.Modules.ArtCraft.Tests.Unit.csproj" />
@@ -20,10 +14,6 @@
     <Project Path="src/IntoChat.OS.Modules/Google/Auth/tests/IntoChat.OS.Modules.Google.Auth.Tests.Unit/IntoChat.OS.Modules.Google.Auth.Tests.Unit.csproj" />
     <Project Path="src/IntoChat.OS.Modules/Google/Drive/src/IntoChat.OS.Modules.Google.Drive/IntoChat.OS.Modules.Google.Drive.csproj" />
     <Project Path="src/IntoChat.OS.Modules/Google/Drive/tests/IntoChat.OS.Modules.Google.Drive.Tests.Unit/IntoChat.OS.Modules.Google.Drive.Tests.Unit.csproj" />
-    <Project Path="src/IntoChat.OS.Modules/Google/Flutter/Contracts/IntoChat.OS.Modules.Flutter.Contracts/IntoChat.OS.Modules.Flutter.Contracts.csproj" />
-    <Project Path="src/IntoChat.OS.Modules/Google/Flutter/src/IntoChat.OS.Modules.Flutter/IntoChat.OS.Modules.Flutter.csproj" />
-    <Project Path="src/IntoChat.OS.Modules/Google/Flutter/tests/IntoChat.OS.Modules.Flutter.Tests.Integration/IntoChat.OS.Modules.Flutter.Tests.Integration.csproj" />
-    <Project Path="src/IntoChat.OS.Modules/Google/Flutter/tests/IntoChat.OS.Modules.Flutter.Tests.Unit/IntoChat.OS.Modules.Flutter.Tests.Unit.csproj" />
     <Project Path="src/IntoChat.OS.Modules/Google/Gmail/src/IntoChat.OS.Modules.Google.Gmail/IntoChat.OS.Modules.Google.Gmail.csproj" />
     <Project Path="src/IntoChat.OS.Modules/Google/Gmail/tests/IntoChat.OS.Modules.Google.Gmail.Tests.Unit/IntoChat.OS.Modules.Google.Gmail.Tests.Unit.csproj" />
   </Folder>
@@ -33,24 +23,13 @@
     <Project Path="src/IntoChat.OS.Modules/LocalDisk/tests/IntoChat.OS.Modules.LocalDisk.Tests.Unit/IntoChat.OS.Modules.LocalDisk.Tests.Unit.csproj" />
   </Folder>
   <Folder Name="/Modules/Microsoft/">
-    <Project Path="src/IntoChat.OS.Modules/Microsoft/Aspire/Contracts/IntoChat.OS.Modules.Microsoft.Aspire.Contracts/IntoChat.OS.Modules.Microsoft.Aspire.Contracts.csproj" />
-    <Project Path="src/IntoChat.OS.Modules/Microsoft/Aspire/src/IntoChat.OS.Modules.Microsoft.Aspire/IntoChat.OS.Modules.Microsoft.Aspire.csproj" />
-    <Project Path="src/IntoChat.OS.Modules/Microsoft/Aspire/tests/IntoChat.OS.Modules.Microsoft.Aspire.Tests.Integration/IntoChat.OS.Modules.Microsoft.Aspire.Tests.Integration.csproj" />
-    <Project Path="src/IntoChat.OS.Modules/Microsoft/Aspire/tests/IntoChat.OS.Modules.Microsoft.Aspire.Tests.Unit/IntoChat.OS.Modules.Microsoft.Aspire.Tests.Unit.csproj" />
     <Project Path="src/IntoChat.OS.Modules/Microsoft/Azure/Contracts/IntoChat.OS.Modules.Microsoft.Azure.Contracts/IntoChat.OS.Modules.Microsoft.Azure.Contracts.csproj" />
     <Project Path="src/IntoChat.OS.Modules/Microsoft/Azure/src/IntoChat.OS.Modules.Microsoft.Azure/IntoChat.OS.Modules.Microsoft.Azure.csproj" />
     <Project Path="src/IntoChat.OS.Modules/Microsoft/Azure/tests/IntoChat.OS.Modules.Microsoft.Azure.Tests.Unit/IntoChat.OS.Modules.Microsoft.Azure.Tests.Unit.csproj" />
-    <Project Path="src/IntoChat.OS.Modules/Microsoft/CSharp/Contracts/IntoChat.OS.Modules.Microsoft.CSharp.Contracts/IntoChat.OS.Modules.Microsoft.CSharp.Contracts.csproj" />
-    <Project Path="src/IntoChat.OS.Modules/Microsoft/CSharp/src/IntoChat.OS.Modules.Microsoft.CSharp.Sandbox/IntoChat.OS.Modules.Microsoft.CSharp.Sandbox.csproj" />
-    <Project Path="src/IntoChat.OS.Modules/Microsoft/CSharp/src/IntoChat.OS.Modules.Microsoft.CSharp/IntoChat.OS.Modules.Microsoft.CSharp.csproj" />
-    <Project Path="src/IntoChat.OS.Modules/Microsoft/CSharp/tests/IntoChat.OS.Modules.Microsoft.CSharp.Tests.E2E/IntoChat.OS.Modules.Microsoft.CSharp.Tests.E2E.csproj" />
-    <Project Path="src/IntoChat.OS.Modules/Microsoft/CSharp/tests/IntoChat.OS.Modules.Microsoft.CSharp.Tests.Integration/IntoChat.OS.Modules.Microsoft.CSharp.Tests.Integration.csproj" />
-    <Project Path="src/IntoChat.OS.Modules/Microsoft/CSharp/tests/IntoChat.OS.Modules.Microsoft.CSharp.Tests.Unit/IntoChat.OS.Modules.Microsoft.CSharp.Tests.Unit.csproj" />
     <Project Path="src/IntoChat.OS.Modules/Microsoft/GitHub/Contracts/IntoChat.OS.Modules.Microsoft.GitHub.Contracts/IntoChat.OS.Modules.Microsoft.GitHub.Contracts.csproj" />
     <Project Path="src/IntoChat.OS.Modules/Microsoft/GitHub/src/IntoChat.OS.Modules.Microsoft.GitHub/IntoChat.OS.Modules.Microsoft.GitHub.csproj" />
     <Project Path="src/IntoChat.OS.Modules/Microsoft/GitHub/tests/IntoChat.OS.Modules.Microsoft.GitHub.Tests.Unit/IntoChat.OS.Modules.Microsoft.GitHub.Tests.Unit.csproj" />
     <Project Path="src/IntoChat.OS.Modules/Microsoft/Orleans/Contracts/IntoChat.OS.Modules.Microsoft.Orleans.Contracts/IntoChat.OS.Modules.Microsoft.Orleans.Contracts.csproj" />
-    <Project Path="src/IntoChat.OS.Modules/Microsoft/Orleans/tests/IntoChat.OS.Modules.Microsoft.Orleans.Tests.Unit/IntoChat.OS.Modules.Microsoft.Orleans.Tests.Unit.csproj" />
     <Project Path="src/IntoChat.OS.Modules/Microsoft/Playwright/Contracts/IntoChat.OS.Modules.Microsoft.Playwright.Contracts/IntoChat.OS.Modules.Microsoft.Playwright.Contracts.csproj" />
     <Project Path="src/IntoChat.OS.Modules/Microsoft/Playwright/src/IntoChat.OS.Modules.Microsoft.Playwright/IntoChat.OS.Modules.Microsoft.Playwright.csproj" />
     <Project Path="src/IntoChat.OS.Modules/Microsoft/Playwright/tests/IntoChat.OS.Modules.Microsoft.Playwright.Tests.Browser/IntoChat.OS.Modules.Microsoft.Playwright.Tests.Browser.csproj" />

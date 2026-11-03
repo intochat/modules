@@ -1,3 +1,4 @@
+using DigitalBrain.Runtime.Orleans.Capabilities;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -5,8 +6,6 @@ using System.Text.Json;
 using DigitalBrain.Capabilities.Storage;
 using DigitalBrain.Operations;
 using DigitalBrain.Spi;
-using IntoChat.OS.Framework;
-using IntoChat.OS.Framework.Modules;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace IntoChat.OS.Modules.Google.Drive;
@@ -29,7 +28,7 @@ internal sealed partial class DriveNeuron : IStorageUpload
     private string UploadCaller()
     {
         using var trace = EnterTrace();
-        var caller = CallerContextStamper.Require();
+        var caller = RuntimeCallerContext.Require();
         return JsonSerializer.Serialize(new[] { caller.AccountId, caller.BrainId, caller.PrincipalId,
             caller.Kind.ToString(), caller.AppId, caller.ConversationId });
     }

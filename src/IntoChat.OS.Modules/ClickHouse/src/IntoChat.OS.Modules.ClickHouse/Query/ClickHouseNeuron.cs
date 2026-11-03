@@ -1,6 +1,6 @@
-using IntoChat.OS.Contracts.Configuration;
-using IntoChat.OS.Framework;
-using IntoChat.OS.Connections.Platform.Connections;
+using DigitalBrain.Brains;
+using DigitalBrain.Capabilities.Connections;
+using DigitalBrain.Capabilities.Connections.Integrations;
 
 namespace IntoChat.OS.Modules.ClickHouse.Query;
 

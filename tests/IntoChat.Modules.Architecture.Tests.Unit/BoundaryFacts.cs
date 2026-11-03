@@ -5,7 +5,7 @@ namespace IntoChat.Modules.Architecture.Tests.Unit;
 
 public sealed class BoundaryFacts
 {
-    [Fact(Skip = "until Task 21")]
+    [Fact]
     public void NoModuleClosureReachesAnOsAssembly()
     {
         var projects = Directory.EnumerateFiles(Path.Combine(Repository.Root, "src"), "*.csproj", SearchOption.AllDirectories)

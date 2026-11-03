@@ -1,8 +1,6 @@
+using DigitalBrain.Capabilities.Connections;
 using System.Text;
 using System.Text.Json;
-using IntoChat.OS.Contracts.Configuration;
-using IntoChat.OS.Framework.Modules;
-using IntoChat.OS.Connections.Platform.Connections;
 using IntoChat.OS.Modules.Salesforce.Signals;
 
 namespace IntoChat.OS.Modules.Salesforce;
@@ -262,7 +260,7 @@ internal sealed class SalesforceNeuron : ConnectionNeuron<SalesforceState>, ISal
     {
         // Reading Key refuses a key that is not a canonical connection key naming this connector.
         _ = Key;
-        if (Snapshot.Status == ConnectionStatus.Disconnected || Snapshot.Secrets.Length == 0 || Snapshot.Account is null)
+        if (Snapshot.Status == ConnectionStatus.Disconnected || Snapshot.Secrets.Count == 0 || Snapshot.Account is null)
         {
             throw new SalesforceNotConnectedException();
         }

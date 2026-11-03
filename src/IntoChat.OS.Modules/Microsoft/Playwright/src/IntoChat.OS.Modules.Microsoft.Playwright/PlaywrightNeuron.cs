@@ -1,5 +1,5 @@
+using DigitalBrain.Runtime.Orleans.Capabilities;
 using DigitalBrain;
-using IntoChat.OS.Framework;
 
 namespace IntoChat.OS.Modules.Microsoft.Playwright;
 
@@ -21,7 +21,7 @@ internal sealed class PlaywrightNeuron(IBrowserSessionProvider provider) : Digit
 
     private void AuthorizeManaged()
     {
-        if (_managedAccount is not null && CallerContextStamper.Require().AccountId != _managedAccount)
+        if (_managedAccount is not null && RuntimeCallerContext.Require().AccountId != _managedAccount)
         { throw new UnauthorizedAccessException("The managed browser belongs to another account."); }
     }
 
@@ -31,7 +31,7 @@ internal sealed class PlaywrightNeuron(IBrowserSessionProvider provider) : Digit
 
     public async Task Start(CancellationToken ct = default)
     {
-        var caller = CallerContextStamper.Require();
+        var caller = RuntimeCallerContext.Require();
         AuthorizeManaged();
         ct.ThrowIfCancellationRequested();
         if (_owner.Read() is { Ready: true } current && current.SessionId == _managedSessionId) { return; }

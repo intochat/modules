@@ -1,13 +1,11 @@
+using DigitalBrain.Brains;
+using DigitalBrain.Capabilities.Compute;
+using DigitalBrain.Capabilities.Connections;
+using DigitalBrain.Runtime.Orleans.Capabilities;
 using DigitalBrain.Capabilities;
 using IntoChat.OS.Modules.Google.Gmail;
 using System.Security.Cryptography;
 using System.Text.Json;
-using IntoChat.OS.Contracts.Configuration;
-using IntoChat.OS.Framework;
-using IntoChat.OS.Framework.Modules;
-using IntoChat.OS.Contracts.Compute;
-using IntoChat.OS.Framework.Compute;
-using IntoChat.OS.Connections.Platform.Connections;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace IntoChat.OS.Modules.Google.Gmail;
@@ -29,7 +27,7 @@ internal sealed partial class GmailNeuron()
     private bool HasAcceptedMailbox => _toolAvailability.AcceptedMailbox;
     private bool HasDraftReceipts => _toolAvailability.DraftReceipts;
     private bool IsGrantReady => !_grantAcceptancePending && Snapshot.GrantGeneration > 0
-        && Snapshot.Status != ConnectionStatus.Disconnected && Snapshot.Secrets.Length > 0
+        && Snapshot.Status != ConnectionStatus.Disconnected && Snapshot.Secrets.Count > 0
         && Snapshot.Account is not null && string.Equals(Snapshot.Account, Snapshot.BoundMailbox, StringComparison.OrdinalIgnoreCase);
 
     public Task<GmailInboxResult> ReadInbox(GmailInboxRequest request, CancellationToken ct = default) => ReadInboxCore(request, ct);
@@ -100,7 +98,7 @@ internal sealed partial class GmailNeuron()
     private async Task EnsureGrantBindingAsync()
     {
         if (_grantAcceptancePending) { return; }
-        if (Snapshot.Status != ConnectionStatus.Disconnected && Snapshot.Secrets.Length > 0 && Snapshot.Account is { } mailbox
+        if (Snapshot.Status != ConnectionStatus.Disconnected && Snapshot.Secrets.Count > 0 && Snapshot.Account is { } mailbox
             && (Snapshot.GrantGeneration == 0 || Snapshot.PageTokenKey.Length != 32
                 || !string.Equals(Snapshot.BoundMailbox, mailbox, StringComparison.OrdinalIgnoreCase)))
         {
@@ -130,7 +128,7 @@ internal sealed partial class GmailNeuron()
 
     private CapabilityCaller RequireCaller()
     {
-        var caller = CallerContextStamper.Require();
+        var caller = RuntimeCallerContext.Require();
         if (BrainScope.Create(caller.AccountId, caller.BrainId).Id != Key.Brain)
         { throw new UnauthorizedAccessException("The selected Gmail connection belongs to another brain."); }
         return caller;

@@ -1,4 +1,4 @@
-using IntoChat.OS.Framework.Modules.Configuration;
+using DigitalBrain.Modules.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -14,7 +14,7 @@ public sealed class RoslynModule : DigitalBrain.Module
         Provides: [],
         Requires: [],
         Needs: [],
-        Settings: [DigitalBrain.Setting.Of<RoslynModuleOptions>(IntoChatOSConfiguration.ModuleOptionsSection(ManifestName))],
+        Settings: [DigitalBrain.Setting.Of<RoslynModuleOptions>(ModuleConfiguration.ModuleOptionsSection(ManifestName))],
         Secrets: []);
 
     public static System.Reflection.Assembly? Contracts => typeof(IRoslyn).Assembly;

@@ -1,8 +1,6 @@
-using IntoChat.OS.Framework.Machine;
+using DigitalBrain.Capabilities.Connections;
+using DigitalBrain.Errors;
 using System.Text;
-using IntoChat.OS.Contracts.Configuration;
-using IntoChat.OS.Framework;
-using IntoChat.OS.Connections.Platform.Connections;
 using IntoChat.OS.Modules.Microsoft.Windows.Signals;
 using DigitalBrain.Runtime.Orleans.Hosting;
 using DigitalBrain.Capabilities.Storage.Confinement;
@@ -11,7 +9,7 @@ namespace IntoChat.OS.Modules.Microsoft.Windows;
 
 // A plain neuron (06-08) keyed {connectionKey}/files.
 [DigitalBrain.Neuron("windows.files")]
-internal sealed class FileSystemNeuron(IMachineIdentity identity) : DigitalBrain.Neuron, IFileSystem
+internal sealed class FileSystemNeuron(MachineIdentity identity) : DigitalBrain.Neuron, IFileSystem
 {
     public async Task<string> Read(string path, CancellationToken cancellationToken = default) =>
         await File.ReadAllTextAsync(await Resolve(path), cancellationToken);

@@ -1,4 +1,4 @@
-using IntoChat.OS;
+using DigitalBrain.Capabilities.Connections;
 
 namespace IntoChat.OS.Modules.Salesforce;
 

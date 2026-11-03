@@ -1,6 +1,7 @@
+using DigitalBrain.Capabilities.Connections.Connectors;
+using DigitalBrain.Capabilities.Connections.Integrations;
 using ClickHouse.Driver;
 using IntoChat.OS.Modules.ClickHouse.Query;
-using IntoChat.OS.Connections.Platform.Integrations;
 
 namespace IntoChat.OS.Modules.ClickHouse;
 

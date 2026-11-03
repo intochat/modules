@@ -1,5 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup><IsPackable>true</IsPackable><RootNamespace>IntoChat.OS.Modules.Microsoft.Playwright</RootNamespace><NoWarn>$(NoWarn);CS1591;ORLEANSEXP005;CA1812</NoWarn></PropertyGroup>
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <RootNamespace>IntoChat.OS.Modules.Microsoft.Playwright</RootNamespace>
+    <NoWarn>$(NoWarn);CS1591;ORLEANSEXP005;CA1812</NoWarn>
+  </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Microsoft.Playwright" />
@@ -8,7 +12,11 @@
     <InternalsVisibleTo Include="IntoChat.OS.Modules.Microsoft.Playwright.Tests.Browser" />
     <ProjectReference Include="../../Contracts/IntoChat.OS.Modules.Microsoft.Playwright.Contracts/IntoChat.OS.Modules.Microsoft.Playwright.Contracts.csproj" />
     <ProjectReference Include="../../../../IntoChat.OS/Tools/Contracts/IntoChat.OS.Modules.Tools.Contracts/IntoChat.OS.Modules.Tools.Contracts.csproj" />
-    <PackageReference Include="IntoChat.OS.Framework" />
   </ItemGroup>
-  <ItemGroup><PackageReference Include="IntoChat.OS.Modules.Identity" /></ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="DigitalBrain" />
+    <PackageReference Include="DigitalBrain.Capabilities.Connections" />
+    <PackageReference Include="DigitalBrain.Runtime.Orleans" />
+    <PackageReference Include="Microsoft.Orleans.Sdk" />
+  </ItemGroup>
 </Project>

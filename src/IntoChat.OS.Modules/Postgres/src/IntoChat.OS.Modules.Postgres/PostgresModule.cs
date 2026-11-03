@@ -1,9 +1,8 @@
+using DigitalBrain.Capabilities.Connections.Connectors;
+using DigitalBrain.Modules.Configuration;
+using DigitalBrain.Modules.Options;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
-using IntoChat.OS.Framework.Modules;
-using IntoChat.OS.Framework.Modules.Configuration;
-using IntoChat.OS.Connections.Platform.Integrations;
-using IntoChat.OS.Framework.Modules.Platform.Integrations;
 using IntoChat.OS.Modules.Postgres.Tables;
 using IntoChat.OS.Modules.Postgres.Tables.Signals;
 
@@ -16,7 +15,7 @@ public sealed class PostgresModule : DigitalBrain.Module
         Provides: [],
         Requires: [],
         Needs: [],
-        Settings: [DigitalBrain.Setting.Of<PostgresModuleOptions>(IntoChatOSConfiguration.ModuleOptionsSection(new ModuleId("postgres")))],
+        Settings: [DigitalBrain.Setting.Of<PostgresModuleOptions>(ModuleConfiguration.ModuleOptionsSection(new ModuleId("postgres")))],
         Secrets: []);
 
     public static bool RequiresContainer => true;

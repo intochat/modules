@@ -1,7 +1,7 @@
+using DigitalBrain.Capabilities.Connections.Connectors;
+using DigitalBrain.Modules.Configuration;
+using DigitalBrain.Runtime.Http.Surface;
 using Microsoft.Extensions.Configuration;
-using IntoChat.OS.Connections.Platform.Integrations;
-using IntoChat.OS.Framework.Modules;
-using IntoChat.OS.Framework.Modules.Platform.Integrations;
 using IntoChat.OS.Modules.Microsoft.GitHub.Webhook;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -20,7 +20,7 @@ public sealed class GitHubModule : DigitalBrain.Module
             DigitalBrain.Need.HttpClient("github", requestsPerMinute: 120),
             DigitalBrain.Need.Webhook("/github/webhook", "github.repository"),
         ],
-        Settings: [DigitalBrain.Setting.Of<GitHubModuleOptions>(IntoChat.OS.Framework.Modules.Configuration.IntoChatOSConfiguration.ModuleOptionsSection(ManifestName))],
+        Settings: [DigitalBrain.Setting.Of<GitHubModuleOptions>(DigitalBrain.Modules.Configuration.ModuleConfiguration.ModuleOptionsSection(ManifestName))],
         Secrets: [])
     {
         Auth = new DigitalBrain.ModuleAuth("github", []),

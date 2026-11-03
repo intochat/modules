@@ -1,4 +1,4 @@
-using IntoChat.OS.Connections.Platform.Connections;
+using DigitalBrain.Capabilities.Connections;
 
 namespace IntoChat.OS.Modules.Microsoft.GitHub;
 

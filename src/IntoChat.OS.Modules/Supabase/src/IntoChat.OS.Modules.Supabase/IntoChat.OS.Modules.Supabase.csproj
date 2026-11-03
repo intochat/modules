@@ -12,7 +12,9 @@
     <InternalsVisibleTo Include="IntoChat.OS.Modules.Supabase.Tests.Integration" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="IntoChat.OS.Framework" />
+    <PackageReference Include="DigitalBrain" />
+    <PackageReference Include="DigitalBrain.Capabilities.Connections" />
+    <PackageReference Include="DigitalBrain.Runtime.Orleans" />
+    <PackageReference Include="Microsoft.Orleans.Sdk" />
   </ItemGroup>
-  <ItemGroup><PackageReference Include="IntoChat.OS.Modules.Identity" /></ItemGroup>
 </Project>

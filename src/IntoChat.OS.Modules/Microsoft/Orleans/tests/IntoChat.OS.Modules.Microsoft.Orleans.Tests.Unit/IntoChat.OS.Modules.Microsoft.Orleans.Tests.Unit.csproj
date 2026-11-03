@@ -1,5 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <ItemGroup>
-    <PackageReference Include="IntoChat.OS.Kernel.Composition" />
-  </ItemGroup>
-</Project>

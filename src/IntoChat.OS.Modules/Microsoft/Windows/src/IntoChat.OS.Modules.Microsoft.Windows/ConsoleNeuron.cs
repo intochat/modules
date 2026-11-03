@@ -1,8 +1,6 @@
-using IntoChat.OS.Framework.Machine;
+using DigitalBrain.Capabilities.Connections;
+using DigitalBrain.Errors;
 using System.Diagnostics;
-using IntoChat.OS.Contracts.Configuration;
-using IntoChat.OS.Framework;
-using IntoChat.OS.Connections.Platform.Connections;
 using DigitalBrain.Runtime.Orleans.Hosting;
 using DigitalBrain.Capabilities.Storage.Confinement;
 
@@ -10,7 +8,7 @@ namespace IntoChat.OS.Modules.Microsoft.Windows;
 
 // A plain neuron (06-08) keyed {connectionKey}/console.
 [DigitalBrain.Neuron("windows.console")]
-internal sealed class ConsoleNeuron(IMachineIdentity identity) : DigitalBrain.Neuron, IConsole
+internal sealed class ConsoleNeuron(MachineIdentity identity) : DigitalBrain.Neuron, IConsole
 {
     private const int MaxOutputChars = 20_000;
 
