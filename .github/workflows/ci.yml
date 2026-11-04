@@ -36,7 +36,7 @@ jobs:
 
       - name: Authenticate GitHub Packages
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PACKAGE_TOKEN || secrets.GITHUB_TOKEN }}
         run: dotnet nuget update source github --username "${{ github.actor }}" --password "${GITHUB_TOKEN}" --store-password-in-clear-text --configfile nuget.config
 
       - name: Restore dependencies
@@ -58,7 +58,7 @@ jobs:
 
       - name: Authenticate GitHub Packages
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PACKAGE_TOKEN || secrets.GITHUB_TOKEN }}
         run: dotnet nuget update source github --username "${{ github.actor }}" --password "${GITHUB_TOKEN}" --store-password-in-clear-text --configfile nuget.config
 
       - name: Build solution
@@ -126,7 +126,7 @@ jobs:
 
       - name: Authenticate GitHub Packages
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PACKAGE_TOKEN || secrets.GITHUB_TOKEN }}
         run: dotnet nuget update source github --username "${{ github.actor }}" --password "${GITHUB_TOKEN}" --store-password-in-clear-text --configfile nuget.config
 
       - name: Version
@@ -140,11 +140,17 @@ jobs:
 
       - name: Push packages to GitHub Packages
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: dotnet nuget push "artifacts/*.nupkg" --source https://nuget.pkg.github.com/intochat/index.json --api-key "${GITHUB_TOKEN}" --skip-duplicate
+          GITHUB_TOKEN: ${{ secrets.PACKAGE_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          for pkg in artifacts/*.nupkg; do
+            dotnet nuget push "$pkg" --source https://nuget.pkg.github.com/intochat/index.json --api-key "${GITHUB_TOKEN}" --skip-duplicate || echo "::warning::Could not push $pkg to GitHub Packages"
+          done
 
       - name: Notify consumers
         env:
           GH_TOKEN: ${{ secrets.OS_DOWNSTREAM_TOKEN }}
           VERSION: ${{ steps.version.outputs.version }}
-        run: gh api repos/intochat/os/dispatches -f event_type=modules-published -F client_payload[version]="${VERSION}"
+        run: |
+          if [ -n "${GH_TOKEN}" ]; then
+            gh api repos/intochat/os/dispatches -f event_type=modules-published -F client_payload[version]="${VERSION}"
+          fi

@@ -125,21 +125,21 @@
     <PackageVersion Include="Microsoft.Orleans.Core.Abstractions" Version="10.4.0" />
   </ItemGroup>
     <ItemGroup>
-    <PackageVersion Include="DigitalBrain" Version="0.13.0-preview.local.1" />
-    <PackageVersion Include="DigitalBrain.Analyzers" Version="0.13.0-preview.local.1" />
-    <PackageVersion Include="DigitalBrain.Apps.Packaging" Version="0.13.0-preview.local.1" />
-    <PackageVersion Include="DigitalBrain.Capabilities.Compute" Version="0.13.0-preview.local.1" />
-    <PackageVersion Include="DigitalBrain.Capabilities.Connections" Version="0.13.0-preview.local.1" />
-    <PackageVersion Include="DigitalBrain.Capabilities.Identity" Version="0.13.0-preview.local.1" />
-    <PackageVersion Include="DigitalBrain.Capabilities.Secrets" Version="0.13.0-preview.local.1" />
-    <PackageVersion Include="DigitalBrain.Capabilities.Storage" Version="0.13.0-preview.local.1" />
-    <PackageVersion Include="DigitalBrain.Graph" Version="0.13.0-preview.local.1" />
-    <PackageVersion Include="DigitalBrain.Identity.Local" Version="0.13.0-preview.local.1" />
-    <PackageVersion Include="DigitalBrain.Runtime.Http" Version="0.13.0-preview.local.1" />
-    <PackageVersion Include="DigitalBrain.Runtime.Orleans" Version="0.13.0-preview.local.1" />
-    <PackageVersion Include="DigitalBrain.Runtime.Orleans.Azure" Version="0.13.0-preview.local.1" />
-    <PackageVersion Include="DigitalBrain.Testing" Version="0.13.0-preview.local.1" />
-    <PackageVersion Include="DigitalBrain.Testing.Silo" Version="0.13.0-preview.local.1" />
-    <PackageVersion Include="DigitalBrain.UI" Version="0.13.0-preview.local.1" />
+    <PackageVersion Include="DigitalBrain" Version="0.13.0" />
+    <PackageVersion Include="DigitalBrain.Analyzers" Version="0.13.0" />
+    <PackageVersion Include="DigitalBrain.Apps.Packaging" Version="0.13.0" />
+    <PackageVersion Include="DigitalBrain.Capabilities.Compute" Version="0.13.0" />
+    <PackageVersion Include="DigitalBrain.Capabilities.Connections" Version="0.13.0" />
+    <PackageVersion Include="DigitalBrain.Capabilities.Identity" Version="0.13.0" />
+    <PackageVersion Include="DigitalBrain.Capabilities.Secrets" Version="0.13.0" />
+    <PackageVersion Include="DigitalBrain.Capabilities.Storage" Version="0.13.0" />
+    <PackageVersion Include="DigitalBrain.Graph" Version="0.13.0" />
+    <PackageVersion Include="DigitalBrain.Identity.Local" Version="0.13.0" />
+    <PackageVersion Include="DigitalBrain.Runtime.Http" Version="0.13.0" />
+    <PackageVersion Include="DigitalBrain.Runtime.Orleans" Version="0.13.0" />
+    <PackageVersion Include="DigitalBrain.Runtime.Orleans.Azure" Version="0.13.0" />
+    <PackageVersion Include="DigitalBrain.Testing" Version="0.13.0" />
+    <PackageVersion Include="DigitalBrain.Testing.Silo" Version="0.13.0" />
+    <PackageVersion Include="DigitalBrain.UI" Version="0.13.0" />
   </ItemGroup>
 </Project>
