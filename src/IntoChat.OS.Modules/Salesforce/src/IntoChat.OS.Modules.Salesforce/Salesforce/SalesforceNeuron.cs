@@ -18,6 +18,8 @@ internal sealed class SalesforceNeuron : ConnectionNeuron<SalesforceState>, ISal
     private readonly ISalesforceProvider _provider;
     private readonly TimeProvider _time;
 
+    private DigitalBrain.IPolicies Policies => Context.Get<DigitalBrain.IPolicies>(DigitalBrain.NeuronId.Parse(DigitalBrain.IPolicies.Key(Id.Brain.Value)));
+
     public SalesforceNeuron(
         ISalesforceProvider provider,
         TimeProvider time)
@@ -131,16 +133,29 @@ internal sealed class SalesforceNeuron : ConnectionNeuron<SalesforceState>, ISal
             throw new SalesforceUnavailableException("The Salesforce preview schema changed. Prepare a fresh preview.");
         }
 
+        var decision = await Policies.Allow("salesforce.record.write", 1m, new Dictionary<string, string>
+        {
+            ["Tool"] = preview.Tool,
+            ["Object"] = ReadObjectName(preview.Arguments),
+        }, CancellationToken.None);
+        DigitalBrain.PolicyGuard.Require(decision);
+
         Snapshot.PendingWrite = null;
         Snapshot.SubmittingWrite = preview;
         await SaveQuietly(Snapshot);
+        var succeeded = false;
         try
         {
-            var recordId = await SubmitWriteAsync(preview, CancellationToken.None);
+            var (recordId, ok) = await SubmitWriteAsync(preview, CancellationToken.None);
+            succeeded = ok;
             return preview with { RecordId = recordId };
         }
         finally
         {
+            if (!succeeded)
+            {
+                await Policies.Release(decision.DecisionId, CancellationToken.None);
+            }
             Snapshot.SubmittingWrite = null;
             await SaveQuietly(Snapshot);
         }
@@ -180,7 +195,7 @@ internal sealed class SalesforceNeuron : ConnectionNeuron<SalesforceState>, ISal
     public async Task<SalesforceUserInfo> ReadUserInfo(CancellationToken cancellationToken = default)
         => new((await ReadAsync("getUserInfo", EmptyArguments(), cancellationToken)).GetRawText());
 
-    private async Task<string?> SubmitWriteAsync(SalesforceWritePreview preview, CancellationToken cancellationToken)
+    private async Task<(string? RecordId, bool Succeeded)> SubmitWriteAsync(SalesforceWritePreview preview, CancellationToken cancellationToken)
     {
         try
         {
@@ -195,18 +210,31 @@ internal sealed class SalesforceNeuron : ConnectionNeuron<SalesforceState>, ISal
             if (result.TryGetProperty("isError", out var error) && error.ValueKind == JsonValueKind.True)
             {
                 await PublishAsync(new SalesforceWriteFailed(preview.PreviewId));
-                return null;
+                return (null, false);
             }
 
             var recordId = result.TryGetProperty("id", out var id) ? id.GetString() : null;
             await PublishAsync(new RecordWritten(preview with { RecordId = recordId }));
-            return recordId;
+            return (recordId, true);
         }
         catch (Exception error) when (error is SalesforceNotConnectedException or SalesforceUnavailableException)
         {
             await PublishAsync(new SalesforceWriteUncertain(preview.PreviewId));
-            return null;
+            return (null, false);
         }
+    }
+
+    private static string ReadObjectName(string arguments)
+    {
+        using var document = JsonDocument.Parse(arguments);
+        foreach (var key in (ReadOnlySpan<string>)["objectName", "object-name", "sobject", "sObject"])
+        {
+            if (document.RootElement.TryGetProperty(key, out var prop) && prop.ValueKind == JsonValueKind.String && prop.GetString() is { } name)
+            {
+                return name;
+            }
+        }
+        return "";
     }
 
     // A refused refresh has already marked the connection Expired; a provider refusal marks it Failing.

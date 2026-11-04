@@ -17,7 +17,10 @@ public sealed class SalesforceModule : DigitalBrain.Module
         Requires: [],
         Needs: [],
         Settings: [DigitalBrain.Setting.Of<SalesforceModuleOptions>(ModuleConfiguration.ModuleOptionsSection("salesforce"))],
-        Secrets: []);
+        Secrets: [])
+    {
+        Actions = [new("salesforce.record.write", "write a Salesforce record", null)],
+    };
 
     public static System.Reflection.Assembly? Contracts => typeof(ISalesforce).Assembly;
 

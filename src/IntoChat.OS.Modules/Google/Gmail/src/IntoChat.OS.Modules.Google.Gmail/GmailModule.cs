@@ -26,6 +26,7 @@ public sealed class GmailModule : DigitalBrain.Module, IHttpModule
         Secrets: [])
     {
         Auth = new DigitalBrain.ModuleAuth("google-oauth", [GmailScopes.Read]),
+        Actions = [new("gmail.draft.create", "create a mail draft", null)],
     };
 
     public static System.Reflection.Assembly? Contracts => typeof(IGmail).Assembly;

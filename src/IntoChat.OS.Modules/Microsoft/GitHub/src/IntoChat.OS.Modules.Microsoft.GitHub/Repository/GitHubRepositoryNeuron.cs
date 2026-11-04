@@ -31,6 +31,7 @@ internal sealed class GitHubRepositoryNeuron : ConnectionNeuron<GitHubRepository
     }
 
     private GitHubRepository Repository => new(FullKey, Snapshot.AppId, Snapshot.InstallationId, Snapshot.RepositoryId, Snapshot.Owner, Snapshot.Name);
+    private DigitalBrain.IPolicies Policies => Context.Get<DigitalBrain.IPolicies>(DigitalBrain.NeuronId.Parse(DigitalBrain.IPolicies.Key(Id.Brain.Value)));
 
     // The installation index is a plain neuron in the system brain (06-06d); this connection is still a grain.
     private IGitHubRepositoryIndex Index(long installationId)
@@ -189,21 +190,63 @@ internal sealed class GitHubRepositoryNeuron : ConnectionNeuron<GitHubRepository
     {
         ArgumentNullException.ThrowIfNull(request);
         RequireAvailable();
-        await _source.PushBranchAsync(Repository, request, CancellationToken.None).ConfigureAwait(false);
+        var decision = await Policies.Allow("github.branch.push", 1m, new Dictionary<string, string>
+        {
+            ["Repository"] = $"{Snapshot.Owner}/{Snapshot.Name}",
+            ["Branch"] = request.Branch,
+        }, CancellationToken.None).ConfigureAwait(false);
+        DigitalBrain.PolicyGuard.Require(decision);
+        try
+        {
+            await _source.PushBranchAsync(Repository, request, CancellationToken.None).ConfigureAwait(false);
+        }
+        catch
+        {
+            await Policies.Release(decision.DecisionId, CancellationToken.None).ConfigureAwait(false);
+            throw;
+        }
     }
 
     public async Task<PullRequestView> CreatePullRequest(CreatePullRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
         RequireAvailable();
-        return await _source.CreatePullRequestAsync(Repository, request, CancellationToken.None).ConfigureAwait(false);
+        var decision = await Policies.Allow("github.pull-request.create", 1m, new Dictionary<string, string>
+        {
+            ["Repository"] = $"{Snapshot.Owner}/{Snapshot.Name}",
+            ["Branch"] = request.HeadBranch,
+        }, CancellationToken.None).ConfigureAwait(false);
+        DigitalBrain.PolicyGuard.Require(decision);
+        try
+        {
+            return await _source.CreatePullRequestAsync(Repository, request, CancellationToken.None).ConfigureAwait(false);
+        }
+        catch
+        {
+            await Policies.Release(decision.DecisionId, CancellationToken.None).ConfigureAwait(false);
+            throw;
+        }
     }
 
     public async Task ReplyToReviewComment(ReplyReviewComment request)
     {
         ArgumentNullException.ThrowIfNull(request);
         RequireAvailable();
-        await _source.ReplyToReviewCommentAsync(Repository, request, CancellationToken.None).ConfigureAwait(false);
+        var decision = await Policies.Allow("github.review.reply", 1m, new Dictionary<string, string>
+        {
+            ["Repository"] = $"{Snapshot.Owner}/{Snapshot.Name}",
+            ["Number"] = request.PullRequestNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
+        }, CancellationToken.None).ConfigureAwait(false);
+        DigitalBrain.PolicyGuard.Require(decision);
+        try
+        {
+            await _source.ReplyToReviewCommentAsync(Repository, request, CancellationToken.None).ConfigureAwait(false);
+        }
+        catch
+        {
+            await Policies.Release(decision.DecisionId, CancellationToken.None).ConfigureAwait(false);
+            throw;
+        }
     }
 
     public async Task MergePullRequest(MergePullRequest request)
@@ -218,7 +261,21 @@ internal sealed class GitHubRepositoryNeuron : ConnectionNeuron<GitHubRepository
             throw new InvalidOperationException($"Remote branch HEAD SHA '{current.HeadSha}' does not match expected HEAD SHA '{request.ExpectedHeadSha}'.");
         }
 
-        await _source.MergePullRequestAsync(Repository, request, CancellationToken.None).ConfigureAwait(false);
+        var decision = await Policies.Allow("github.pull-request.merge", 1m, new Dictionary<string, string>
+        {
+            ["Repository"] = $"{Snapshot.Owner}/{Snapshot.Name}",
+            ["Number"] = request.PullRequestNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
+        }, CancellationToken.None).ConfigureAwait(false);
+        DigitalBrain.PolicyGuard.Require(decision);
+        try
+        {
+            await _source.MergePullRequestAsync(Repository, request, CancellationToken.None).ConfigureAwait(false);
+        }
+        catch
+        {
+            await Policies.Release(decision.DecisionId, CancellationToken.None).ConfigureAwait(false);
+            throw;
+        }
     }
 
     private void RequireMergeProvenance()

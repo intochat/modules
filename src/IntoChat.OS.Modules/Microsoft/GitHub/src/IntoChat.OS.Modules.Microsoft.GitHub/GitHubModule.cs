@@ -24,6 +24,13 @@ public sealed class GitHubModule : DigitalBrain.Module
         Secrets: [])
     {
         Auth = new DigitalBrain.ModuleAuth("github", []),
+        Actions =
+        [
+            new("github.branch.push", "push a GitHub branch", null),
+            new("github.pull-request.create", "create a GitHub pull request", null),
+            new("github.review.reply", "reply to a GitHub review comment", null),
+            new("github.pull-request.merge", "merge a GitHub pull request", null),
+        ],
     };
 
     public static System.Reflection.Assembly? Contracts => typeof(IRepository).Assembly;

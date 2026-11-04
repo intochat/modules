@@ -292,10 +292,23 @@ public sealed class GitHubRepositoryWritesFacts
 
         public Task Publish(DigitalBrain.Signal signal) => Task.CompletedTask;
         public Task PublishEphemeral(DigitalBrain.Signal signal) => Task.CompletedTask;
-        public T Get<T>(NeuronId id) where T : class => null!;
+        public T Get<T>(NeuronId id) where T : class => typeof(T) == typeof(IPolicies) ? (T)(object)AllowAllPolicies.Instance : null!;
         public void Defer(Func<Task> work) { }
         public Task<ConfirmationResult> Confirm(ConfirmationPlan plan, CancellationToken ct = default)
             => Task.FromResult(new ConfirmationResult(plan.Id, ConfirmationOutcome.Approved, ConfirmationDenyReason.None, Skipped: true));
+    }
+
+    private sealed class AllowAllPolicies : IPolicies
+    {
+        public static readonly AllowAllPolicies Instance = new();
+
+        public Task<ProposalOutcome> Propose(PolicyRule rule, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<PolicyDecision> Allow(string action, decimal amount, IReadOnlyDictionary<string, string>? facts, CancellationToken ct = default)
+            => Task.FromResult(new PolicyDecision(true, "allow", null, null));
+        public Task Release(string decisionId, CancellationToken ct = default) => Task.CompletedTask;
+        public Task Retire(string ruleId, CancellationToken ct = default) => Task.CompletedTask;
+        public Task<IReadOnlyList<PolicyRule>> List(CancellationToken ct = default) => Task.FromResult<IReadOnlyList<PolicyRule>>([]);
+        public Task<IReadOnlyList<ActionDescriptor>> Actions(CancellationToken ct = default) => Task.FromResult<IReadOnlyList<ActionDescriptor>>([]);
     }
 
     private sealed class TestNeuronState : INeuronState

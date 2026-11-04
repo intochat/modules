@@ -11,7 +11,10 @@ public sealed class McpModule : DigitalBrain.Module
         Requires: [],
         Needs: [DigitalBrain.Need.HttpClient("mcp", requestsPerMinute: 120)],
         Settings: [],
-        Secrets: []);
+        Secrets: [])
+    {
+        Actions = [new("mcp.tool.run", "run an MCP tool", null)],
+    };
 
     public static System.Reflection.Assembly? Contracts { get; } = typeof(IMcpServer).Assembly;
 }

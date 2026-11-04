@@ -86,17 +86,32 @@ internal sealed partial class GmailNeuron
                 // A refresh may narrow scopes; check again before durable intent or any mutation.
                 if (GrantFailure(compose: true) is { } changedGrant) { return GmailDraftCreationResult.FromFailure(changedGrant); }
                 cancellation.ThrowIfCancellationRequested();
+                var decision = await Policies.Allow("gmail.draft.create", 1m, new Dictionary<string, string>
+                {
+                    ["To"] = string.Join(", ", prepared.To),
+                    ["Subject"] = prepared.Subject,
+                }, cancellation);
+                DigitalBrain.PolicyGuard.Require(decision);
                 var pending = new GmailDraftOperation(request.RequestId, prepared.PreviewId, preview.Mailbox,
                     GmailDraftOperationStatus.Pending, null, null, now, now, null, accounting);
                 var receipt = new GmailStoredOperation(pending, caller, preview.GrantGeneration, preview.Digest);
-                await SaveGmailStateAsync(next =>
+                try
                 {
-                    next.DraftPreviews = [.. next.DraftPreviews.Select(candidate => candidate.Value.PreviewId == prepared.PreviewId
-                        ? candidate with { RequestId = request.RequestId } : candidate)];
-                    next.DraftOperations = [.. retained, receipt];
-                });
+                    await SaveGmailStateAsync(next =>
+                    {
+                        next.DraftPreviews = [.. next.DraftPreviews.Select(candidate => candidate.Value.PreviewId == prepared.PreviewId
+                            ? candidate with { RequestId = request.RequestId } : candidate)];
+                        next.DraftOperations = [.. retained, receipt];
+                    });
+                }
+                catch
+                {
+                    await Policies.Release(decision.DecisionId, CancellationToken.None);
+                    throw;
+                }
                 if (cancellation.IsCancellationRequested)
                 {
+                    await Policies.Release(decision.DecisionId, CancellationToken.None);
                     await PersistDraftOutcome(receipt, FinalOutcome(pending, GmailDraftOperationStatus.Failed,
                         Failure("cancelled_before_dispatch"), accounting with { Status = GmailAccountingStatus.CancelledBeforeDispatch }));
                     cancellation.ThrowIfCancellationRequested();
@@ -105,6 +120,7 @@ internal sealed partial class GmailNeuron
                 try { result = await Api.CreateDraftAsync(credential.Value, context, mime, cancellation); }
                 catch (BudgetExhaustedException)
                 {
+                    await Policies.Release(decision.DecisionId, CancellationToken.None);
                     var denied = await PersistDraftOutcome(receipt, FinalOutcome(pending, GmailDraftOperationStatus.Failed,
                         Failure("budget_exhausted"), accounting with { Status = GmailAccountingStatus.CancelledBeforeDispatch }));
                     return GmailDraftCreationResult.FromValue(denied);
@@ -112,8 +128,13 @@ internal sealed partial class GmailNeuron
                 catch
                 {
                     // An unexpected adapter failure after invocation is not evidence of no dispatch. Keep recovery safe, then surface the bug/cancellation.
+                    await Policies.Release(decision.DecisionId, CancellationToken.None);
                     await PersistDraftOutcome(receipt, FinalOutcome(pending, GmailDraftOperationStatus.Unknown, Failure("outcome_unknown"), accounting));
                     throw;
+                }
+                if (result.Outcome != GoogleWriteOutcome.Succeeded)
+                {
+                    await Policies.Release(decision.DecisionId, CancellationToken.None);
                 }
                 var accounted = accounting with
                 {

@@ -27,6 +27,7 @@ internal sealed class McpServerNeuron : DigitalBrain.Neuron<McpServerStore>, IMc
 
     private McpClient? _client;
     private Uri? _endpoint;
+    private IPolicies Policies => Context.Get<IPolicies>(NeuronId.Parse(IPolicies.Key(Id.Brain.Value)));
 
     public async Task<McpServerState> Connect(McpServerSpec spec, CancellationToken ct = default)
     {
@@ -65,9 +66,24 @@ internal sealed class McpServerNeuron : DigitalBrain.Neuron<McpServerStore>, IMc
         var state = State.State is { Connected: true } connected ? connected
             : throw new InvalidOperationException("The MCP server is not connected; call Connect first.");
         var input = Arguments(arguments);
+        var decision = await Policies.Allow("mcp.tool.run", 1m, new Dictionary<string, string>
+        {
+            ["Tool"] = tool,
+            ["Server"] = state.Title,
+        }, ct);
+        PolicyGuard.Require(decision);
         var clock = Stopwatch.StartNew();
-        var result = await Session(new Uri(state.Url), async (client, token) =>
-            Result(JsonSerializer.SerializeToElement(await client.CallToolAsync(tool, input, cancellationToken: token), McpJsonUtilities.DefaultOptions)), ct);
+        ToolResult result;
+        try
+        {
+            result = await Session(new Uri(state.Url), async (client, token) =>
+                Result(JsonSerializer.SerializeToElement(await client.CallToolAsync(tool, input, cancellationToken: token), McpJsonUtilities.DefaultOptions)), ct);
+        }
+        catch
+        {
+            await Policies.Release(decision.DecisionId, CancellationToken.None);
+            throw;
+        }
         await Publish(new McpToolRan(tool, result.IsError, (int)clock.ElapsedMilliseconds));
         return result;
     }
