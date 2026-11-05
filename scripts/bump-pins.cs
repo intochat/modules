@@ -1,4 +1,5 @@
 #!/usr/bin/env -S dotnet --
+#:property PublishAot=false
 // Rewrites every <PackageVersion> of a package family in Directory.Packages.props:
 // `dotnet run scripts/bump-pins.cs -- --family <DigitalBrain|IntoChat.OS.Modules> --version <semver> [--props <path>]`
 // Exits 0 when at least one pin changed, 2 when nothing changed, and 1 on invalid arguments.
