@@ -18,14 +18,7 @@ public sealed class GmailPolicyFacts
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
-    private static async Task Adopt(TestOS os, PolicyRule rule)
-    {
-        var policies = os.Get<IPolicies>(PoliciesId);
-        var outcome = await policies.Propose(rule, Ct);
-        Assert.Equal(ProposalStatus.Pending, outcome.Status);
-        await os.Confirmations.Approve(outcome.PlanId!);
-        await os.Idle();
-    }
+    private static Task Adopt(TestOS os, PolicyRule rule) => os.AdoptPolicy("b", rule, Ct);
 
     private static async Task<(TestOS Os, GmailNeuron Neuron, FakeNeuronContext Context, FakeGmailApi Api)> CreateHarnessAsync()
     {

@@ -66,24 +66,14 @@ internal sealed class McpServerNeuron : DigitalBrain.Neuron<McpServerStore>, IMc
         var state = State.State is { Connected: true } connected ? connected
             : throw new InvalidOperationException("The MCP server is not connected; call Connect first.");
         var input = Arguments(arguments);
-        var decision = await Policies.Allow("mcp.tool.run", 1m, new Dictionary<string, string>
+        var clock = Stopwatch.StartNew();
+        // The tool's own errors come back as a result, so Guard's "a throw is not dispatched" reading holds.
+        var result = await Policies.Guard("mcp.tool.run", 1m, new Dictionary<string, string>
         {
             ["Tool"] = tool,
             ["Server"] = state.Title,
-        }, ct);
-        PolicyGuard.Require(decision);
-        var clock = Stopwatch.StartNew();
-        ToolResult result;
-        try
-        {
-            result = await Session(new Uri(state.Url), async (client, token) =>
-                Result(JsonSerializer.SerializeToElement(await client.CallToolAsync(tool, input, cancellationToken: token), McpJsonUtilities.DefaultOptions)), ct);
-        }
-        catch // The tool's own errors come back as a result; a throw is read as not dispatched.
-        {
-            await Policies.Release(decision.DecisionId, CancellationToken.None);
-            throw;
-        }
+        }, cancellation => Session(new Uri(state.Url), async (client, token) =>
+            Result(JsonSerializer.SerializeToElement(await client.CallToolAsync(tool, input, cancellationToken: token), McpJsonUtilities.DefaultOptions)), cancellation), ct);
         await Publish(new McpToolRan(tool, result.IsError, (int)clock.ElapsedMilliseconds));
         return result;
     }
