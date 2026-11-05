@@ -79,7 +79,7 @@ internal sealed class McpServerNeuron : DigitalBrain.Neuron<McpServerStore>, IMc
             result = await Session(new Uri(state.Url), async (client, token) =>
                 Result(JsonSerializer.SerializeToElement(await client.CallToolAsync(tool, input, cancellationToken: token), McpJsonUtilities.DefaultOptions)), ct);
         }
-        catch
+        catch // The tool's own errors come back as a result; a throw is read as not dispatched.
         {
             await Policies.Release(decision.DecisionId, CancellationToken.None);
             throw;

@@ -143,16 +143,17 @@ internal sealed class SalesforceNeuron : ConnectionNeuron<SalesforceState>, ISal
         Snapshot.PendingWrite = null;
         Snapshot.SubmittingWrite = preview;
         await SaveQuietly(Snapshot);
-        var succeeded = false;
+        // A throw before any response is read as not dispatched; an uncertain write keeps its reservation.
+        var outcome = SalesforceWriteOutcome.Failed;
         try
         {
-            var (recordId, ok) = await SubmitWriteAsync(preview, CancellationToken.None);
-            succeeded = ok;
+            var (recordId, result) = await SubmitWriteAsync(preview, CancellationToken.None);
+            outcome = result;
             return preview with { RecordId = recordId };
         }
         finally
         {
-            if (!succeeded)
+            if (outcome == SalesforceWriteOutcome.Failed)
             {
                 await Policies.Release(decision.DecisionId, CancellationToken.None);
             }
@@ -195,7 +196,9 @@ internal sealed class SalesforceNeuron : ConnectionNeuron<SalesforceState>, ISal
     public async Task<SalesforceUserInfo> ReadUserInfo(CancellationToken cancellationToken = default)
         => new((await ReadAsync("getUserInfo", EmptyArguments(), cancellationToken)).GetRawText());
 
-    private async Task<(string? RecordId, bool Succeeded)> SubmitWriteAsync(SalesforceWritePreview preview, CancellationToken cancellationToken)
+    private enum SalesforceWriteOutcome { Written, Failed, Uncertain }
+
+    private async Task<(string? RecordId, SalesforceWriteOutcome Outcome)> SubmitWriteAsync(SalesforceWritePreview preview, CancellationToken cancellationToken)
     {
         try
         {
@@ -210,17 +213,17 @@ internal sealed class SalesforceNeuron : ConnectionNeuron<SalesforceState>, ISal
             if (result.TryGetProperty("isError", out var error) && error.ValueKind == JsonValueKind.True)
             {
                 await PublishAsync(new SalesforceWriteFailed(preview.PreviewId));
-                return (null, false);
+                return (null, SalesforceWriteOutcome.Failed);
             }
 
             var recordId = result.TryGetProperty("id", out var id) ? id.GetString() : null;
             await PublishAsync(new RecordWritten(preview with { RecordId = recordId }));
-            return (recordId, true);
+            return (recordId, SalesforceWriteOutcome.Written);
         }
         catch (Exception error) when (error is SalesforceNotConnectedException or SalesforceUnavailableException)
         {
             await PublishAsync(new SalesforceWriteUncertain(preview.PreviewId));
-            return (null, false);
+            return (null, SalesforceWriteOutcome.Uncertain);
         }
     }
 

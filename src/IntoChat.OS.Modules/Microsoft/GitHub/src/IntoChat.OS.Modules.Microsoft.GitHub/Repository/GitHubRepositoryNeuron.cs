@@ -200,7 +200,7 @@ internal sealed class GitHubRepositoryNeuron : ConnectionNeuron<GitHubRepository
         {
             await _source.PushBranchAsync(Repository, request, CancellationToken.None).ConfigureAwait(false);
         }
-        catch
+        catch // GitHub reports acceptance in the response; a throw is read as not dispatched.
         {
             await Policies.Release(decision.DecisionId, CancellationToken.None).ConfigureAwait(false);
             throw;
@@ -221,7 +221,7 @@ internal sealed class GitHubRepositoryNeuron : ConnectionNeuron<GitHubRepository
         {
             return await _source.CreatePullRequestAsync(Repository, request, CancellationToken.None).ConfigureAwait(false);
         }
-        catch
+        catch // GitHub reports acceptance in the response; a throw is read as not dispatched.
         {
             await Policies.Release(decision.DecisionId, CancellationToken.None).ConfigureAwait(false);
             throw;
@@ -242,7 +242,7 @@ internal sealed class GitHubRepositoryNeuron : ConnectionNeuron<GitHubRepository
         {
             await _source.ReplyToReviewCommentAsync(Repository, request, CancellationToken.None).ConfigureAwait(false);
         }
-        catch
+        catch // GitHub reports acceptance in the response; a throw is read as not dispatched.
         {
             await Policies.Release(decision.DecisionId, CancellationToken.None).ConfigureAwait(false);
             throw;
@@ -271,7 +271,7 @@ internal sealed class GitHubRepositoryNeuron : ConnectionNeuron<GitHubRepository
         {
             await _source.MergePullRequestAsync(Repository, request, CancellationToken.None).ConfigureAwait(false);
         }
-        catch
+        catch // GitHub reports acceptance in the response; a throw is read as not dispatched.
         {
             await Policies.Release(decision.DecisionId, CancellationToken.None).ConfigureAwait(false);
             throw;

@@ -86,12 +86,7 @@ internal sealed partial class GmailNeuron
                 // A refresh may narrow scopes; check again before durable intent or any mutation.
                 if (GrantFailure(compose: true) is { } changedGrant) { return GmailDraftCreationResult.FromFailure(changedGrant); }
                 cancellation.ThrowIfCancellationRequested();
-                var decision = await Policies.Allow("gmail.draft.create", 1m, new Dictionary<string, string>
-                {
-                    ["To"] = string.Join(", ", prepared.To),
-                    ["Subject"] = prepared.Subject,
-                }, cancellation);
-                DigitalBrain.PolicyGuard.Require(decision);
+                var decisions = await AllowRecipientsAsync(prepared, cancellation);
                 var pending = new GmailDraftOperation(request.RequestId, prepared.PreviewId, preview.Mailbox,
                     GmailDraftOperationStatus.Pending, null, null, now, now, null, accounting);
                 var receipt = new GmailStoredOperation(pending, caller, preview.GrantGeneration, preview.Digest);
@@ -106,12 +101,12 @@ internal sealed partial class GmailNeuron
                 }
                 catch
                 {
-                    await Policies.Release(decision.DecisionId, CancellationToken.None);
+                    await ReleaseAsync(decisions);
                     throw;
                 }
                 if (cancellation.IsCancellationRequested)
                 {
-                    await Policies.Release(decision.DecisionId, CancellationToken.None);
+                    await ReleaseAsync(decisions);
                     await PersistDraftOutcome(receipt, FinalOutcome(pending, GmailDraftOperationStatus.Failed,
                         Failure("cancelled_before_dispatch"), accounting with { Status = GmailAccountingStatus.CancelledBeforeDispatch }));
                     cancellation.ThrowIfCancellationRequested();
@@ -120,21 +115,22 @@ internal sealed partial class GmailNeuron
                 try { result = await Api.CreateDraftAsync(credential.Value, context, mime, cancellation); }
                 catch (BudgetExhaustedException)
                 {
-                    await Policies.Release(decision.DecisionId, CancellationToken.None);
+                    await ReleaseAsync(decisions);
                     var denied = await PersistDraftOutcome(receipt, FinalOutcome(pending, GmailDraftOperationStatus.Failed,
                         Failure("budget_exhausted"), accounting with { Status = GmailAccountingStatus.CancelledBeforeDispatch }));
                     return GmailDraftCreationResult.FromValue(denied);
                 }
                 catch
                 {
-                    // An unexpected adapter failure after invocation is not evidence of no dispatch. Keep recovery safe, then surface the bug/cancellation.
-                    await Policies.Release(decision.DecisionId, CancellationToken.None);
+                    // An unexpected adapter failure after invocation is not evidence of no dispatch: the draft may exist, so its
+                    // policy reservations stay counted. Keep recovery safe, then surface the bug/cancellation.
                     await PersistDraftOutcome(receipt, FinalOutcome(pending, GmailDraftOperationStatus.Unknown, Failure("outcome_unknown"), accounting));
                     throw;
                 }
-                if (result.Outcome != GoogleWriteOutcome.Succeeded)
+                // Only a definite non-dispatch gives the reservations back; an unknown outcome stays counted.
+                if (result.Outcome is GoogleWriteOutcome.Rejected or GoogleWriteOutcome.NotDispatched)
                 {
-                    await Policies.Release(decision.DecisionId, CancellationToken.None);
+                    await ReleaseAsync(decisions);
                 }
                 var accounted = accounting with
                 {
@@ -162,6 +158,39 @@ internal sealed partial class GmailNeuron
         }
         catch (GmailCredentialException error) { return GmailDraftCreationResult.FromFailure(Failure(error.Code)); }
         catch (BudgetExhaustedException) { return GmailDraftCreationResult.FromFailure(Failure("budget_exhausted")); }
+    }
+
+    // One policy decision per distinct recipient across To, Cc and Bcc, so a recipient rule sees every address rather than a
+    // joined string. A refusal for any address releases the others and refuses the draft; a draft counts once per recipient.
+    private async Task<IReadOnlyList<string>> AllowRecipientsAsync(GmailPreparedDraft prepared, CancellationToken ct)
+    {
+        var decisions = new List<string>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (field, addresses) in new (string, IEnumerable<string>)[] { ("To", prepared.To), ("Cc", prepared.Cc), ("Bcc", prepared.Bcc) })
+        {
+            foreach (var address in addresses)
+            {
+                if (!seen.Add(address)) { continue; }
+                var decision = await Policies.Allow("gmail.draft.create", 1m, new Dictionary<string, string>
+                {
+                    ["To"] = address,
+                    ["Field"] = field,
+                    ["Subject"] = prepared.Subject,
+                }, ct);
+                if (!decision.Allowed)
+                {
+                    await ReleaseAsync(decisions);
+                    DigitalBrain.PolicyGuard.Require(decision);
+                }
+                decisions.Add(decision.DecisionId);
+            }
+        }
+        return decisions;
+    }
+
+    private async Task ReleaseAsync(IReadOnlyList<string> decisions)
+    {
+        foreach (var decision in decisions) { await Policies.Release(decision, CancellationToken.None); }
     }
 
     private GmailStoredOperation[] RetainedOperations(DateTimeOffset now)

@@ -133,10 +133,10 @@ public sealed class GmailPolicyFacts
         await Adopt(os, rule);
 
         using var caller = RuntimeCallerContext.StampScope(CapabilityCallers.Of("user-1", "acc-1", "b", CallerKind.User));
-        api.ThrowOnNextCreateDraft = true;
+        api.NotDispatchedOnNextCreateDraft = true;
         var firstPreview = await neuron.PreviewDraft(new GmailDraftRequest(["alice@example.test"], [], [], "First", "Body 1"), Ct);
-        await Assert.ThrowsAsync<HttpRequestException>(
-            () => neuron.CreateDraft(new GmailCreateDraftRequest(firstPreview.Value!.PreviewId, "req-1"), Ct));
+        var first = await neuron.CreateDraft(new GmailCreateDraftRequest(firstPreview.Value!.PreviewId, "req-1"), Ct);
+        Assert.Equal(GmailDraftOperationStatus.Failed, first.Value!.Status);
 
         var secondPreview = await neuron.PreviewDraft(new GmailDraftRequest(["bob@example.test"], [], [], "Second", "Body 2"), Ct);
         var second = await neuron.CreateDraft(new GmailCreateDraftRequest(secondPreview.Value!.PreviewId, "req-2"), Ct);
@@ -145,6 +145,69 @@ public sealed class GmailPolicyFacts
         var thirdPreview = await neuron.PreviewDraft(new GmailDraftRequest(["carol@example.test"], [], [], "Third", "Body 3"), Ct);
         await Assert.ThrowsAsync<RuleViolationException>(
             () => neuron.CreateDraft(new GmailCreateDraftRequest(thirdPreview.Value!.PreviewId, "req-3"), Ct));
+    }
+
+    [Fact]
+    public async Task AnUnknownOutcomeKeepsTheReservation()
+    {
+        var (os, neuron, _, api) = await CreateHarnessAsync();
+        await using var _ = os;
+        var rule = new PolicyRule(
+            "r1",
+            "gmail.draft.create",
+            PolicyMeasure.Count,
+            new PolicyWindow(PolicyWindowKind.Day, null),
+            1m,
+            null,
+            "Allow at most 1 count of create a mail draft per day",
+            os.Clock.GetUtcNow());
+        await Adopt(os, rule);
+
+        using var caller = RuntimeCallerContext.StampScope(CapabilityCallers.Of("user-1", "acc-1", "b", CallerKind.User));
+        api.ThrowOnNextCreateDraft = true;
+        var firstPreview = await neuron.PreviewDraft(new GmailDraftRequest(["alice@example.test"], [], [], "First", "Body 1"), Ct);
+        await Assert.ThrowsAsync<HttpRequestException>(
+            () => neuron.CreateDraft(new GmailCreateDraftRequest(firstPreview.Value!.PreviewId, "req-1"), Ct));
+
+        // The draft may exist on the provider, so the day's one draft stays spent.
+        var secondPreview = await neuron.PreviewDraft(new GmailDraftRequest(["bob@example.test"], [], [], "Second", "Body 2"), Ct);
+        await Assert.ThrowsAsync<RuleViolationException>(
+            () => neuron.CreateDraft(new GmailCreateDraftRequest(secondPreview.Value!.PreviewId, "req-2"), Ct));
+        Assert.Equal(1, api.CreateDraftCalls);
+    }
+
+    [Fact]
+    public async Task ARecipientRuleSeesEveryAddressIncludingBcc()
+    {
+        var (os, neuron, _, api) = await CreateHarnessAsync();
+        await using var _ = os;
+        var rule = new PolicyRule(
+            "r1",
+            "gmail.draft.create",
+            PolicyMeasure.Count,
+            new PolicyWindow(PolicyWindowKind.Day, null),
+            1m,
+            new PolicyCondition("To", PolicyOp.EndsWith, "@corp.com"),
+            "Allow at most 1 count of create a mail draft per day when To EndsWith @corp.com",
+            os.Clock.GetUtcNow());
+        await Adopt(os, rule);
+
+        using var caller = RuntimeCallerContext.StampScope(CapabilityCallers.Of("user-1", "acc-1", "b", CallerKind.User));
+        // The corp address is not the last one in To; it still counts.
+        var firstPreview = await neuron.PreviewDraft(new GmailDraftRequest(["boss@corp.com", "friend@other.org"], [], [], "First", "Body 1"), Ct);
+        var first = await neuron.CreateDraft(new GmailCreateDraftRequest(firstPreview.Value!.PreviewId, "req-1"), Ct);
+        Assert.Equal(GmailDraftOperationStatus.Completed, first.Value!.Status);
+
+        // A corp address hidden in Bcc is refused by the same rule, and nothing is sent to the provider.
+        var secondPreview = await neuron.PreviewDraft(new GmailDraftRequest(["friend@other.org"], [], ["team@corp.com"], "Second", "Body 2"), Ct);
+        await Assert.ThrowsAsync<RuleViolationException>(
+            () => neuron.CreateDraft(new GmailCreateDraftRequest(secondPreview.Value!.PreviewId, "req-2"), Ct));
+        Assert.Equal(1, api.CreateDraftCalls);
+
+        // Addresses outside the rule are unaffected.
+        var thirdPreview = await neuron.PreviewDraft(new GmailDraftRequest(["friend@other.org"], ["pal@other.org"], [], "Third", "Body 3"), Ct);
+        var third = await neuron.CreateDraft(new GmailCreateDraftRequest(thirdPreview.Value!.PreviewId, "req-3"), Ct);
+        Assert.Equal(GmailDraftOperationStatus.Completed, third.Value!.Status);
     }
 
     [Fact]
@@ -159,6 +222,7 @@ public sealed class GmailPolicyFacts
     {
         public int CreateDraftCalls { get; private set; }
         public bool ThrowOnNextCreateDraft { get; set; }
+        public bool NotDispatchedOnNextCreateDraft { get; set; }
 
         public Task<GoogleDraftWriteResult> CreateDraftAsync(string accessToken, GoogleCallContext context, byte[] mime, CancellationToken ct)
         {
@@ -167,6 +231,11 @@ public sealed class GmailPolicyFacts
             {
                 ThrowOnNextCreateDraft = false;
                 throw new HttpRequestException("Simulated Gmail transport failure.");
+            }
+            if (NotDispatchedOnNextCreateDraft)
+            {
+                NotDispatchedOnNextCreateDraft = false;
+                return Task.FromResult(new GoogleDraftWriteResult(GoogleWriteOutcome.NotDispatched, Failure: new GoogleApiFailure(GoogleApiFailureKind.Unavailable, 503)));
             }
             return Task.FromResult(new GoogleDraftWriteResult(GoogleWriteOutcome.Succeeded, DraftId: $"draft-{CreateDraftCalls}"));
         }

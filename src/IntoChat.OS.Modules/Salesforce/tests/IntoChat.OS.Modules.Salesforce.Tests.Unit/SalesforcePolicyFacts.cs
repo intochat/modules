@@ -136,6 +136,34 @@ public sealed class SalesforcePolicyFacts
     }
 
     [Fact]
+    public async Task AnUncertainWriteKeepsTheReservation()
+    {
+        var (os, neuron, provider) = await CreateHarnessAsync();
+        await using var _ = os;
+        var rule = new PolicyRule(
+            "r1",
+            "salesforce.record.write",
+            PolicyMeasure.Count,
+            new PolicyWindow(PolicyWindowKind.Day, null),
+            1m,
+            null,
+            "Allow at most 1 count of write a Salesforce record per day",
+            os.Clock.GetUtcNow());
+        await Adopt(os, rule);
+
+        provider.InvalidShapeOnNextWrite = true;
+        var firstPreview = await neuron.PrepareWrite(new PrepareSalesforceWrite("createRecord", """{"objectName":"Account","Name":"Acme"}"""));
+        var first = await neuron.ConfirmWrite(new ConfirmSalesforceWrite(firstPreview.PreviewId, firstPreview.ToolSchemaHash));
+        Assert.Null(first.RecordId);
+
+        // Salesforce answered, so the record may exist: the day's one write stays spent.
+        var secondPreview = await neuron.PrepareWrite(new PrepareSalesforceWrite("createRecord", """{"objectName":"Account","Name":"Beta"}"""));
+        await Assert.ThrowsAsync<RuleViolationException>(
+            () => neuron.ConfirmWrite(new ConfirmSalesforceWrite(secondPreview.PreviewId, secondPreview.ToolSchemaHash)));
+        Assert.Equal(1, provider.WriteCalls);
+    }
+
+    [Fact]
     public void TheManifestDeclaresTheAction()
     {
         var action = Assert.Single(ModuleManifest.Of(typeof(SalesforceModule)).Actions, a => a.Name == "salesforce.record.write");
@@ -147,6 +175,7 @@ public sealed class SalesforcePolicyFacts
     {
         public int WriteCalls { get; private set; }
         public bool ThrowOnNextWrite { get; set; }
+        public bool InvalidShapeOnNextWrite { get; set; }
 
         public Task<string> ReadToolSchemaHashAsync(string tool, string accessToken, CancellationToken cancellationToken)
             => Task.FromResult("schema-hash-v1");
@@ -158,6 +187,11 @@ public sealed class SalesforcePolicyFacts
             {
                 ThrowOnNextWrite = false;
                 throw new SalesforceUnreachableException("Simulated Salesforce outage.");
+            }
+            if (InvalidShapeOnNextWrite)
+            {
+                InvalidShapeOnNextWrite = false;
+                return Task.FromResult(JsonSerializer.SerializeToElement("not an object"));
             }
             return Task.FromResult(JsonSerializer.SerializeToElement(new { id = "001xx000003DGbYAAW" }));
         }
