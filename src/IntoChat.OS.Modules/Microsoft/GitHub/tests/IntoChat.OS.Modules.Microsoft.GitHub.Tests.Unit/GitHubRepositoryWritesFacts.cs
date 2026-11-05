@@ -9,14 +9,20 @@ using DigitalBrain;
 using DigitalBrain.Capabilities;
 using DigitalBrain.Confirmation;
 using DigitalBrain.Spi;
+using DigitalBrain.Testing;
 using IntoChat.OS.Modules.Microsoft.GitHub.Signals;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace IntoChat.OS.Modules.Microsoft.GitHub.Tests.Unit;
 
-public sealed class GitHubRepositoryWritesFacts
+public sealed class GitHubRepositoryWritesFacts : IAsyncDisposable
 {
+    // The brain's real policies neuron with no rules adopted: every write is allowed, through the same path production takes.
+    private readonly TestOS _os = TestOS.Local().Register(typeof(GitHubModule).Assembly);
+
+    public ValueTask DisposeAsync() => _os.DisposeAsync();
+
     [Fact]
     public void PullRequestChanged_PropertiesAndDefaults()
     {
@@ -162,13 +168,14 @@ public sealed class GitHubRepositoryWritesFacts
         Assert.Null(mockSource.LastMergePullRequest);
     }
 
-    private static (GitHubRepositoryNeuron neuron, MockGitHubRepositorySource source) CreateConnectedNeuron()
+    private (GitHubRepositoryNeuron neuron, MockGitHubRepositorySource source) CreateConnectedNeuron()
     {
         var mockSource = new MockGitHubRepositorySource();
         var neuron = new GitHubRepositoryNeuron(mockSource, null!, null!, null!);
 
         var context = new TestNeuronContext(
             new NeuronId(new BrainId("local"), "github", "connection/github/main"),
+            _os.Get<IPolicies>(NeuronId.Parse(IPolicies.Key("local"))),
             new GitHubRepositoryState
             {
                 Status = ConnectionStatus.Connected,
@@ -267,10 +274,12 @@ public sealed class GitHubRepositoryWritesFacts
     private sealed class TestNeuronContext : INeuronContext
     {
         private readonly object _state;
+        private readonly IPolicies _policies;
 
-        public TestNeuronContext(NeuronId id, object state)
+        public TestNeuronContext(NeuronId id, IPolicies policies, object state)
         {
             Id = id;
+            _policies = policies;
             _state = state;
             Services = new ServiceCollection().BuildServiceProvider();
             Time = TimeProvider.System;
@@ -292,23 +301,10 @@ public sealed class GitHubRepositoryWritesFacts
 
         public Task Publish(DigitalBrain.Signal signal) => Task.CompletedTask;
         public Task PublishEphemeral(DigitalBrain.Signal signal) => Task.CompletedTask;
-        public T Get<T>(NeuronId id) where T : class => typeof(T) == typeof(IPolicies) ? (T)(object)AllowAllPolicies.Instance : null!;
+        public T Get<T>(NeuronId id) where T : class => typeof(T) == typeof(IPolicies) ? (T)_policies : null!;
         public void Defer(Func<Task> work) { }
         public Task<ConfirmationResult> Confirm(ConfirmationPlan plan, CancellationToken ct = default)
             => Task.FromResult(new ConfirmationResult(plan.Id, ConfirmationOutcome.Approved, ConfirmationDenyReason.None, Skipped: true));
-    }
-
-    private sealed class AllowAllPolicies : IPolicies
-    {
-        public static readonly AllowAllPolicies Instance = new();
-
-        public Task<ProposalOutcome> Propose(PolicyRule rule, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task<PolicyDecision> Allow(string action, decimal amount, IReadOnlyDictionary<string, string>? facts, CancellationToken ct = default)
-            => Task.FromResult(new PolicyDecision(true, "allow", null, null));
-        public Task Release(string decisionId, CancellationToken ct = default) => Task.CompletedTask;
-        public Task Retire(string ruleId, CancellationToken ct = default) => Task.CompletedTask;
-        public Task<IReadOnlyList<PolicyRule>> List(CancellationToken ct = default) => Task.FromResult<IReadOnlyList<PolicyRule>>([]);
-        public Task<IReadOnlyList<ActionDescriptor>> Actions(CancellationToken ct = default) => Task.FromResult<IReadOnlyList<ActionDescriptor>>([]);
     }
 
     private sealed class TestNeuronState : INeuronState
