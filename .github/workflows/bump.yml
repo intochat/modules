@@ -25,6 +25,12 @@ jobs:
         with:
           global-json-file: global.json
 
+      # bump-pins.cs restores from the GitHub feed, which needs the same credentials the release workflow uses.
+      - name: Authenticate GitHub Packages
+        env:
+          GITHUB_TOKEN: ${{ secrets.PACKAGE_TOKEN || secrets.GITHUB_TOKEN }}
+        run: dotnet nuget update source github --username "${{ github.actor }}" --password "${GITHUB_TOKEN}" --store-password-in-clear-text --configfile nuget.config
+
       - name: Bump pins and open pull request
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
